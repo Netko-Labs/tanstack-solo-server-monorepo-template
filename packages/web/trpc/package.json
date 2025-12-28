@@ -1,0 +1,21 @@
+{
+  "name": "@temp-repo/web-trpc",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./init": "./src/init.ts"
+  },
+  "dependencies": {
+    "@temp-repo/web-config": "workspace:*",
+    "@temp-repo/web-domain": "workspace:*",
+    "@temp-repo/web-repository": "workspace:*",
+    "@temp-repo/web-service": "workspace:*",
+    "@temp-repo/logger": "workspace:*",
+    "@temp-repo/typescript-config": "workspace:*",
+    "@trpc/server": "^11.1.2",
+    "superjson": "^2.2.2",
+    "zod": "^3.25.16"
+  }
+}
