@@ -41,4 +41,3 @@ export const httpTrpcClient = createTRPCClient<AppRouter>({
     }),
   ],
 })
-

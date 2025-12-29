@@ -1,0 +1,31 @@
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/')({
+  component: Home,
+})
+
+function Home() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-background to-muted p-8">
+      <div className="max-w-2xl text-center">
+        <h1 className="mb-4 text-4xl font-bold tracking-tight">
+          Welcome to {{ pascalCase name }}
+        </h1>
+        <p className="mb-8 text-lg text-muted-foreground">
+          Your new TanStack Start application is ready to go! 🚀
+        </p>
+        <div className="flex justify-center gap-4">
+          <a
+            href="https://tanstack.com/start"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            TanStack Start Docs
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+

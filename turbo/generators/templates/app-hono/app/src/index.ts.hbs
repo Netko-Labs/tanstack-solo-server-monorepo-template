@@ -1,0 +1,47 @@
+import { logger } from '@temp-repo/logger'
+import { {{ camelCase name }}EnvConfig } from '@temp-repo/{{ name }}-config'
+import { appRouter, createContext } from '@temp-repo/{{ name }}-trpc'
+import { trpcServer } from '@hono/trpc-server'
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { logger as honoLogger } from 'hono/logger'
+
+/**
+ * ✧･ﾟ: *✧･ﾟ:* {{ constantCase name }} HONO SERVER *:･ﾟ✧*:･ﾟ✧
+ *
+ * A lightweight API server powered by Hono! (◕‿◕✿)
+ */
+
+const app = new Hono()
+
+// Middleware
+app.use('*', honoLogger())
+app.use('*', cors({
+  origin: {{ camelCase name }}EnvConfig.app.cors,
+  credentials: true,
+}))
+
+// Health check endpoint
+app.get('/health', (c) => {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
+// tRPC endpoint
+app.use(
+  '/api/trpc/*',
+  trpcServer({
+    router: appRouter,
+    createContext,
+  })
+)
+
+// Start server
+const port = {{ camelCase name }}EnvConfig.app.port
+
+logger.info({ port, url: `http://localhost:${port}` }, '🚀 {{ pascalCase name }} Hono server started')
+
+export default {
+  port,
+  fetch: app.fetch,
+}
+

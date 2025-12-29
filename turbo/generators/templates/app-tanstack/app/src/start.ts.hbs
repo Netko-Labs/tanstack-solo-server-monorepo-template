@@ -1,0 +1,10 @@
+import { getContext } from '@tanstack/react-start/server'
+
+export function getRequestHeaders() {
+  const ctx = getContext()
+  if (!ctx) {
+    throw new Error('getRequestHeaders must be called within a request context')
+  }
+  return ctx.request.headers
+}
+

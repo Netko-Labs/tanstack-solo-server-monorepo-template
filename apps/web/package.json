@@ -1,18 +1,15 @@
 {
-  "name": "start-app",
+  "name": "web-app",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run dev:setup && bun run dev:serve",
-    "dev:serve": "NODE_ENV=development bun run server.ts",
+    "dev": "NODE_ENV=development bun run server.ts",
     "start": "bun run server.ts",
     "build": "NODE_ENV=production bunx --bun vite build",
-    "prod:release": "NODE_ENV=production bun run prod:setup && bun run start",
-    "prod:setup": "bun run db:generate && bun run db:deploy",
-    "dev:setup": "bun run db:generate && bun run db:migrate",
-    "db:migrate": "bun run --env-file=../../../apps/web/.env --cwd ../../packages/web/repository db:migrate",
-    "db:generate": "bun run --filter @temp-repo/web-repository db:generate",
-    "db:deploy": "bun run --filter @temp-repo/web-repository db:deploy"
+    "db:migrate": "repo db:migrate --app web",
+    "db:generate": "repo db:generate --app web",
+    "db:push": "repo db:push --app web",
+    "db:seed": "repo db:seed --app web"
   },
   "dependencies": {
     "@temp-repo/logger": "workspace:*",

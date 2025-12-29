@@ -73,6 +73,20 @@
         "@temp-repo/web-domain": "workspace:*",
       },
     },
+    "packages/shared/cli": {
+      "name": "@temp-repo/cli",
+      "version": "0.1.0",
+      "bin": {
+        "repo": "./src/index.ts",
+      },
+      "dependencies": {
+        "@temp-repo/typescript-config": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.4",
+        "typescript": "^5",
+      },
+    },
     "packages/shared/logger": {
       "name": "@temp-repo/logger",
       "version": "0.1.0",
@@ -638,6 +652,8 @@
     "@tanstack/store": ["@tanstack/store@0.8.0", "", {}, "sha512-Om+BO0YfMZe//X2z0uLF2j+75nQga6TpTJgLJQBiq85aOyZNIhkCgleNcud2KQg4k4v9Y9l+Uhru3qWMPGTOzQ=="],
 
     "@tanstack/virtual-file-routes": ["@tanstack/virtual-file-routes@1.141.0", "", {}, "sha512-CJrWtr6L9TVzEImm9S7dQINx+xJcYP/aDkIi6gnaWtIgbZs1pnzsE0yJc2noqXZ+yAOqLx3TBGpBEs9tS0P9/A=="],
+
+    "@temp-repo/cli": ["@temp-repo/cli@workspace:packages/shared/cli"],
 
     "@temp-repo/logger": ["@temp-repo/logger@workspace:packages/shared/logger"],
 

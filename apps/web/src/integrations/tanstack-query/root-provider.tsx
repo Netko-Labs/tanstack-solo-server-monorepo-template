@@ -1,11 +1,11 @@
-import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
+import type * as React from 'react'
 import superjson from 'superjson'
 import { httpTrpcClient, TRPCProvider } from '@/integrations/trpc'
 
 // Singleton QueryClient for SSR
-let clientQueryClient: QueryClient | undefined = undefined
+let clientQueryClient: QueryClient | undefined
 
 function getQueryClient() {
   if (typeof window === 'undefined') {
