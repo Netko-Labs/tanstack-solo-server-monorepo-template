@@ -28,13 +28,19 @@ Generator Commands:
   generate:app               Create a new app (TanStack or Hono)
   generate:lib               Create a new shared library
 
+Project Commands:
+  rename <new-scope>         Rename project scope (e.g., @temp-repo → @my-company)
+  rename:preview <scope>     Preview files that would be changed by rename
+
 Other:
   help, --help, -h           Show this help message
 
 Examples:
-  bun repo docker:up --app web
-  bun repo db:migrate --app web
-  bun repo dev --app web
+  bun repo docker:up --app game
+  bun repo db:migrate --app game
+  bun repo dev --app game
   bun repo generate:app
+  bun repo rename:preview @my-company
+  bun repo rename @my-company
 `)
 }

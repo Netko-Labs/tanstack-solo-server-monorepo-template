@@ -1,6 +1,6 @@
-import { webEnvConfig } from '@temp-repo/web-config'
 import { toFetchResponse, toReqRes } from 'fetch-to-node'
 import type { ViteDevServer } from 'vite'
+import type { TanStackServerConfig } from '../types'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* FETCH ↔ NODE.JS BRIDGE *:･ﾟ✧*:･ﾟ✧
@@ -18,6 +18,7 @@ import type { ViteDevServer } from 'vite'
 export async function processRequestThroughVite(
   request: Request,
   vite: ViteDevServer,
+  config: TanStackServerConfig,
 ): Promise<Response> {
   // Convert Fetch Request → Node.js req/res (◕‿◕)
   const { req, res } = toReqRes(request)
@@ -25,11 +26,10 @@ export async function processRequestThroughVite(
   // Ensure socket properties exist to prevent null errors (✿◠‿◠)
   // TanStack Start/Vite may try to access socket.localPort
   if (req.socket) {
-    const _url = new URL(request.url)
     // biome-ignore lint/suspicious/noExplicitAny: Node.js socket types require flexibility
     const socket = req.socket as any
     if (socket.localPort === undefined || socket.localPort === null) {
-      socket.localPort = webEnvConfig.app.port
+      socket.localPort = config.port
     }
     if (socket.remoteAddress === undefined || socket.remoteAddress === null) {
       socket.remoteAddress = '127.0.0.1'
@@ -51,7 +51,7 @@ export async function processRequestThroughVite(
         isResolved = true
         // Convert Node.js response → Fetch Response (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
         toFetchResponse(res)
-          .then((webResponse) => resolve(webResponse))
+          .then((fetchResponse) => resolve(fetchResponse))
           .catch((error) => reject(error))
       }
       // biome-ignore lint/suspicious/noExplicitAny: Node.js types require flexibility here
@@ -102,3 +102,4 @@ async function loadTanStackStartHandler(vite: ViteDevServer, request: Request): 
   // Call the fetch handler from the entry (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
   return entry.default.fetch(request)
 }
+

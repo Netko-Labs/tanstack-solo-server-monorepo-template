@@ -1,6 +1,5 @@
-import { logger } from '@temp-repo/logger'
-import { {{ camelCase name }}EnvConfig } from '@temp-repo/{{ name }}-config'
 import type { ViteDevServer } from 'vite'
+import type { Logger, TanStackServerConfig } from '../types'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* VITE DEV SERVER INITIALIZER *:･ﾟ✧*:･ﾟ✧
@@ -10,14 +9,19 @@ import type { ViteDevServer } from 'vite'
  * while Bun handles the HTTP server (◕‿◕✿)
  */
 
+interface ViteServerOptions {
+  config: TanStackServerConfig
+  logger?: Logger
+}
+
 /**
  * Initializes Vite in middleware mode ✨
  * Vite-chan will handle all the module transforms! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
  */
-export async function initializeViteServer(): Promise<ViteDevServer> {
-  const { port } = {{ camelCase name }}EnvConfig.app
+export async function initializeViteServer(options: ViteServerOptions): Promise<ViteDevServer> {
+  const { config, logger } = options
 
-  logger.info('🔥 Starting Vite dev server...')
+  logger?.info('🔥 Starting Vite dev server...')
 
   const { createServer } = await import('vite')
 
@@ -25,13 +29,13 @@ export async function initializeViteServer(): Promise<ViteDevServer> {
     server: {
       middlewareMode: true,
       hmr: {
-        port: port + 1, // HMR WebSocket gets its own port ヨシ!
+        port: config.port + 1, // HMR WebSocket gets its own port ヨシ!
       },
     },
     appType: 'custom',
   })
 
-  logger.info('✨ Vite dev server initialized')
+  logger?.info('✨ Vite dev server initialized')
 
   return vite
 }

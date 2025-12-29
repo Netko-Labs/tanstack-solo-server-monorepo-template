@@ -1,5 +1,5 @@
-import { getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
-import { getRootDir, run } from '../utils/shell'
+import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
+import { run } from '../utils/shell'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* DOCKER COMMANDS *:･ﾟ✧*:･ﾟ✧
@@ -25,10 +25,12 @@ export async function dockerUp(args: string[]) {
     process.exit(1)
   }
 
+  const appDir = getAppDir(appName)
+
   console.log(`🐳 Starting Docker containers for ${appName}...`)
 
   await run(['docker', 'compose', '--profile', appName, 'up', '-d'], {
-    cwd: getRootDir(),
+    cwd: appDir,
   })
 
   console.log(`✅ Docker containers for ${appName} are running!`)
@@ -52,10 +54,12 @@ export async function dockerDown(args: string[]) {
     process.exit(1)
   }
 
+  const appDir = getAppDir(appName)
+
   console.log(`🐳 Stopping Docker containers for ${appName}...`)
 
   await run(['docker', 'compose', '--profile', appName, 'down'], {
-    cwd: getRootDir(),
+    cwd: appDir,
   })
 
   console.log(`✅ Docker containers for ${appName} stopped!`)

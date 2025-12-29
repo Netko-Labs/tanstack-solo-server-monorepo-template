@@ -1,0 +1,7 @@
+{
+  "extends": "@temp-repo/typescript-config/bun.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "node_modules/.cache/tsbuildinfo.json"
+  },
+  "include": ["src"]
+}

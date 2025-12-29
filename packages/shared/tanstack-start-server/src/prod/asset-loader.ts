@@ -1,10 +1,5 @@
 import path from 'node:path'
-import type {
-  AssetMetadata,
-  AssetPreloadConfig,
-  InMemoryAsset,
-  PreloadResult,
-} from '@temp-repo/{{ name }}-domain'
+import type { AssetMetadata, AssetPreloadConfig, InMemoryAsset, PreloadResult } from '../types'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* STATIC ASSET LOADER *:･ﾟ✧*:･ﾟ✧
@@ -128,9 +123,9 @@ export function createCompositeGlobPattern(includePatterns?: string): Bun.Glob {
   const raw = (includePatterns ?? '')
     .split(',')
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter((s): s is string => Boolean(s))
   if (raw.length === 0) return new Bun.Glob('**/*')
-  if (raw.length === 1) return new Bun.Glob(raw[0])
+  if (raw.length === 1) return new Bun.Glob(raw[0]!)
   return new Bun.Glob(`{${raw.join(',')}}`)
 }
 
@@ -211,4 +206,3 @@ export async function loadStaticAssets(
 
   return { routes, loaded, skipped }
 }
-

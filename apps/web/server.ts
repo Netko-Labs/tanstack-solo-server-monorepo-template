@@ -18,11 +18,11 @@
  *
  * Based on: https://github.com/oven-sh/bun/issues/12212
  */
-
+import { join } from 'node:path'
+import { logger } from '@temp-repo/logger'
+import { createDevServer, createProductionServer } from '@temp-repo/tanstack-start-server'
 import { webEnvConfig } from '@temp-repo/web-config'
-import { createBunServer, initializeViteServer, setupTanStackStartEnv } from './src/init/dev'
-import { createProductionServer } from './src/init/prod'
-import { setupDevShutdown, setupProductionShutdown } from './src/init/utils/shutdown'
+import { createTRPCWebSocketHandler } from './src/integrations/trpc/websocket'
 
 /**
  * 🌟 MAIN SERVER STARTUP SEQUENCE 🌟
@@ -30,28 +30,22 @@ import { setupDevShutdown, setupProductionShutdown } from './src/init/utils/shut
  */
 async function startServer() {
   const isDev = webEnvConfig.app.dev
+  const config = { port: webEnvConfig.app.port, isDev }
+  const websocket = createTRPCWebSocketHandler()
 
   if (isDev) {
     // 🔥 Development Mode - Vite + HMR magic! (◕‿◕✿)
-    console.log('\n✨ Starting development server with Vite + HMR...\n')
-
-    // Step 1: Configure TanStack Start environment (◕‿◕)
-    setupTanStackStartEnv()
-
-    // Step 2: Initialize Vite dev server 🔥
-    const vite = await initializeViteServer()
-
-    // Step 3: Create and start Bun server ⚡
-    const server = createBunServer({ vite })
-
-    // Step 4: Setup graceful shutdown handlers 👋
-    setupDevShutdown(server, vite)
+    await createDevServer({ config, websocket, logger })
   } else {
     // 🚀 Production Mode - Optimized asset serving! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
-    const server = await createProductionServer()
-
-    // Setup graceful shutdown handlers 👋
-    setupProductionShutdown(server)
+    const cwd = process.cwd()
+    await createProductionServer({
+      config,
+      clientDirectory: join(cwd, 'dist', 'client'),
+      serverEntryPoint: join(cwd, 'dist', 'server', 'server.js'),
+      websocket,
+      logger,
+    })
   }
 }
 

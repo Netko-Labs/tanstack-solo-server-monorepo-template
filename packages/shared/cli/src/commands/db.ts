@@ -65,7 +65,7 @@ export async function dbGenerate(args: string[]) {
 
   console.log(`🗃️  Generating schema for ${appName}...`)
 
-  await run(['bun', 'run', '--filter', `@temp-repo/${appName}-repository`, 'db:generate'], {
+  await run(['bun', 'run', '--filter', `@glitch-cove/${appName}-repository`, 'db:generate'], {
     cwd: getRootDir(),
   })
 

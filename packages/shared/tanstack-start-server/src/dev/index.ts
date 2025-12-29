@@ -5,8 +5,6 @@
  * Orchestrates the startup of Vite, Bun, and TanStack Start (◕‿◕✿)
  */
 
-export { createBunServer } from './server'
-export { setupTanStackStartEnv } from './utils/env-setup'
-export { processRequestThroughVite } from './utils/node-bridge'
+export { processRequestThroughVite } from './node-bridge'
+export { createDevServer } from './server'
 export { initializeViteServer } from './vite'
-

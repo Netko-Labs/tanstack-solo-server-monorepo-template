@@ -1,6 +1,6 @@
-import { logger } from '@temp-repo/logger'
 import type { Server } from 'bun'
 import type { ViteDevServer } from 'vite'
+import type { Logger } from '../types'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* GRACEFUL SHUTDOWN HANDLER *:･ﾟ✧*:･ﾟ✧
@@ -10,10 +10,20 @@ import type { ViteDevServer } from 'vite'
  */
 
 /**
+ * Default console logger (◕‿◕)
+ */
+const defaultLogger: Logger = {
+  info: (obj, msg) => console.log(typeof obj === 'string' ? obj : msg ?? JSON.stringify(obj)),
+  error: (obj, msg) => console.error(typeof obj === 'string' ? obj : msg ?? JSON.stringify(obj)),
+  debug: (obj, msg) => console.debug(typeof obj === 'string' ? obj : msg ?? JSON.stringify(obj)),
+  warn: (obj, msg) => console.warn(typeof obj === 'string' ? obj : msg ?? JSON.stringify(obj)),
+}
+
+/**
  * Sets up graceful shutdown handlers for production server ✨
  * Cleanup is important for a healthy system! ヨシ! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧
  */
-export function setupProductionShutdown(server: Server<unknown>): void {
+export function setupProductionShutdown(server: Server<unknown>, logger: Logger = defaultLogger): void {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, '⏹️  Shutting down server...')
     server.stop()
@@ -28,7 +38,11 @@ export function setupProductionShutdown(server: Server<unknown>): void {
  * Sets up graceful shutdown handlers for dev server with Vite ✨
  * Takes care of both Bun and Vite! (◕‿◕✿)
  */
-export function setupDevShutdown(server: Server<unknown>, vite: ViteDevServer): void {
+export function setupDevShutdown(
+  server: Server<unknown>,
+  vite: ViteDevServer,
+  logger: Logger = defaultLogger,
+): void {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, '⏹️  Shutting down server...')
     server.stop()

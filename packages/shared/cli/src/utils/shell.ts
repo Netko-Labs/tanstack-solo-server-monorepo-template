@@ -1,4 +1,5 @@
 import * as fs from 'node:fs'
+import * as path from 'node:path'
 import { $ } from 'bun'
 
 /**
@@ -27,8 +28,10 @@ export function loadEnvFile(envFilePath: string): Record<string, string> {
     if (key) {
       let value = valueParts.join('=')
       // Remove surrounding quotes if present
-      if ((value.startsWith('"') && value.endsWith('"')) || 
-          (value.startsWith("'") && value.endsWith("'"))) {
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
         value = value.slice(1, -1)
       }
       env[key] = value
@@ -68,9 +71,60 @@ export async function runQuiet(command: string[], options?: { cwd?: string }) {
 }
 
 /**
+ * Find process ID running on a specific port
+ */
+export async function findProcessOnPort(port: number): Promise<string | null> {
+  try {
+    // Use lsof to find process on port (works on macOS/Linux)
+    const result = await $`lsof -ti :${port}`.quiet()
+    const pid = result.text().trim()
+    return pid || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Kill a process by PID
+ */
+export async function killProcess(pid: string): Promise<boolean> {
+  try {
+    await $`kill -9 ${pid}`.quiet()
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Kill any process running on a specific port
+ */
+export async function killProcessOnPort(port: number): Promise<boolean> {
+  const pid = await findProcessOnPort(port)
+  if (!pid) {
+    return false
+  }
+
+  console.log(`⚠️  Found process (PID: ${pid}) running on port ${port}, killing it...`)
+  const killed = await killProcess(pid)
+
+  if (killed) {
+    console.log('✅ Process killed successfully')
+    // Wait a bit for the port to be released
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    return true
+  }
+
+  console.log('❌ Failed to kill process')
+  return false
+}
+
+/**
  * Get the root directory of the monorepo
  */
 export function getRootDir(): string {
-  // CLI is at packages/shared/cli, so root is 3 levels up
-  return new URL('../../../../', import.meta.url).pathname.replace(/\/$/, '')
+  // This file is at packages/shared/cli/src/utils/shell.ts
+  // Go up: utils -> src -> cli -> shared -> packages -> root (5 levels)
+  const thisDir = new URL('.', import.meta.url).pathname
+  return path.resolve(thisDir, '..', '..', '..', '..', '..')
 }

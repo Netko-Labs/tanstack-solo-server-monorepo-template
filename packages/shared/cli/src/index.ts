@@ -10,9 +10,10 @@
 
 import { build } from './commands/build'
 import { dbGenerate, dbMigrate, dbPush, dbSeed } from './commands/db'
-import { dev } from './commands/dev'
+import { dev, serve } from './commands/dev'
 import { dockerDown, dockerUp } from './commands/docker'
 import { generateApp, generateLib } from './commands/generate'
+import { previewRename, renameProject } from './commands/rename'
 import { printHelp } from './utils/help'
 
 const args = process.argv.slice(2)
@@ -46,6 +47,9 @@ async function main() {
     case 'dev':
       await dev(args.slice(1))
       break
+    case 'serve':
+      await serve(args.slice(1))
+      break
     case 'build':
       await build(args.slice(1))
       break
@@ -56,6 +60,14 @@ async function main() {
       break
     case 'generate:lib':
       await generateLib()
+      break
+
+    // Rename commands
+    case 'rename':
+      await renameProject(args.slice(1))
+      break
+    case 'rename:preview':
+      await previewRename(args.slice(1))
       break
 
     // Help
