@@ -1,244 +1,113 @@
-# 🛠️ Repo CLI
+# @temp-repo/cli
 
-A Bun-powered CLI for managing the monorepo! (◕‿◕✿)
+Monorepo CLI for managing apps, databases, Docker, and development workflows.
 
 ## Installation
 
-The CLI is automatically available when you run `bun install` at the root of the monorepo.
+The CLI is automatically available when you install the monorepo dependencies.
+
+## Usage
+
+```bash
+bun run repo <command> [options]
+```
+
+Or use the convenience scripts in the root package.json:
+
+```bash
+bun run dev          # Start full dev environment
+bun run serve        # Start dev server only
+bun run build        # Production build
+bun run db:studio    # Open Drizzle Studio
+bun run status       # Show monorepo status
+```
 
 ## Commands
 
-### Docker Commands
+### Development
 
-```bash
-# Start Docker containers for an app
-bun repo docker:up --app <name>
+| Command | Description |
+|---------|-------------|
+| `dev --app <name>` | Start full dev environment (docker + db + server) |
+| `serve --app <name>` | Start dev server only |
+| `build --app <name>` | Build for production |
 
-# Stop Docker containers for an app
-bun repo docker:down --app <name>
-```
+### Docker
 
-### Database Commands
+| Command | Description |
+|---------|-------------|
+| `docker:up --app <name>` | Start Docker containers |
+| `docker:down --app <name>` | Stop Docker containers |
 
-```bash
-# Run Drizzle migrations
-bun repo db:migrate --app <name>
+### Database
 
-# Generate Drizzle schema
-bun repo db:generate --app <name>
+| Command | Description |
+|---------|-------------|
+| `db:migrate --app <name>` | Run database migrations |
+| `db:generate --app <name>` | Generate migrations from schema |
+| `db:push --app <name>` | Push schema changes (no migration) |
+| `db:seed --app <name>` | Seed database with initial data |
+| `db:studio --app <name>` | Open Drizzle Studio GUI |
 
-# Run seed script
-bun repo db:seed --app <name>
+### Generators
 
-# Push schema changes (no migration file)
-bun repo db:push --app <name>
-```
+| Command | Description |
+|---------|-------------|
+| `generate:app` | Create a new app |
+| `generate:lib` | Create a shared library |
 
-### Development Commands
+### Testing
 
-```bash
-# Run development server
-bun repo dev --app <name>
+| Command | Description |
+|---------|-------------|
+| `test [--app <name>]` | Run unit tests |
+| `test --watch` | Run tests in watch mode |
+| `test --coverage` | Run tests with coverage |
+| `test:e2e --app <name>` | Run Playwright E2E tests |
 
-# Build for production
-bun repo build --app <name>
-```
+### Utilities
 
-### Generator Commands
+| Command | Description |
+|---------|-------------|
+| `status` | Show monorepo status (docker, ports, apps) |
+| `info --app <name>` | Show detailed app information |
+| `logs --app <name>` | View Docker container logs |
+| `logs -f` | Follow logs in real-time |
+| `clean` | Remove build artifacts and caches |
+| `reset --app <name>` | Reset app (fresh start) |
 
-```bash
-# Create a new app (TanStack or Hono)
-bun repo generate:app
+### Project
 
-# Create a new shared library
-bun repo generate:lib
-```
-
-### Project Rename Commands
-
-#### Preview Rename
-
-Preview what files would be changed when renaming the project scope:
-
-```bash
-# Using CLI directly
-bun repo rename:preview @my-company
-
-# Or using the convenience script from root
-bun run rename:preview @my-company
-```
-
-This command will:
-- ✅ Scan all relevant files (`.ts`, `.tsx`, `.js`, `.jsx`, `.json`, `.hbs`, `.md`, `.yml`, `.yaml`)
-- ✅ Show which files contain `@temp-repo`
-- ✅ Display the number of occurrences per file
-- ✅ Show total files and occurrences that would be updated
-- ❌ **Will NOT modify any files** (preview only)
-
-**Example output:**
-```
-🔍 Preview: Renaming from @temp-repo to @my-company
-
-📝 Scanning 206 files...
-
-  📄 package.json (1 occurrence)
-  📄 apps/web/package.json (8 occurrences)
-  ...
-
-╔════════════════════════════════════════════╗
-║         Preview Summary 👀                 ║
-╚════════════════════════════════════════════╝
-
-📊 Would update:
-   • Files: 79
-   • Occurrences: 180
-   • Old scope: @temp-repo
-   • New scope: @my-company
-```
-
-#### Rename Project
-
-Rename the entire project scope from `@temp-repo` to your organization's scope:
-
-```bash
-# Using CLI directly
-bun repo rename @my-company
-
-# Or using the convenience script from root
-bun run rename @my-company
-```
-
-This command will:
-- ✅ Replace all occurrences of `@temp-repo` with your new scope
-- ✅ Update all `package.json` files
-- ✅ Update all imports in TypeScript/JavaScript files
-- ✅ Update generator templates (`.hbs` files)
-- ✅ Update configuration files
-- ⚠️  **Prompt for confirmation before making changes**
-- 🚫 **Skip `node_modules`, `dist`, `.git`, and `bun.lock`**
-
-**Important:** Always preview changes first with `rename:preview` before running the actual rename!
-
-#### Safety Guidelines
-
-1. **Always commit your changes first:**
-   ```bash
-   git add .
-   git commit -m "chore: save work before rename"
-   ```
-
-2. **Preview the changes:**
-   ```bash
-   bun run rename:preview @my-company
-   ```
-
-3. **Run the rename:**
-   ```bash
-   bun run rename @my-company
-   ```
-
-4. **Review the changes:**
-   ```bash
-   git diff
-   ```
-
-5. **Reinstall dependencies:**
-   ```bash
-   bun install
-   ```
-
-6. **Test your apps:**
-   ```bash
-   bun repo dev --app <name>
-   ```
-
-7. **Commit the rename:**
-   ```bash
-   git add .
-   git commit -m "chore: rename project to @my-company"
-   ```
-
-#### Validation Rules
-
-The new scope name must:
-- ✅ Start with `@` (e.g., `@my-company`, not `my-company`)
-- ✅ Contain only lowercase letters, numbers, and hyphens
-- ✅ Match pattern: `@[a-z0-9-]+`
-
-**Valid examples:**
-- `@my-company`
-- `@acme-corp`
-- `@my-org123`
-
-**Invalid examples:**
-- `my-company` (missing `@`)
-- `@My-Company` (uppercase letters)
-- `@my_company` (underscore not allowed)
-- `@my company` (spaces not allowed)
-
-### Help
-
-```bash
-# Show help message
-bun repo help
-bun repo --help
-bun repo -h
-```
+| Command | Description |
+|---------|-------------|
+| `rename <new-scope>` | Rename project scope (e.g., @my-company) |
+| `rename:preview <scope>` | Preview rename changes |
 
 ## Examples
 
 ```bash
-# Start development workflow for 'web' app
-bun repo docker:up --app web
-bun repo db:migrate --app web
-bun repo dev --app web
+# Start development for studio app
+bun run repo dev --app studio
+
+# Open database GUI
+bun run repo db:studio --app studio
+
+# Run tests with coverage
+bun run repo test --coverage
+
+# Follow Docker logs
+bun run repo logs --app studio -f
+
+# Reset app to fresh state
+bun run repo reset --app studio
 
 # Create a new app
-bun repo generate:app
-
-# Rename project (safe workflow)
-bun run rename:preview @acme-corp  # Preview first
-bun run rename @acme-corp          # Then rename
-
-# Build for production
-bun repo build --app web
+bun run repo generate:app
 ```
 
-## Architecture
+## Options
 
-```
-packages/shared/cli/
-├── src/
-│   ├── commands/          # Command implementations
-│   │   ├── build.ts
-│   │   ├── db.ts
-│   │   ├── dev.ts
-│   │   ├── docker.ts
-│   │   ├── generate.ts
-│   │   └── rename.ts      # 🆕 Rename command
-│   ├── utils/             # Shared utilities
-│   │   ├── apps.ts
-│   │   ├── help.ts
-│   │   └── shell.ts
-│   └── index.ts           # Main CLI entry point
-├── package.json
-└── tsconfig.json
-```
-
-## Contributing
-
-When adding new commands:
-
-1. Create command file in `src/commands/`
-2. Export command functions
-3. Import in `src/index.ts`
-4. Add case in switch statement
-5. Update help text in `src/utils/help.ts`
-6. Update this README
-
-## Technologies
-
-- **Bun** - Fast JavaScript runtime
-- **TypeScript** - Type safety
-- **glob** - File pattern matching
-
+| Option | Description |
+|--------|-------------|
+| `--app, -a <name>` | Specify target app |
+| `--help, -h` | Show help message |

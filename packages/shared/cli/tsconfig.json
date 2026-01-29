@@ -1,5 +1,5 @@
 {
-  "extends": "@glitch-cove/typescript-config/base.json",
+  "extends": "@temp-repo/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",

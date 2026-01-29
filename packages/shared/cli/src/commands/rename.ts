@@ -77,7 +77,9 @@ export async function renameProject(args: string[]) {
         filesUpdated++
 
         // Count occurrences
-        const matches = content.match(new RegExp(CURRENT_SCOPE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))
+        const matches = content.match(
+          new RegExp(CURRENT_SCOPE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+        )
         const count = matches ? matches.length : 0
         occurrencesReplaced += count
 
@@ -141,16 +143,20 @@ export async function previewRename(args: string[]) {
   for (const filePath of filesToUpdate) {
     try {
       const content = fs.readFileSync(filePath, 'utf-8')
-      const matches = content.match(new RegExp(CURRENT_SCOPE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))
+      const matches = content.match(
+        new RegExp(CURRENT_SCOPE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+      )
 
       if (matches && matches.length > 0) {
         filesAffected++
         occurrencesFound += matches.length
 
         const relativePath = path.relative(rootDir, filePath)
-        console.log(`  📄 ${relativePath} (${matches.length} occurrence${matches.length !== 1 ? 's' : ''})`)
+        console.log(
+          `  📄 ${relativePath} (${matches.length} occurrence${matches.length !== 1 ? 's' : ''})`,
+        )
       }
-    } catch (error) {
+    } catch {
       // Silently skip files that can't be read
     }
   }
@@ -171,4 +177,3 @@ export async function previewRename(args: string[]) {
 
 `)
 }
-

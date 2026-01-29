@@ -1,6 +1,12 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -11,11 +17,17 @@
       },
       "suspicious": {
         "noArrayIndexKey": "off",
-        "noShadowRestrictedNames": "off"
+        "noShadowRestrictedNames": "off",
+        // Tailwind CSS uses custom at-rules (@apply, @theme) that Biome doesn't recognize
+        "noUnknownAtRules": "off"
       },
       "a11y": {
         "noSvgWithoutTitle": "off",
-        "useValidAnchor": "off"
+        "useValidAnchor": "off",
+        // UI component libraries may use role="group" and other patterns
+        "useSemanticElements": "off",
+        "noLabelWithoutControl": "off",
+        "useKeyWithClickEvents": "off"
       },
       "style": {
         "useNamingConvention": {
@@ -102,7 +114,8 @@
       "!**/packages/shared/ui",
       "!**/.tanstack",
       "!**/.nitro",
-      "!**/.output"
+      "!**/.output",
+      "!**/drizzle"
     ]
   }
 }

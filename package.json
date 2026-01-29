@@ -2,23 +2,28 @@
   "name": "@temp-repo",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
+    "repo": "bun run packages/shared/cli/src/index.ts",
+    "gen:app": "bun run repo generate:app",
+    "gen:lib": "bun run repo generate:lib",
+    "status": "bun run repo status",
+    "clean": "bun run repo clean",
+    "test": "bun run repo test",
+    "rename": "bun run repo rename",
+    "rename:preview": "bun run repo rename:preview",
     "fmt-lint": "biome check .",
-    "fmt-lint:fix": "biome check . --write",
+    "fmt-lint:fix": "biome check --fix .",
     "check-types": "turbo run check-types",
-    "rename": "bun run packages/shared/cli/src/index.ts rename",
-    "rename:preview": "bun run packages/shared/cli/src/index.ts rename:preview"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "husky": "^9.0.0",
     "turbo": "^2.5.8",
     "@turbo/gen": "^2.7.5",
     "typescript": "5.9.2",
     "@types/bun": "^1.3.4"
-  },
-  "engines": {
-    "node": ">=18"
   },
   "packageManager": "bun@1.2.23",
   "workspaces": [
@@ -26,6 +31,6 @@
     "packages/shared/*",
     "packages/clients/*",
     "packages/configs/*",
-    "packages/web/*"
+    "packages/studio/*"
   ]
 }

@@ -1,6 +1,6 @@
 import * as path from 'node:path'
 import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
-import { getRootDir, loadEnvFile, run } from '../utils/shell'
+import { loadEnvFile, run } from '../utils/shell'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* BUILD COMMAND *:･ﾟ✧*:･ﾟ✧
@@ -9,7 +9,7 @@ import { getRootDir, loadEnvFile, run } from '../utils/shell'
  */
 
 /**
- * Build an app for production using turbo
+ * Build an app for production
  */
 export async function build(args: string[]) {
   const appName = parseAppArg(args)
@@ -32,8 +32,8 @@ export async function build(args: string[]) {
 
   console.log(`📦 Building ${appName} for production...`)
 
-  await run(['turbo', 'run', 'build', '--filter', `${appName}-app`], {
-    cwd: getRootDir(),
+  await run(['bun', '--bun', 'vite', 'build'], {
+    cwd: appDir,
     env: appEnv,
   })
 

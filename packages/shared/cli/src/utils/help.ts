@@ -4,43 +4,62 @@
  * CLI help output (◕‿◕✿)
  */
 
-export function printHelp() {
+export const printHelp = () => {
   console.log(`
-✧･ﾟ: *✧･ﾟ:* REPO CLI *:･ﾟ✧*:･ﾟ✧
+Monorepo CLI
 
-Usage: bun repo <command> [options]
+Usage: bun run repo <command> [options]
 
-Docker Commands:
-  docker:up --app <name>     Start Docker containers for an app (with profile)
-  docker:down --app <name>   Stop Docker containers for an app
+Development
+  dev --app <name>           Start full dev environment (docker + db + server)
+  serve --app <name>         Start dev server only
+  build --app <name>         Build for production
 
-Database Commands:
-  db:migrate --app <name>    Run Drizzle migrations for an app
-  db:generate --app <name>   Generate Drizzle schema for an app
-  db:seed --app <name>       Run seed script for an app
-  db:push --app <name>       Push schema changes directly (no migration)
+Docker
+  docker:up --app <name>     Start Docker containers
+  docker:down --app <name>   Stop Docker containers
 
-Development Commands:
-  dev --app <name>           Run development server for an app
-  build --app <name>         Build an app for production
+Database
+  db:migrate --app <name>    Run database migrations
+  db:generate --app <name>   Generate migrations from schema
+  db:push --app <name>       Push schema changes (no migration)
+  db:seed --app <name>       Seed database with initial data
+  db:studio --app <name>     Open Drizzle Studio GUI
 
-Generator Commands:
-  generate:app               Create a new app (TanStack or Hono)
-  generate:lib               Create a new shared library
+Generators
+  generate:app               Create a new app
+  generate:lib               Create a shared library
 
-Project Commands:
-  rename <new-scope>         Rename project scope (e.g., @temp-repo → @my-company)
-  rename:preview <scope>     Preview files that would be changed by rename
+Testing
+  test [--app <name>]        Run unit tests
+  test --watch               Run tests in watch mode
+  test --coverage            Run tests with coverage
+  test:e2e --app <name>      Run Playwright E2E tests
+  test:e2e --headed          Run E2E tests with browser visible
+  test:e2e --ui              Open Playwright UI
 
-Other:
-  help, --help, -h           Show this help message
+Utilities
+  status                     Show monorepo status (docker, ports, apps)
+  info --app <name>          Show detailed app information
+  logs --app <name>          View Docker container logs
+  logs --app <name> -f       Follow logs in real-time
+  logs --service=<name>      View specific service logs
+  clean                      Remove build artifacts and caches
+  reset --app <name>         Reset app (stop containers, remove volumes, fresh start)
 
-Examples:
-  bun repo docker:up --app game
-  bun repo db:migrate --app game
-  bun repo dev --app game
-  bun repo generate:app
-  bun repo rename:preview @my-company
-  bun repo rename @my-company
+Project
+  rename <new-scope>         Rename project scope (e.g., @my-company)
+  rename:preview <scope>     Preview rename changes without modifying
+
+Options
+  --app, -a <name>           Specify target app
+  --help, -h                 Show this help message
+
+Examples
+  bun run repo dev --app studio
+  bun run repo db:studio --app studio
+  bun run repo test --coverage
+  bun run repo logs --app studio -f
+  bun run repo reset --app studio
 `)
 }

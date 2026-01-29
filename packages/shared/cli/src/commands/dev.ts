@@ -78,7 +78,7 @@ export async function serve(args: string[]) {
 
   console.log(`\n🖥️  Starting development server for ${appName} on port ${port}...`)
 
-  await run(['bun', 'run', 'serve'], {
+  await run(['bun', '--bun', 'vite', 'dev'], {
     cwd: appDir,
     env: appEnv,
   })
