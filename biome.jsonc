@@ -111,7 +111,7 @@
       "!**/public",
       "!**/generated",
       "!**/dist",
-      "!**/packages/shared/ui",
+      "!**/components/ui",
       "!**/.tanstack",
       "!**/.nitro",
       "!**/.output",
