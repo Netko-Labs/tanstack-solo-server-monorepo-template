@@ -1,11 +1,17 @@
 import { Link } from '@tanstack/react-router'
+import { Badge } from '@temp-repo/ui/components/badge'
+import { Button } from '@temp-repo/ui/components/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@temp-repo/ui/components/card'
+import { Input } from '@temp-repo/ui/components/input'
+import { Separator } from '@temp-repo/ui/components/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@temp-repo/ui/components/tabs'
 import { type FormEvent, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { signIn, signOut, useSession } from '@/integrations/auth'
 
 function AuthSection() {

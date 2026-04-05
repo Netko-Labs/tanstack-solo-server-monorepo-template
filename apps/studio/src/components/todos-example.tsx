@@ -1,13 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Todo } from '@temp-repo/studio-domain'
+import { Badge } from '@temp-repo/ui/components/badge'
+import { Button } from '@temp-repo/ui/components/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@temp-repo/ui/components/card'
+import { Field, FieldGroup, FieldLabel } from '@temp-repo/ui/components/field'
+import { Input } from '@temp-repo/ui/components/input'
+import { Separator } from '@temp-repo/ui/components/separator'
+import { Textarea } from '@temp-repo/ui/components/textarea'
 import { type FormEvent, Fragment, useEffect, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
 import { trpcClient, useTRPC } from '@/integrations/trpc'
 
 interface TodoUpdateEvent {

@@ -5,7 +5,17 @@
     "build": {
       "dependsOn": ["^db:generate", "^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/**"],
+      "env": [
+        "AUTH_SECRET",
+        "BASE_URL",
+        "VITE_API_URL",
+        "DATABASE_URL",
+        "CACHE_URL",
+        "ENCRYPTION_KEY",
+        "OPENROUTER_API_KEY",
+        "EXA_API_KEY"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

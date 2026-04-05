@@ -1,10 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ChatMessage } from '@temp-repo/studio-domain'
+import { Badge } from '@temp-repo/ui/components/badge'
+import { Button } from '@temp-repo/ui/components/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@temp-repo/ui/components/card'
+import { Input } from '@temp-repo/ui/components/input'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { trpcClient, useTRPC } from '@/integrations/trpc'
 
 interface ChatInitEvent {
