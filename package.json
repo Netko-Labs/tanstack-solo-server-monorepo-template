@@ -11,6 +11,7 @@
     "rename": "bun run repo rename",
     "rename:preview": "bun run repo rename:preview",
     "fmt-lint": "biome check .",
+    "fmt-lint:staged": "biome check --staged --no-errors-on-unmatched",
     "fmt-lint:fix": "biome check --fix .",
     "check-types": "turbo run check-types",
     "prepare": "husky"
