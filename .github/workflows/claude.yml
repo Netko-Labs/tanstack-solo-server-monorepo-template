@@ -44,3 +44,5 @@ jobs:
             3. Fill in the template based on the actual changes
             4. Update the PR body with `gh pr edit ${{ github.event.issue.number || github.event.pull_request.number }} --body "..."`
             5. Comment confirming what you did
+          claude_args: |
+            --allowedTools "Bash(gh pr:*),Bash(gh issue:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Read,Glob,Grep,Edit,Write"
