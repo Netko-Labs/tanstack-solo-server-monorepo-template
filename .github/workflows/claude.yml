@@ -28,7 +28,19 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
           assignee_trigger: 'claude[bot]'
           prompt: |
-            When asked to update or generate a PR description, follow the structure
-            in .github/pull_request_template.md. Use `gh pr edit` to apply changes.
+            You are an interactive assistant on GitHub PRs and issues.
+            REPO: ${{ github.repository }}
+            PR/ISSUE NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+
+            IMPORTANT: Always respond to the user. After completing the requested task,
+            post a summary comment using `gh pr comment` or `gh issue comment`.
+
+            When asked to update or generate a PR description:
+            1. Read the PR diff with `gh pr diff ${{ github.event.issue.number || github.event.pull_request.number }}`
+            2. Read the template from .github/pull_request_template.md
+            3. Fill in the template based on the actual changes
+            4. Update the PR body with `gh pr edit ${{ github.event.issue.number || github.event.pull_request.number }} --body "..."`
+            5. Comment confirming what you did
