@@ -292,3 +292,5 @@ for await (const event of createRedisIterable(channel, signal)) {
 ## 📝 License
 
 MIT
+
+Made by Netko Labs with love
