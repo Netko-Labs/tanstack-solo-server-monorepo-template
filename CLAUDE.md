@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> Maintained by the Netko Labs team.
+
 ## Operating Principles
 
 - **Correctness over cleverness**: Prefer boring, readable solutions that are easy to maintain.
