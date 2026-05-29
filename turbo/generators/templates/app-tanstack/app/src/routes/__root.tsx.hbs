@@ -1,8 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
-import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import type { ReactNode } from 'react'
-import { TRPCProvider } from '~/integrations/trpc/react'
+import { createRootRouteWithContext } from '@tanstack/react-router'
+import { NotFound } from '~/components/core/root/not-found'
+import { RootComponent } from '~/components/core/root/root-document'
 import appCss from '~/styles.css?url'
 
 export const Route = createRootRouteWithContext<{
@@ -47,47 +46,3 @@ export const Route = createRootRouteWithContext<{
   component: RootComponent,
   notFoundComponent: NotFound,
 })
-
-function RootComponent() {
-  return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
-  )
-}
-
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <TRPCProvider>{children}</TRPCProvider>
-        <TanStackRouterDevtools position="bottom-right" />
-        <Scripts />
-      </body>
-    </html>
-  )
-}
-
-function NotFound() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-900">404</h1>
-        <p className="mt-4 text-xl text-gray-600">Page not found</p>
-        <p className="mt-2 text-gray-500">
-          The page you're looking for doesn't exist.
-        </p>
-        <Link
-          to="/"
-          className="mt-6 inline-block rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
-          Go back home
-        </Link>
-      </div>
-    </div>
-  )
-}
-

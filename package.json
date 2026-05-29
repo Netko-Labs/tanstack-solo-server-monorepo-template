@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "repo": "bun run packages/shared/cli/src/index.ts",
+    "dev": "bun run repo dev --app studio",
     "gen:app": "bun run repo generate:app",
     "gen:lib": "bun run repo generate:lib",
     "status": "bun run repo status",

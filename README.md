@@ -12,7 +12,7 @@ A modern, type-safe full-stack template using TanStack Start, tRPC, Drizzle ORM,
 - 🎨 **Beautiful UI** - Pre-configured component library
 - 🔐 **Authentication** - Built-in auth system
 - ⚙️ **Bun Runtime** - Fast JavaScript runtime and package manager
-- 🔌 **Real-time Subscriptions** - Both SSE (HTTP) and WebSocket support
+- 🔌 **Real-time Subscriptions** - SSE over HTTP (WebSocket client optional when needed)
 - 🎯 **TypeScript** - Full type safety across the stack
 
 ## 📦 What's Included
@@ -22,7 +22,7 @@ A modern, type-safe full-stack template using TanStack Start, tRPC, Drizzle ORM,
 This template includes a **fully implemented todos feature** demonstrating:
 
 - ✅ **CRUD Operations** - Create, Read, Update, Delete
-- ✅ **Real-time Updates** - SSE and WebSocket subscriptions
+- ✅ **Real-time Updates** - SSE subscriptions via tRPC HTTP client
 - ✅ **TanStack Query Integration** - `useQuery`, `useMutation` with tRPC
 - ✅ **drizzle-zod** - Automatic Zod schema generation from Drizzle tables
 - ✅ **Clean Architecture** - Layered design following Netko patterns
@@ -32,29 +32,31 @@ This template includes a **fully implemented todos feature** demonstrating:
 ```
 .
 ├── apps/
-│   └── web/                    # TanStack Start application
+│   └── studio/                 # TanStack Start application
 │       └── src/
-│           ├── components/     # React components
+│           ├── components/     # React components (feature folders + definitions/)
 │           ├── integrations/   # TanStack Query + tRPC setup
 │           │   ├── tanstack-query/
 │           │   └── trpc/
-│           └── routes/         # File-based routing
+│           └── routes/         # File-based routing (thin Route exports)
 │
 ├── packages/
-│   └── web/
-│       ├── domain/             # Domain layer
-│       │   ├── db/             # Drizzle schemas
-│       │   └── entities/       # drizzle-zod generated schemas
-│       ├── repository/         # Database layer
-│       ├── service/            # Business logic
-│       │   ├── queries/        # Query functions (folder per entity)
-│       │   └── mutations/      # Mutation functions (folder per entity)
-│       └── trpc/               # tRPC routers
-│           └── routers/
-│               └── todos/
-│                   ├── queries.ts
-│                   ├── mutations.ts
-│                   └── subscriptions.ts
+│   ├── studio/
+│   │   ├── domain/             # Domain layer
+│   │   │   ├── db/             # Drizzle schemas
+│   │   │   └── entities/       # drizzle-zod generated schemas
+│   │   ├── repository/         # Database layer
+│   │   ├── service/            # Business logic
+│   │   │   ├── queries/        # Query functions (folder per entity)
+│   │   │   └── mutations/      # Mutation functions (folder per entity)
+│   │   └── trpc/               # tRPC routers
+│   │       └── routers/
+│   │           └── todos/
+│   │               ├── queries.ts
+│   │               ├── mutations.ts
+│   │               └── subscriptions.ts
+│   └── shared/
+│       └── ui/                 # Shared UI primitives (shadcn-style)
 ```
 
 ## 🚀 Quick Start
@@ -71,8 +73,8 @@ This template includes a **fully implemented todos feature** demonstrating:
 bun install
 
 # Set up environment variables
-cp apps/web/sample.env apps/web/.env
-cp packages/web/domain/sample.env packages/web/domain/.env
+cp apps/studio/sample.env apps/studio/.env
+cp packages/studio/domain/sample.env packages/studio/domain/.env
 
 # Edit .env files with your database URL and other settings
 ```
@@ -81,7 +83,7 @@ cp packages/web/domain/sample.env packages/web/domain/.env
 
 ```bash
 # Generate and apply migrations
-cd packages/web/repository
+cd packages/studio/repository
 bunx drizzle-kit push
 ```
 
@@ -89,7 +91,8 @@ bunx drizzle-kit push
 
 ```bash
 # Start development server
-bun run dev
+bun run repo dev --app studio
+# or: bun run dev
 
 # Server will start at http://localhost:3000
 # Visit http://localhost:3000/todos to see the example
@@ -97,7 +100,49 @@ bun run dev
 
 ## 📖 Architecture Patterns
 
-### Domain Layer (`packages/web/domain`)
+### Frontend component organization
+
+React components in `apps/studio` follow a consistent structure (see `AGENTS.md` for full agent rules):
+
+**Definitions** — colocate types, constants, and static UI values (used by both `.tsx` and colocated `.ts` files):
+
+```
+components/todos/todos-example/
+  todos-example.tsx
+  use-todos-example.ts          # when >3 hooks
+  definitions/
+    types.ts                    # props, hook types, local unions
+    constants.ts                # tabs, limits, keys (optional)
+    values.ts                   # labels, empty-state copy (optional)
+    index.ts                    # export * from './types' | './constants' | './values'
+  lib/
+    utils.ts                    # pure helpers for this feature (optional)
+```
+
+**Helpers** — pure functions live in feature `lib/utils.ts` or app modules under `apps/studio/src/lib/{module}/` (e.g. `@/lib/format-date`). Not in `definitions/`, components, or hooks.
+
+**Hierarchy** — shallow feature trees, not flat large files:
+
+```
+components/todos/
+  todos-example/
+  todo-list/
+    todo-item/
+shared/                         # cross-feature UI within the app
+core/                           # app-wide shells and providers
+```
+
+**Budgets:**
+- `.tsx` and colocated `.ts` files: **≤ 300 lines**
+- Hooks per component file: **≤ 3** (extract `use-*.ts` hooks when exceeded)
+- Route files: thin `Route` export only; UI lives under `components/`
+
+**Layer boundaries:**
+- UI-only types/constants → feature `definitions/` (imported by `.tsx` and `.ts` siblings)
+- Pure helpers → feature `lib/utils.ts` or `lib/helpers.ts`, or app `src/lib/` when shared
+- Entities, schemas, validation → `packages/studio/domain`
+
+### Domain Layer (`packages/studio/domain`)
 
 **Database Schema** (`src/db/todos.ts`):
 ```typescript
@@ -126,7 +171,7 @@ export const TodoSchema = createSelectSchema(todoTable)
 export type Todo = z.infer<typeof TodoSchema>
 ```
 
-### Service Layer (`packages/web/service`)
+### Service Layer (`packages/studio/service`)
 
 **Queries** (`src/queries/todos/get-todo.ts`):
 ```typescript
@@ -149,7 +194,7 @@ export const createTodo = async (data: TodoInsert): Promise<Todo | undefined> =>
 }
 ```
 
-### tRPC Layer (`packages/web/trpc`)
+### tRPC Layer (`packages/studio/trpc`)
 
 **Queries** (`src/routers/todos/queries.ts`):
 ```typescript
@@ -194,26 +239,23 @@ export const todosSubscriptions = router({
 })
 ```
 
-### Frontend Integration (`apps/web/src/integrations`)
+### Frontend Integration (`apps/studio/src/integrations`)
 
-**tRPC Clients**:
-- `http-client.ts` - HTTP with SSE support for subscriptions
-- `ws-client.ts` - WebSocket client for real-time subscriptions
-- `react.ts` - TanStack Query + tRPC context
+**tRPC client**:
+- `http-client.ts` - HTTP batch link + SSE subscriptions via `trpcClient`
+- `react.ts` - TanStack Query + tRPC context (`useTRPC`, `TRPCProvider`)
 
 **Usage in Components**:
 ```typescript
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { httpTrpcClient, useTRPC, wsTrpcClient } from '@/integrations/trpc'
+import { trpcClient, useTRPC } from '@/integrations/trpc'
 
 function TodosExample() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
-  // Query
   const { data: todos } = useQuery(trpc.todos.list.queryOptions())
 
-  // Mutation
   const createMutation = useMutation(
     trpc.todos.create.mutationOptions({
       onSuccess: () => {
@@ -222,15 +264,14 @@ function TodosExample() {
     }),
   )
 
-  // SSE Subscription
-  React.useEffect(() => {
-    const unsubscribe = httpTrpcClient.todos.onUpdate.subscribe(undefined, {
+  useEffect(() => {
+    const unsubscribe = trpcClient.todos.onUpdate.subscribe(undefined, {
       onData: (data) => {
         queryClient.setQueryData(trpc.todos.list.queryKey(), data.todos)
       },
     })
     return () => unsubscribe.unsubscribe()
-  }, [])
+  }, [queryClient, trpc.todos.list])
 }
 ```
 
@@ -265,9 +306,10 @@ Routers are split by concern and merged:
 export const todosRouter = mergeRouters(todosQueries, todosMutations, todosSubscriptions)
 ```
 
-### 4. Dual tRPC Clients
-- **HTTP Client**: For queries/mutations + SSE subscriptions
-- **WebSocket Client**: For real-time WebSocket subscriptions
+### 4. tRPC HTTP + SSE Client
+
+- **HTTP client** (`trpcClient`): queries, mutations, and SSE subscriptions in this template
+- **WebSocket client**: add under `src/integrations/trpc/` when your stack requires it
 
 ## 📦 Dependencies
 

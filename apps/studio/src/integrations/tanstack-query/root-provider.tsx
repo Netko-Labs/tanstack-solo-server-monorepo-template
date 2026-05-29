@@ -1,37 +1,31 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
-import type * as React from 'react'
 import superjson from 'superjson'
 import { TRPCProvider, trpcClient } from '@/integrations/trpc'
+import type { QueryProviderProps } from './definitions'
+import { QUERY_STALE_TIME_MS } from './definitions'
 
-// Singleton QueryClient for SSR
 let clientQueryClient: QueryClient | undefined
+
+function createAppQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: QUERY_STALE_TIME_MS,
+      },
+      dehydrate: { serializeData: superjson.serialize },
+      hydrate: { deserializeData: superjson.deserialize },
+    },
+  })
+}
 
 function getQueryClient() {
   if (typeof window === 'undefined') {
-    // Server: always create a new QueryClient
-    return new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: 60 * 1000, // 1 minute
-        },
-        dehydrate: { serializeData: superjson.serialize },
-        hydrate: { deserializeData: superjson.deserialize },
-      },
-    })
+    return createAppQueryClient()
   }
 
-  // Browser: use singleton pattern to avoid re-creating between renders
   if (!clientQueryClient) {
-    clientQueryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          staleTime: 60 * 1000,
-        },
-        dehydrate: { serializeData: superjson.serialize },
-        hydrate: { deserializeData: superjson.deserialize },
-      },
-    })
+    clientQueryClient = createAppQueryClient()
   }
   return clientQueryClient
 }
@@ -49,13 +43,7 @@ export function getContext() {
   }
 }
 
-export function Provider({
-  children,
-  queryClient,
-}: {
-  children: React.ReactNode
-  queryClient: QueryClient
-}) {
+export function Provider({ children, queryClient }: QueryProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>

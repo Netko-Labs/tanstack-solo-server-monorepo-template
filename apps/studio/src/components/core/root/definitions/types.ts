@@ -1,0 +1,13 @@
+import type { QueryClient } from '@tanstack/react-query'
+import type { AppRouter } from '@temp-repo/studio-trpc'
+import type { TRPCOptionsProxy } from '@trpc/tanstack-react-query'
+import type { ReactNode } from 'react'
+
+export interface RouterContext {
+  queryClient: QueryClient
+  trpc: TRPCOptionsProxy<AppRouter>
+}
+
+export interface RootDocumentProps {
+  children: ReactNode
+}
