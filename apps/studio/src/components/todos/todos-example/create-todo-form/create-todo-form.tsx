@@ -10,7 +10,7 @@ import { Field, FieldGroup, FieldLabel } from '@temp-repo/ui/components/field'
 import { Input } from '@temp-repo/ui/components/input'
 import { Textarea } from '@temp-repo/ui/components/textarea'
 import { type FormEvent, useState } from 'react'
-import type { CreateTodoFormProps } from '../definitions'
+import type { CreateTodoFormProps } from '../lib'
 import {
   CREATE_TODO_DESCRIPTION,
   CREATE_TODO_DESCRIPTION_LABEL,
@@ -20,7 +20,7 @@ import {
   CREATE_TODO_TITLE,
   CREATE_TODO_TITLE_LABEL,
   CREATE_TODO_TITLE_PLACEHOLDER,
-} from '../definitions'
+} from '../lib'
 
 export function CreateTodoForm({ onSubmit, isPending }: CreateTodoFormProps) {
   const [title, setTitle] = useState('')

@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useEffect, useState } from 'react'
 import { trpcClient, useTRPC } from '@/integrations/trpc'
-import type { TodoUpdateEvent } from './definitions'
-import { formatSubscriptionUpdate } from './lib/utils'
+import type { TodoUpdateEvent } from '../types'
+import { formatSubscriptionUpdate } from '../utils'
 
 export function useTodosExample() {
   const trpc = useTRPC()

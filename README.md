@@ -102,26 +102,36 @@ bun run repo dev --app studio
 
 ### Frontend component organization
 
-React components in `apps/studio` follow a consistent structure (see `AGENTS.md` for full agent rules):
+React components in `apps/studio` follow a consistent structure (see `CLAUDE.md` for full agent rules):
 
-**Definitions** — colocate types, constants, and static UI values (used by both `.tsx` and colocated `.ts` files):
+**Module anatomy** — each feature is a module: the public `.tsx` (and nested sub-components) at the root, internals under `lib/`, and an `index.ts` barrel as the module's only public entry:
 
 ```
 components/todos/todos-example/
-  todos-example.tsx
-  use-todos-example.ts          # when >3 hooks
-  definitions/
-    types.ts                    # props, hook types, local unions
-    constants.ts                # tabs, limits, keys (optional)
-    values.ts                   # labels, empty-state copy (optional)
-    index.ts                    # export * from './types' | './constants' | './values'
+  todos-example.tsx             # public component
+  todo-list/                    # nested sub-components get their own folders
   lib/
+    hooks/
+      use-todos-example.ts      # hooks ALWAYS live in a hooks/ subfolder
+    types.ts                    # props, hook types, local unions
+    values.ts                   # labels, empty-state copy (optional)
+    constants.ts                # limits, keys — UPPER_SNAKE_CASE (optional)
     utils.ts                    # pure helpers for this feature (optional)
+    index.ts                    # re-exports the lib surface
+  index.ts                      # module barrel: export { TodosExample }
 ```
 
-**Helpers** — pure functions live in feature `lib/utils.ts` or app modules under `apps/studio/src/lib/{module}/` (e.g. `@/lib/format-date`). Not in `definitions/`, components, or hooks.
+Import a module through its barrel (`@/components/todos/todos-example`), never its inner files. `lib/` is private to its module.
 
-**Hierarchy** — shallow feature trees, not flat large files:
+**Progressive disclosure** — `utils`/`types`/`constants`/`values` start as a single flat file and graduate to a folder (`utils/`) only when the category has many entries or a file exceeds 300 lines. Only `hooks/` is always a subfolder.
+
+**Scope ladder** (narrowest → widest):
+- module-internal → the module's `lib/`
+- cross-feature reuse within the app → a `shared/` module (`components/shared/*`, `src/lib/*`)
+- app-root shells and providers → `components/core/*`
+- cross-app primitives → `packages/shared/*`
+
+**Hierarchy** — shallow feature trees, not flat large files: feature → section → element.
 
 ```
 components/todos/
@@ -134,13 +144,15 @@ core/                           # app-wide shells and providers
 
 **Budgets:**
 - `.tsx` and colocated `.ts` files: **≤ 300 lines**
-- Hooks per component file: **≤ 3** (extract `use-*.ts` hooks when exceeded)
+- Hooks per component file: **≤ 3** (extract `lib/hooks/use-*.ts` when exceeded)
 - Route files: thin `Route` export only; UI lives under `components/`
 
 **Layer boundaries:**
-- UI-only types/constants → feature `definitions/` (imported by `.tsx` and `.ts` siblings)
-- Pure helpers → feature `lib/utils.ts` or `lib/helpers.ts`, or app `src/lib/` when shared
+- UI-only types/constants/values → the module's `lib/` (private to the module)
+- Pure helpers → the module's `lib/utils.ts`, or an app `src/lib/*` logic module when shared
 - Entities, schemas, validation → `packages/studio/domain`
+
+The full, portable rules live in `@docs/conventions.md`.
 
 ### Domain Layer (`packages/studio/domain`)
 

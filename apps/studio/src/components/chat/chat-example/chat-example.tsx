@@ -1,9 +1,8 @@
 import { ConnectionStatus } from './connection-status/connection-status'
-import { CHAT_PAGE_DESCRIPTION, CHAT_PAGE_TITLE } from './definitions'
 import { ImplementationInfo } from './implementation-info/implementation-info'
+import { CHAT_PAGE_DESCRIPTION, CHAT_PAGE_TITLE, useChatExample } from './lib'
 import { MessageList } from './message-list/message-list'
 import { GuestNotice, SendMessageForm } from './send-message-form/send-message-form'
-import { useChatExample } from './use-chat-example'
 
 export function ChatExample() {
   const {

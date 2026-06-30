@@ -4,7 +4,7 @@ import {
   IMPLEMENTATION_HINT,
   IMPLEMENTATION_SSE,
   IMPLEMENTATION_TITLE,
-} from '../definitions'
+} from '../lib'
 
 export function ImplementationInfo() {
   return (

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { KeydownHandler, VisibilityHandler } from './definitions'
+import type { KeydownHandler, VisibilityHandler } from '../types'
 
 export function useDocumentKeydown(handler: KeydownHandler, enabled = true) {
   useEffect(() => {

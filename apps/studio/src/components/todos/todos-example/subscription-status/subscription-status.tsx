@@ -6,8 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@temp-repo/ui/components/card'
-import type { SubscriptionStatusProps } from '../definitions'
-import { SUBSCRIPTION_BADGE, SUBSCRIPTION_DESCRIPTION, SUBSCRIPTION_TITLE } from '../definitions'
+import type { SubscriptionStatusProps } from '../lib'
+import { SUBSCRIPTION_BADGE, SUBSCRIPTION_DESCRIPTION, SUBSCRIPTION_TITLE } from '../lib'
 
 export function SubscriptionStatus({ lastUpdate }: SubscriptionStatusProps) {
   return (

@@ -1,5 +1,5 @@
 import { cn } from '@temp-repo/ui/lib/utils'
-import type { ExampleProps, ExampleWrapperProps } from './definitions'
+import type { ExampleProps, ExampleWrapperProps } from './lib'
 
 function ExampleWrapper({ className, ...props }: ExampleWrapperProps) {
   return (

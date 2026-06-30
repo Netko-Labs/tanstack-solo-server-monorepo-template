@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Badge } from '@temp-repo/ui/components/badge'
 import { Card, CardDescription, CardHeader, CardTitle } from '@temp-repo/ui/components/card'
-import type { FeatureCardProps } from '../definitions'
+import type { FeatureCardProps } from '../lib'
 
 export function FeatureCard({ title, description, href, badge }: FeatureCardProps) {
   return (

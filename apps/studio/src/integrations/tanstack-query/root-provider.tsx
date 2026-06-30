@@ -2,8 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
 import superjson from 'superjson'
 import { TRPCProvider, trpcClient } from '@/integrations/trpc'
-import type { QueryProviderProps } from './definitions'
-import { QUERY_STALE_TIME_MS } from './definitions'
+import { QUERY_STALE_TIME_MS, type QueryProviderProps } from './lib'
 
 let clientQueryClient: QueryClient | undefined
 

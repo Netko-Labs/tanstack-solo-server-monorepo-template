@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@temp-repo/ui/components/card'
-import type { TodoListProps } from '../definitions'
-import { LIST_EMPTY, LIST_LOADING, LIST_TITLE } from '../definitions'
+import type { TodoListProps } from '../lib'
+import { LIST_EMPTY, LIST_LOADING, LIST_TITLE } from '../lib'
 import { TodoItemRow } from './todo-item/todo-item'
 
 export function TodoList({

@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { signIn, signOut, useSession } from '@/integrations/auth'
-import type { AuthMessage } from '../definitions'
-import { AUTH_MAGIC_LINK_ERROR, AUTH_MAGIC_LINK_SUCCESS } from '../definitions'
+import type { AuthMessage } from '../types'
+import { AUTH_MAGIC_LINK_ERROR, AUTH_MAGIC_LINK_SUCCESS } from '../values'
 
 export function useAuthSection() {
   const { data: session, isPending } = useSession()

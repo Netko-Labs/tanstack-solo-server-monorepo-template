@@ -1,17 +1,5 @@
 import type { FormEvent } from 'react'
 
-export interface FeatureCardProps {
-  title: string
-  description: string
-  href: string
-  badge?: string
-}
-
-export interface CodeBlockProps {
-  code: string
-  language?: string
-}
-
 export interface AuthMessage {
   type: 'success' | 'error'
   text: string

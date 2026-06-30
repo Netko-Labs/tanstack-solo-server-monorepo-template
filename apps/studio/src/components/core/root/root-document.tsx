@@ -2,7 +2,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HeadContent, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import * as TanstackQuery from '@/integrations/tanstack-query/root-provider'
-import type { RootDocumentProps } from './definitions'
+import type { RootDocumentProps } from './lib'
 
 export function RootDocument({ children }: RootDocumentProps) {
   const rqContext = TanstackQuery.getContext()

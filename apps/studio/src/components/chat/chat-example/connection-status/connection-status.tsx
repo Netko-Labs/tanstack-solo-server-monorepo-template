@@ -1,11 +1,11 @@
 import { Badge } from '@temp-repo/ui/components/badge'
-import type { ConnectionStatusProps } from '../definitions'
+import type { ConnectionStatusProps } from '../lib'
 import {
   CONNECTION_CONNECTED,
   CONNECTION_CONNECTING,
   CONNECTION_DISCONNECTED,
   CONNECTION_LOGGED_IN_PREFIX,
-} from '../definitions'
+} from '../lib'
 
 export function ConnectionStatus({ status, userName }: ConnectionStatusProps) {
   const variant =

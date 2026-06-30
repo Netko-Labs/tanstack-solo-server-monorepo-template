@@ -1,6 +1,7 @@
 import { Separator } from '@temp-repo/ui/components/separator'
 import { AuthSection } from './auth-section/auth-section'
 import { CodeExamples } from './code-examples/code-examples'
+import { FeatureCard } from './feature-card/feature-card'
 import {
   AUTH_SECTION_TITLE,
   CODE_EXAMPLES_SECTION_TITLE,
@@ -11,8 +12,7 @@ import {
   PAGE_TITLE,
   TECH_STACK_SECTION_TITLE,
   UI_SECTION_TITLE,
-} from './definitions'
-import { FeatureCard } from './feature-card/feature-card'
+} from './lib'
 import { TechStack } from './tech-stack/tech-stack'
 import { UiShowcase } from './ui-showcase/ui-showcase'
 

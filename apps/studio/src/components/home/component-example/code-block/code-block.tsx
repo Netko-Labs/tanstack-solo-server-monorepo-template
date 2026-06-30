@@ -1,4 +1,4 @@
-import type { CodeBlockProps } from '../definitions'
+import type { CodeBlockProps } from '../lib'
 
 export function CodeBlock({ code, language = 'typescript' }: CodeBlockProps) {
   return (

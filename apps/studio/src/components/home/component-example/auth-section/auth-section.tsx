@@ -1,8 +1,7 @@
 import { Card, CardContent } from '@temp-repo/ui/components/card'
-import { AUTH_LOADING } from '../definitions'
 import { AuthGuestForm } from './auth-guest-form'
 import { AuthLoggedIn } from './auth-logged-in'
-import { useAuthSection } from './use-auth-section'
+import { AUTH_LOADING, useAuthSection } from './lib'
 
 export function AuthSection() {
   const {

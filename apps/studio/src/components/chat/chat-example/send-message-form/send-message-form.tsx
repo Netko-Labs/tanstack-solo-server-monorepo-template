@@ -2,8 +2,8 @@ import { Button } from '@temp-repo/ui/components/button'
 import { Card, CardContent } from '@temp-repo/ui/components/card'
 import { Input } from '@temp-repo/ui/components/input'
 import { type FormEvent, useState } from 'react'
-import type { SendMessageFormProps } from '../definitions'
-import { GUEST_MESSAGE, SEND_LABEL, SEND_PENDING_LABEL, SEND_PLACEHOLDER } from '../definitions'
+import type { SendMessageFormProps } from '../lib'
+import { GUEST_MESSAGE, SEND_LABEL, SEND_PENDING_LABEL, SEND_PLACEHOLDER } from '../lib'
 
 export function SendMessageForm({ onSubmit, isPending }: SendMessageFormProps) {
   const [content, setContent] = useState('')

@@ -3,8 +3,8 @@ import type { ChatMessage } from '@temp-repo/studio-domain'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { trpcClient, useTRPC } from '@/integrations/trpc'
 import { scrollIntoView } from '@/lib/dom-events'
-import type { ChatEvent, ConnectionStatus } from './definitions'
-import { appendUniqueChatMessage } from './lib/utils'
+import type { ChatEvent, ConnectionStatus } from '../types'
+import { appendUniqueChatMessage } from '../utils'
 
 export function useChatExample() {
   const trpc = useTRPC()

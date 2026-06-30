@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@temp-repo/ui/components/card'
 import { Input } from '@temp-repo/ui/components/input'
-import type { AuthGuestFormProps } from '../definitions'
+import type { AuthGuestFormProps } from './lib'
 import {
   AUTH_DEV_HINT,
   AUTH_EMAIL_LABEL,
@@ -18,7 +18,7 @@ import {
   AUTH_GUEST_DESCRIPTION,
   AUTH_SEND_LINK,
   AUTH_SENDING,
-} from '../definitions'
+} from './lib'
 
 export function AuthGuestForm({
   email,

@@ -4,7 +4,7 @@ import {
   NOT_FOUND_HEADING,
   NOT_FOUND_HOME_LABEL,
   NOT_FOUND_TITLE,
-} from './definitions'
+} from './lib'
 
 export function NotFound() {
   return (

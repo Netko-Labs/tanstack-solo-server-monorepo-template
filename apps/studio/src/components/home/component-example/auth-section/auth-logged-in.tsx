@@ -7,14 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@temp-repo/ui/components/card'
-import type { AuthLoggedInProps } from '../definitions'
+import type { AuthLoggedInProps } from './lib'
 import {
   AUTH_LOGGED_IN,
   AUTH_LOGGED_IN_BADGE,
   AUTH_LOGGED_IN_DESCRIPTION,
   AUTH_SIGN_OUT,
   AUTH_SIGNING_OUT,
-} from '../definitions'
+} from './lib'
 
 export function AuthLoggedIn({ session, isLoading, onSignOut }: AuthLoggedInProps) {
   return (
