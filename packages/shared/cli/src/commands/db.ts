@@ -171,6 +171,6 @@ export async function dbStudio(args: string[]) {
 
   await run(['bunx', 'drizzle-kit', 'studio'], {
     cwd: repoDir,
-    env: { ...process.env, ...env },
+    env,
   })
 }

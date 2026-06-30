@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "check-types": "tsc --noEmit",
     "cli": "bun run src/index.ts"
   },
   "dependencies": {

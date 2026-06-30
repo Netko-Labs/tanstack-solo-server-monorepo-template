@@ -9,5 +9,8 @@
   "dependencies": {
     "@temp-repo/typescript-config": "workspace:*",
     "@temp-repo/studio-domain": "workspace:*"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
   }
 }
