@@ -27,8 +27,12 @@ export default {
   },
   parserPreset: {
     parserOpts: {
+      // Allow each emoji to carry an optional U+FE0F variation selector so types
+      // like "refactor" and "build" (whose emoji include FE0F) parse, not just
+      // single-codepoint emoji. FE0F is kept outside the character class to
+      // satisfy lint/suspicious/noMisleadingCharacterClass.
       headerPattern:
-        /^([\p{Emoji_Presentation}\p{Extended_Pictographic}]+\s\w+)(?:\((.+)\))?:\s(.+)$/u,
+        /^((?:[\p{Emoji_Presentation}\p{Extended_Pictographic}]️?)+\s\w+)(?:\((.+)\))?:\s(.+)$/u,
       headerCorrespondence: ['type', 'scope', 'subject'],
     },
   },
