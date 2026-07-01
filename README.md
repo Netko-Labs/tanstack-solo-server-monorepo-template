@@ -127,7 +127,7 @@ Import a module through its barrel (`@/components/todos/todos-example`), never i
 
 **Scope ladder** (narrowest → widest):
 - module-internal → the module's `lib/`
-- cross-feature reuse within the app → a `shared/` module (`components/shared/*`, `src/lib/*`)
+- cross-feature reuse within the app → a `shared/` module (`components/shared/*` for UI, `src/shared/*` for logic like `@/shared/dom-events`)
 - app-root shells and providers → `components/core/*`
 - cross-app primitives → `packages/shared/*`
 
@@ -149,7 +149,7 @@ core/                           # app-wide shells and providers
 
 **Layer boundaries:**
 - UI-only types/constants/values → the module's `lib/` (private to the module)
-- Pure helpers → the module's `lib/utils.ts`, or an app `src/lib/*` logic module when shared
+- Pure helpers → the module's `lib/utils.ts`, or an app `src/shared/*` logic module when reused across features
 - Entities, schemas, validation → `packages/studio/domain`
 
 The full, portable rules live in `@docs/conventions.md`.

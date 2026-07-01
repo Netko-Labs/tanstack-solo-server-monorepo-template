@@ -1,4 +1,4 @@
-import { formatMessageTime } from '@/lib/format-date'
+import { formatMessageTime } from '@/shared/format-date'
 import type { ChatMessageItemProps } from '../../lib'
 
 export function ChatMessageItem({ message, isOwnMessage }: ChatMessageItemProps) {

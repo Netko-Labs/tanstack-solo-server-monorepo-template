@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ChatMessage } from '@temp-repo/studio-domain'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { trpcClient, useTRPC } from '@/integrations/trpc'
-import { scrollIntoView } from '@/lib/dom-events'
+import { scrollIntoView } from '@/shared/dom-events'
 import type { ChatEvent, ConnectionStatus } from '../types'
 import { appendUniqueChatMessage } from '../utils'
 

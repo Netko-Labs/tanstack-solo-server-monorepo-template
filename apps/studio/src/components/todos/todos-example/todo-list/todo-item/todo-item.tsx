@@ -1,7 +1,7 @@
 import { Button } from '@temp-repo/ui/components/button'
 import { Separator } from '@temp-repo/ui/components/separator'
 import { Fragment } from 'react'
-import { formatDateTime } from '@/lib/format-date'
+import { formatDateTime } from '@/shared/format-date'
 import type { TodoItemProps, TodoItemRowProps } from '../../lib'
 
 export function TodoItem({
