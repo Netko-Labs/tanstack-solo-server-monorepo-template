@@ -16,6 +16,6 @@
     "@types/bun": "^1.3.4"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsgo --noEmit"
   }
 }

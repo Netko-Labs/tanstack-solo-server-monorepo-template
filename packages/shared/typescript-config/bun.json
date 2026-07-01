@@ -10,6 +10,7 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "lib": ["ESNext"],
-    "target": "ESNext"
+    "target": "ESNext",
+    "types": ["bun"]
   }
 }

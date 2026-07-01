@@ -16,6 +16,6 @@
     "typescript": "^5"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsgo --noEmit"
   }
 }

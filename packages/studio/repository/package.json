@@ -4,7 +4,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit",
+    "check-types": "tsgo --noEmit",
     "db:generate": "bunx --bun drizzle-kit generate",
     "db:migrate": "bunx --bun drizzle-kit migrate",
     "db:seed": "bun run ./src/db/seed.ts"
