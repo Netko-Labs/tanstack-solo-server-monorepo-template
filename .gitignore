@@ -41,3 +41,7 @@ generated
 
 # Tanstack
 .tanstack
+
+# Nitro build output
+.output
+.nitro
