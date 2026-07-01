@@ -37,10 +37,10 @@ export const router = t.router
 export const mergeRouters = t.mergeRouters
 
 //* Context
-export const createContext = async ({ req }: FetchCreateContextFnOptions): Promise<Context> => {
+export const createContext = async (_opts: FetchCreateContextFnOptions): Promise<Context> => {
   // Add your auth logic here to extract user from request
   // Example with cookies/tokens:
-  // const token = req.headers.get('authorization')?.split(' ')[1]
+  // const token = _opts.req.headers.get('authorization')?.split(' ')[1]
   // const user = await verifyToken(token)
 
   return {

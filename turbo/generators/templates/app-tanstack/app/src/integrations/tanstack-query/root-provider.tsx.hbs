@@ -1,0 +1,53 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
+import superjson from 'superjson'
+import { TRPCProvider, trpcClient } from '~/integrations/trpc'
+import { QUERY_STALE_TIME_MS, type QueryProviderProps } from './lib'
+
+let clientQueryClient: QueryClient | undefined
+
+function createAppQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: QUERY_STALE_TIME_MS,
+      },
+      dehydrate: { serializeData: superjson.serialize },
+      hydrate: { deserializeData: superjson.deserialize },
+    },
+  })
+}
+
+function getQueryClient() {
+  if (typeof window === 'undefined') {
+    return createAppQueryClient()
+  }
+
+  if (!clientQueryClient) {
+    clientQueryClient = createAppQueryClient()
+  }
+  return clientQueryClient
+}
+
+export function getContext() {
+  const queryClient = getQueryClient()
+
+  const serverHelpers = createTRPCOptionsProxy({
+    client: trpcClient,
+    queryClient: queryClient,
+  })
+  return {
+    queryClient,
+    trpc: serverHelpers,
+  }
+}
+
+export function Provider({ children, queryClient }: QueryProviderProps) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+        {children}
+      </TRPCProvider>
+    </QueryClientProvider>
+  )
+}

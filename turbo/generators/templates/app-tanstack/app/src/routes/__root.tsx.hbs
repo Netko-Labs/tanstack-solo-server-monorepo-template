@@ -1,11 +1,9 @@
-import { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext } from '@tanstack/react-router'
-import { NotFound, RootComponent } from '~/components/core/root'
+import type { RouterContext } from '~/components/core/root'
+import { NotFound, RootDocument } from '~/components/core/root'
 import appCss from '~/styles.css?url'
 
-export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient
-}>()({
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       {
@@ -42,6 +40,7 @@ export const Route = createRootRouteWithContext<{
       { rel: 'icon', href: '/favicon.ico' },
     ],
   }),
-  component: RootComponent,
+
+  shellComponent: RootDocument,
   notFoundComponent: NotFound,
 })
