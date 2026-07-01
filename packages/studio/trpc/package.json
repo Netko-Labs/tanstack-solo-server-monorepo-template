@@ -10,7 +10,6 @@
   "dependencies": {
     "@temp-repo/studio-config": "workspace:*",
     "@temp-repo/studio-domain": "workspace:*",
-    "@temp-repo/studio-repository": "workspace:*",
     "@temp-repo/studio-service": "workspace:*",
     "@temp-repo/logger": "workspace:*",
     "@temp-repo/typescript-config": "workspace:*",
