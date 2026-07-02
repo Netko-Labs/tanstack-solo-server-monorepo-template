@@ -36,6 +36,19 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
       .join('_')
   })
 
+  // Helper to build a Docker Compose "${VAR:-default}:container" port mapping.
+  // Written as a helper because "${" + "{{ ... }}" would collide with Handlebars.
+  plop.setHelper(
+    'dockerPort',
+    (name: string, envSuffix: string, hostDefault: string, container: string) => {
+      const constant = name
+        .split(/[-_\s]+/)
+        .map((word) => word.toUpperCase())
+        .join('_')
+      return `\${${constant}_${envSuffix}:-${hostDefault}}:${container}`
+    },
+  )
+
   // ═══════════════════════════════════════════════════════════════════════════
   // APP GENERATOR - Creates a full app with all package layers
   // ═══════════════════════════════════════════════════════════════════════════
@@ -167,14 +180,14 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
       actions.push({
         type: 'append',
         path: '{{ turbo.paths.root }}/compose.yml',
-        pattern: /^volumes:/m,
+        pattern: /^services:/m,
         template: `
   # {{ pascalCase name }} App Services
   db-{{ name }}:
     image: postgres:17
     profiles: [{{ name }}]
     ports:
-      - "\${{{ constantCase name }}_DB_PORT:-5433}:5432"
+      - "{{{ dockerPort name "DB_PORT" "5433" "5432" }}}"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -186,7 +199,7 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
     image: redis:latest
     profiles: [{{ name }}]
     ports:
-      - "\${{{ constantCase name }}_REDIS_PORT:-6380}:6379"
+      - "{{{ dockerPort name "REDIS_PORT" "6380" "6379" }}}"
     volumes:
       - {{ name }}_redis_data:/data
 
