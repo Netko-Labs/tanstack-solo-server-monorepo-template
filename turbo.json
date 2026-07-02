@@ -3,22 +3,10 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^db:generate", "^build"],
+      "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/**"],
-      "env": [
-        "AUTH_SECRET",
-        "BASE_URL",
-        "VITE_API_URL",
-        "DATABASE_URL",
-        "CACHE_URL",
-        "ENCRYPTION_KEY",
-        "OPENROUTER_API_KEY",
-        "EXA_API_KEY"
-      ]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
+      "outputs": [".output/**"],
+      "env": ["AUTH_SECRET", "BASE_URL", "DATABASE_URL", "CACHE_URL", "ENCRYPTION_KEY"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
@@ -26,9 +14,6 @@
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "prod:release": {
-      "cache": false
     },
     "//#fmt-lint": {},
     "//#fmt-lint:fix": {
@@ -38,10 +23,12 @@
       "cache": false
     },
     "db:migrate": {
-      "cache": false,
-      "persistent": true
+      "cache": false
     },
-    "db:deploy": {
+    "db:push": {
+      "cache": false
+    },
+    "db:seed": {
       "cache": false
     }
   }
