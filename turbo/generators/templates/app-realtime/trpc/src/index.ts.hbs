@@ -1,0 +1,10 @@
+import { router } from './init'
+import { roomRouter } from './routers/room'
+
+export const appRouter = router({
+  room: roomRouter,
+})
+
+export type AppRouter = typeof appRouter
+
+export { createContext } from './init'

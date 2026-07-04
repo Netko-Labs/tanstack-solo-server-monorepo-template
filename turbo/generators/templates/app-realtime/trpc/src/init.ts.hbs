@@ -1,0 +1,57 @@
+import { createLogger } from '@temp-repo/logger'
+import { {{ camelCase name }}EnvConfig } from '@temp-repo/{{ name }}-config'
+import type { {{ pascalCase name }}Context, {{ pascalCase name }}User } from '@temp-repo/{{ name }}-domain'
+import { initTRPC, TRPCError } from '@trpc/server'
+import { createRemoteJWKSet, jwtVerify } from 'jose'
+import superjson from 'superjson'
+
+/**
+ * Context comes from the WebSocket `connectionParams` sent by the client's tRPC
+ * `wsLink`. Studio (better-auth) issues a short-lived JWT via `/api/auth/token`;
+ * the client forwards it as `connectionParams.token`. We verify it against
+ * studio's JWKS (better-auth `jwt` plugin) — no shared secret, no cookie.
+ */
+const logger = createLogger('{{ name }}-auth')
+const WEB_BASE_URL = {{ camelCase name }}EnvConfig.app.webBaseUrl
+const jwks = createRemoteJWKSet(new URL('/api/auth/jwks', WEB_BASE_URL))
+
+const t = initTRPC.context<{{ pascalCase name }}Context>().create({ transformer: superjson })
+
+export const router = t.router
+export const mergeRouters = t.mergeRouters
+export const publicProcedure = t.procedure
+export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+  return next({ ctx: { ...ctx, user: ctx.user } })
+})
+
+type ConnectionParams = Record<string, string | undefined> | null | undefined
+
+async function userFromToken(token: string): Promise<{{ pascalCase name }}User | null> {
+  try {
+    const { payload } = await jwtVerify(token, jwks, {
+      issuer: WEB_BASE_URL,
+      audience: WEB_BASE_URL,
+    })
+    const id = typeof payload.sub === 'string' ? payload.sub : undefined
+    if (!id) return null
+    const name =
+      (typeof payload.name === 'string' && payload.name) ||
+      (typeof payload.email === 'string' && payload.email) ||
+      `user-${id.slice(0, 6)}`
+    return { id, name }
+  } catch (err) {
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err) },
+      'JWT verification failed',
+    )
+    return null
+  }
+}
+
+export const createContext = async (opts: {
+  info?: { connectionParams?: ConnectionParams }
+}): Promise<{{ pascalCase name }}Context> => {
+  const token = opts.info?.connectionParams?.token
+  return { user: token ? await userFromToken(token) : null }
+}
