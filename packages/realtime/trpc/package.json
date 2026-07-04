@@ -1,0 +1,27 @@
+{
+  "name": "@temp-repo/realtime-trpc",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./init": "./src/init.ts"
+  },
+  "scripts": {
+    "check-types": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "@temp-repo/logger": "workspace:*",
+    "@temp-repo/realtime-config": "workspace:*",
+    "@temp-repo/realtime-domain": "workspace:*",
+    "@temp-repo/realtime-service": "workspace:*",
+    "@temp-repo/typescript-config": "workspace:*",
+    "@trpc/server": "^11.4.3",
+    "jose": "^6.0.11",
+    "superjson": "^2.2.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.4"
+  }
+}
