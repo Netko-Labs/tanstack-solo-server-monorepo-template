@@ -1,19 +1,10 @@
 import type { AppRouter } from '@temp-repo/studio-trpc'
-import {
-  createTRPCClient,
-  httpBatchLink,
-  httpSubscriptionLink,
-  loggerLink,
-  splitLink,
-} from '@trpc/client'
+import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client'
 import superjson from 'superjson'
 
 /**
- * tRPC Client
- *
- * Uses HTTP with SSE for real-time subscriptions.
- * - httpBatchLink for queries and mutations (optimal batching)
- * - httpSubscriptionLink for subscriptions (Server-Sent Events)
+ * Studio tRPC client — auth-only queries over HTTP (`/api/trpc`). All
+ * transactional + realtime data goes to the realtime server (see integrations/realtime).
  */
 export const trpcClient = createTRPCClient<AppRouter>({
   links: [
@@ -22,16 +13,6 @@ export const trpcClient = createTRPCClient<AppRouter>({
         process.env.NODE_ENV === 'development' ||
         (opts.direction === 'down' && opts.result instanceof Error),
     }),
-    splitLink({
-      condition: (op) => op.type === 'subscription',
-      true: httpSubscriptionLink({
-        url: '/api/trpc',
-        transformer: superjson,
-      }),
-      false: httpBatchLink({
-        url: '/api/trpc',
-        transformer: superjson,
-      }),
-    }),
+    httpBatchLink({ url: '/api/trpc', transformer: superjson }),
   ],
 })
