@@ -1,31 +1,27 @@
 # TanStack Solo Server Monorepo Template
 
-A modern, type-safe full-stack template using TanStack Start, tRPC, Drizzle ORM, TanStack Query, and Bun.
+A modern, type-safe full-stack **two-app** template: a TanStack Start frontend + auth server (`studio`) and a headless tRPC **WebSocket** server (`realtime`), wired with Drizzle ORM, TanStack Query, cross-service JWT auth, and Bun.
 
 ## 🚀 Features
 
-- ⚡ **TanStack Start** - Modern React framework with SSR
-- 🔄 **tRPC** - End-to-end type-safe APIs
-- 📊 **TanStack Query** - Powerful data fetching and caching
-- 🗃️ **Drizzle ORM** - Type-safe database access with `drizzle-zod` for automatic schema generation
-- 📦 **Turborepo** - High-performance monorepo build system
-- 🎨 **Beautiful UI** - Pre-configured component library
-- 🔐 **Authentication** - Built-in auth system
-- ⚙️ **Bun Runtime** - Fast JavaScript runtime and package manager
-- 🔌 **Real-time Subscriptions** - SSE over HTTP (WebSocket client optional when needed)
+- 🏛️ **Two-app architecture** - `studio` (TanStack Start frontend + auth) and `realtime` (headless tRPC WebSocket server), openhotel-shaped
+- 🔄 **tRPC** - End-to-end type-safe APIs (HTTP for studio auth, `wsLink` for the realtime server)
+- 🔌 **WebSocket real-time** - presence + live chat room on the standalone realtime server
+- 🔑 **Magic-link auth** - better-auth magic link + a `/sign-in` page (Resend email, console fallback)
+- 🔐 **Cross-service JWT** - studio mints JWTs; realtime verifies via JWKS (no shared secret)
+- 📊 **TanStack Query** + 🗃️ **Drizzle ORM** - typed data fetching + `drizzle-zod` schemas; two databases
+- 📦 **Turborepo** + ⚙️ **Bun** - fast monorepo tooling and runtime
 - 🎯 **TypeScript** - Full type safety across the stack
 
 ## 📦 What's Included
 
-### Complete Todos Example
+### Working examples
 
-This template includes a **fully implemented todos feature** demonstrating:
-
-- ✅ **CRUD Operations** - Create, Read, Update, Delete
-- ✅ **Real-time Updates** - SSE subscriptions via tRPC HTTP client
-- ✅ **TanStack Query Integration** - `useQuery`, `useMutation` with tRPC
-- ✅ **drizzle-zod** - Automatic Zod schema generation from Drizzle tables
-- ✅ **Clean Architecture** - Layered design following Netko patterns
+- ✅ **Todos** — CRUD against the realtime server over tRPC-WebSocket, JWT-authorized
+- ✅ **Presence + live chat** — a WebSocket room: who's-online presence (join/leave) + live messages
+- ✅ **Magic-link sign-in** — email → link → session → JWT, on a dedicated `/sign-in` page
+- ✅ **drizzle-zod** — Zod schemas generated from Drizzle tables
+- ✅ **Clean architecture** — `domain → repository → service → trpc` per app, with cross-service JWT/JWKS
 
 ## 🏗️ Project Structure
 
