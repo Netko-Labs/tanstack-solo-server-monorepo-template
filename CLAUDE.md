@@ -64,21 +64,6 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Studio DB push: `bun run repo db:push --app studio`
 - Studio DB seed: `bun run repo db:seed --app studio`
 
-## Deployment (Coolify + Railpack)
-
-Shared-workspace monorepo: one Coolify application per app, build pack **Railpack**, **Base
-Directory** `/` (repo root), build variable `RAILPACK_CONFIG_FILE=apps/{app}/railpack.json`.
-
-- `apps/{app}/railpack.json` owns the build command and the deploy image: mise/bun toolchain + the
-  app bundle only — no `node_modules`, no sources.
-- `bun run repo build --app {app}` emits the whole runtime: `.output/` (studio, Nitro `bun` preset)
-  or `dist/` (realtime, `bun build --target bun`), plus `{out}/migrate/migrate.js` + `drizzle/` SQL
-  bundled from `packages/{app}/repository/src/db/migrate.ts`.
-- Coolify settings per app: pre-deployment command `bun apps/{app}/{out}/migrate/migrate.js`,
-  healthcheck `/api/health` (studio) or `/health` (realtime), watch paths scoped to the app's
-  folders + `packages/shared/**`.
-- Dry-run a plan locally: `railpack plan --config-file apps/{app}/railpack.json .`
-
 ## Verification
 
 - Start with the smallest relevant check for the code you changed, then broaden as needed.
