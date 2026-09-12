@@ -40,7 +40,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 ## Scaffolding
 
 - **`bun run gen:app`** — Turbo generator in `turbo/generators/config.ts`. Prompts for a name and a **type** (`studio` | `realtime`), then creates the app under `apps/{name}` plus layered packages (`domain`, `repository`, `service`, `trpc`) and `packages/configs/{name}-config`.
-- **Studio template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC HTTP API: `components/core/root/` shell, tRPC client under `src/integrations/trpc/`, TanStack Query provider, `@temp-repo/ui`, Nitro + rolldown-vite.
+- **Studio template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC HTTP API: `components/core/root/` shell, tRPC client under `src/integrations/trpc/`, TanStack Query provider, `@temp-repo/ui`, Nitro + Vite 8.
 - **Realtime template** — `turbo/generators/templates/app-realtime/`. A headless Hono + Bun tRPC-WebSocket server (presence + chat room) with JWKS auth; mirrors `apps/realtime`.
 - **Reference app** — treat `apps/studio` as the living example when extending a generated app. Root `CLAUDE.md` applies to all apps unless an app adds a local override.
 - **`bun run gen:lib`** — shared library under `packages/shared/{name}`.
@@ -63,6 +63,22 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Studio DB migrate: `bun run repo db:migrate --app studio`
 - Studio DB push: `bun run repo db:push --app studio`
 - Studio DB seed: `bun run repo db:seed --app studio`
+
+## Deployment (Railway + Railpack)
+
+Shared-workspace monorepo: every Railway service builds from the repo root (no root directory) with
+Railpack, one service per app.
+
+- Per app: `apps/{app}/railpack.json` (build command + pruned deploy image) and
+  `apps/{app}/railway.json` (watch paths, pre-deploy migration, healthcheck, restart policy).
+- Per Railway service: set the config-as-code path to `apps/{app}/railway.json` and the variable
+  `RAILPACK_CONFIG_FILE=apps/{app}/railpack.json`.
+- `bun run repo build --app {app}` emits the whole runtime: `.output/` (studio, Nitro `bun` preset)
+  or `dist/` (realtime, `bun build --target bun`), plus `{out}/migrate/migrate.js` + `drizzle/` SQL
+  bundled from `packages/{app}/repository/src/db/migrate.ts`. The deploy image ships only that
+  folder and the bun toolchain — no `node_modules`, no sources.
+- Pre-deploy: `bun apps/{app}/{out}/migrate/migrate.js`. Start: `bun apps/{app}/{out}/<entry>`.
+- Dry-run a plan locally: `railpack plan --config-file apps/{app}/railpack.json .`
 
 ## Verification
 

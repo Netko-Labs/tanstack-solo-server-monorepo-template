@@ -328,6 +328,39 @@ Key packages added:
 - `drizzle-zod` - Zod schema generation from Drizzle
 - `superjson` - Type-safe serialization
 
+## 🚂 Deploy (Railway + Railpack)
+
+One Railway service per app, both built from the repo root by [Railpack](https://railpack.com). Each app ships its own config:
+
+| File | Owns |
+| --- | --- |
+| `apps/{app}/railpack.json` | build command, pruned deploy image (only the bundle + bun) |
+| `apps/{app}/railway.json` | watch paths, pre-deploy migration, healthcheck, restart policy |
+
+Per service, in Railway settings:
+
+1. Leave **Root Directory** empty (shared workspace monorepo).
+2. Set **Config-as-code file** to `apps/studio/railway.json` (or `apps/realtime/railway.json`).
+3. Add the variable `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` (or the realtime one).
+4. Set the runtime variables: studio needs `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL`,
+   `ENCRYPTION_KEY` (optional `RESEND_API_KEY`, `EMAIL_FROM`, `TRUSTED_ORIGINS`, `CORS`); realtime needs
+   `DATABASE_URL`, `WEB_BASE_URL` (studio's public URL, used for JWKS), `CORS`.
+
+What a deploy does:
+
+```
+bun install --frozen-lockfile
+bun run repo build --app {app}        # .output/ (studio) or dist/ (realtime) + {out}/migrate/
+bun apps/{app}/{out}/migrate/migrate.js   # pre-deploy: drizzle migrations, bundled, no drizzle-kit
+bun apps/{app}/{out}/<entry>              # start
+```
+
+Dry-run the plan locally with the [Railpack CLI](https://railpack.com/getting-started):
+
+```bash
+railpack plan --config-file apps/studio/railpack.json .
+```
+
 ## 🚧 Production Notes
 
 ### Replace SSE Polling with Redis Pub/Sub

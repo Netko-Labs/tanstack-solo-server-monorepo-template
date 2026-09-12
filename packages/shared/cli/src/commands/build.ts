@@ -1,6 +1,14 @@
+import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { getAppDir, getAppKind, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
-import { loadEnvFile, run } from '../utils/shell'
+import {
+  getAppDir,
+  getAppKind,
+  getAvailableApps,
+  getRepositoryDir,
+  parseAppArg,
+  validateApp,
+} from '../utils/apps'
+import { getRootDir, loadEnvFile, run } from '../utils/shell'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* BUILD COMMAND *:･ﾟ✧*:･ﾟ✧
@@ -44,5 +52,29 @@ export async function build(args: string[]) {
     env: appEnv,
   })
 
+  await bundleMigrator(appName, path.join(appDir, kind === 'vite' ? '.output' : 'dist'))
+
   console.log(`✅ Build for ${appName} completed!`)
+}
+
+/**
+ * Bundle the repository's `migrate.ts` (plus its `drizzle/` SQL) into `{outDir}/migrate` so a
+ * deploy image without node_modules can still run `bun {outDir}/migrate/migrate.js`.
+ */
+async function bundleMigrator(appName: string, outDir: string) {
+  const dbDir = path.join(getRepositoryDir(appName), 'src', 'db')
+  const entry = path.join(dbDir, 'migrate.ts')
+
+  if (!fs.existsSync(entry)) {
+    return
+  }
+
+  const migrateDir = path.join(outDir, 'migrate')
+
+  console.log(`🗃️  Bundling migrator for ${appName}...`)
+
+  await run(['bun', 'build', entry, '--outdir', migrateDir, '--target', 'bun'], {
+    cwd: getRootDir(),
+  })
+  fs.cpSync(path.join(dbDir, 'drizzle'), path.join(migrateDir, 'drizzle'), { recursive: true })
 }
