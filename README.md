@@ -328,6 +328,37 @@ Key packages added:
 - `drizzle-zod` - Zod schema generation from Drizzle
 - `superjson` - Type-safe serialization
 
+## 🚀 Deploy (Coolify + Railpack)
+
+One Coolify application per app, both built from the repo root by [Railpack](https://railpack.com). Each app owns `apps/{app}/railpack.json`: the build command and a pruned deploy image (bun toolchain + the app bundle, no `node_modules`).
+
+Per application, in Coolify:
+
+1. **Build Pack** → Railpack. **Base Directory** → `/` (shared workspace monorepo, not the app folder).
+2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` (or the realtime one) with **Build Variable** enabled.
+3. **Pre-deployment command** → `bun apps/studio/.output/migrate/migrate.js` (realtime: `bun apps/realtime/dist/migrate/migrate.js`).
+4. **Healthcheck** → `/api/health` on port 3000 (studio) or `/health` on port 3001 (realtime). **Watch Paths** → `apps/{app}/**`, `packages/{app}/**`, `packages/configs/{app}-config/**`, `packages/shared/**`, `package.json`, `bun.lock`.
+5. Runtime variables: studio needs `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL`,
+   `ENCRYPTION_KEY` (optional `RESEND_API_KEY`, `EMAIL_FROM`, `TRUSTED_ORIGINS`, `CORS`); realtime needs
+   `DATABASE_URL`, `WEB_BASE_URL` (studio's public URL, used for JWKS), `CORS`.
+
+What a deploy does:
+
+```
+bun install --frozen-lockfile
+bun run repo build --app {app}            # .output/ (studio) or dist/ (realtime) + {out}/migrate/
+bun apps/{app}/{out}/migrate/migrate.js   # pre-deploy: drizzle migrations, bundled, no drizzle-kit
+bun apps/{app}/{out}/<entry>              # start
+```
+
+If Coolify's Railpack build ignores `RAILPACK_CONFIG_FILE`, the fallback is the **Build Command** / **Start Command** fields with the same two commands — the app still deploys, but without the pruned image.
+
+Dry-run the plan locally with the [Railpack CLI](https://railpack.com/getting-started):
+
+```bash
+railpack plan --config-file apps/studio/railpack.json .
+```
+
 ## 🚧 Production Notes
 
 ### Replace SSE Polling with Redis Pub/Sub

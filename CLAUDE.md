@@ -40,7 +40,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 ## Scaffolding
 
 - **`bun run gen:app`** — Turbo generator in `turbo/generators/config.ts`. Prompts for a name and a **type** (`studio` | `realtime`), then creates the app under `apps/{name}` plus layered packages (`domain`, `repository`, `service`, `trpc`) and `packages/configs/{name}-config`.
-- **Studio template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC HTTP API: `components/core/root/` shell, tRPC client under `src/integrations/trpc/`, TanStack Query provider, `@temp-repo/ui`, Nitro + rolldown-vite.
+- **Studio template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC HTTP API: `components/core/root/` shell, tRPC client under `src/integrations/trpc/`, TanStack Query provider, `@temp-repo/ui`, Nitro + Vite 8.
 - **Realtime template** — `turbo/generators/templates/app-realtime/`. A headless Hono + Bun tRPC-WebSocket server (presence + chat room) with JWKS auth; mirrors `apps/realtime`.
 - **Reference app** — treat `apps/studio` as the living example when extending a generated app. Root `CLAUDE.md` applies to all apps unless an app adds a local override.
 - **`bun run gen:lib`** — shared library under `packages/shared/{name}`.
