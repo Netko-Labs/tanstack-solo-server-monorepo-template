@@ -64,20 +64,19 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Studio DB push: `bun run repo db:push --app studio`
 - Studio DB seed: `bun run repo db:seed --app studio`
 
-## Deployment (Railway + Railpack)
+## Deployment (Coolify + Railpack)
 
-Shared-workspace monorepo: every Railway service builds from the repo root (no root directory) with
-Railpack, one service per app.
+Shared-workspace monorepo: one Coolify application per app, build pack **Railpack**, **Base
+Directory** `/` (repo root), build variable `RAILPACK_CONFIG_FILE=apps/{app}/railpack.json`.
 
-- Per app: `apps/{app}/railpack.json` (build command + pruned deploy image) and
-  `apps/{app}/railway.json` (watch paths, pre-deploy migration, healthcheck, restart policy).
-- Per Railway service: set the config-as-code path to `apps/{app}/railway.json` and the variable
-  `RAILPACK_CONFIG_FILE=apps/{app}/railpack.json`.
+- `apps/{app}/railpack.json` owns the build command and the deploy image: mise/bun toolchain + the
+  app bundle only — no `node_modules`, no sources.
 - `bun run repo build --app {app}` emits the whole runtime: `.output/` (studio, Nitro `bun` preset)
   or `dist/` (realtime, `bun build --target bun`), plus `{out}/migrate/migrate.js` + `drizzle/` SQL
-  bundled from `packages/{app}/repository/src/db/migrate.ts`. The deploy image ships only that
-  folder and the bun toolchain — no `node_modules`, no sources.
-- Pre-deploy: `bun apps/{app}/{out}/migrate/migrate.js`. Start: `bun apps/{app}/{out}/<entry>`.
+  bundled from `packages/{app}/repository/src/db/migrate.ts`.
+- Coolify settings per app: pre-deployment command `bun apps/{app}/{out}/migrate/migrate.js`,
+  healthcheck `/api/health` (studio) or `/health` (realtime), watch paths scoped to the app's
+  folders + `packages/shared/**`.
 - Dry-run a plan locally: `railpack plan --config-file apps/{app}/railpack.json .`
 
 ## Verification
