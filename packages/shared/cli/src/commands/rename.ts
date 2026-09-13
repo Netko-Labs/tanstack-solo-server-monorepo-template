@@ -10,6 +10,9 @@ import { getRootDir } from '../utils/shell'
  */
 
 const CURRENT_SCOPE = '@temp-repo'
+// Bare name also appears in compose project names, POSTGRES_DB and sample.env URLs.
+const CURRENT_NAME = CURRENT_SCOPE.slice(1)
+const FILE_GLOB = '**/{*.{ts,tsx,js,jsx,json,hbs,md,yml,yaml},sample.env}'
 
 /**
  * Rename the entire project scope
@@ -37,6 +40,8 @@ export async function renameProject(args: string[]) {
     process.exit(1)
   }
 
+  const newName = newScope.slice(1)
+
   console.log(`\n🔄 Renaming project from ${CURRENT_SCOPE} to ${newScope}...\n`)
 
   const rootDir = getRootDir()
@@ -56,7 +61,7 @@ export async function renameProject(args: string[]) {
   console.log('\n🔍 Finding files to update...\n')
 
   // Find all files that need updating (excluding node_modules, dist, .git)
-  const filesToUpdate = await glob('**/*.{ts,tsx,js,jsx,json,hbs,md,yml,yaml}', {
+  const filesToUpdate = await glob(FILE_GLOB, {
     cwd: rootDir,
     ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/bun.lock'],
     absolute: true,
@@ -70,7 +75,7 @@ export async function renameProject(args: string[]) {
   for (const filePath of filesToUpdate) {
     try {
       const content = fs.readFileSync(filePath, 'utf-8')
-      const newContent = content.replaceAll(CURRENT_SCOPE, newScope)
+      const newContent = content.replaceAll(CURRENT_NAME, newName)
 
       if (content !== newContent) {
         fs.writeFileSync(filePath, newContent, 'utf-8')
@@ -78,7 +83,7 @@ export async function renameProject(args: string[]) {
 
         // Count occurrences
         const matches = content.match(
-          new RegExp(CURRENT_SCOPE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          new RegExp(CURRENT_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
         )
         const count = matches ? matches.length : 0
         occurrencesReplaced += count
@@ -105,8 +110,9 @@ export async function renameProject(args: string[]) {
 🎯 Next steps:
    1. Review the changes with: git diff
    2. Run: bun install
-   3. Test your apps to ensure everything works
-   4. Commit the changes: git add . && git commit -m "chore: rename project to ${newScope}"
+   3. Run: bun run fmt-lint:fix (import order shifts with the new scope)
+   4. Test your apps to ensure everything works
+   5. Commit the changes: git add . && git commit -m "chore: rename project to ${newScope}"
 
 `)
 }
@@ -129,7 +135,7 @@ export async function previewRename(args: string[]) {
   const rootDir = getRootDir()
 
   // Find all files that need updating
-  const filesToUpdate = await glob('**/*.{ts,tsx,js,jsx,json,hbs,md,yml,yaml}', {
+  const filesToUpdate = await glob(FILE_GLOB, {
     cwd: rootDir,
     ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/bun.lock'],
     absolute: true,
@@ -144,7 +150,7 @@ export async function previewRename(args: string[]) {
     try {
       const content = fs.readFileSync(filePath, 'utf-8')
       const matches = content.match(
-        new RegExp(CURRENT_SCOPE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+        new RegExp(CURRENT_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
       )
 
       if (matches && matches.length > 0) {
