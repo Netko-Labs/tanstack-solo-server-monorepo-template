@@ -1,3 +1,5 @@
+name: temp-repo-realtime
+
 services:
   db-realtime:
     image: postgres:17

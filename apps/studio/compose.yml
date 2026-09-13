@@ -1,3 +1,5 @@
+name: temp-repo-studio
+
 services:
   # Studio App Services
   db-studio:
