@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@temp-repo/ui/componen
 import {
   IMPLEMENTATION_HINT,
   IMPLEMENTATION_QUERY,
-  IMPLEMENTATION_SSE,
   IMPLEMENTATION_TITLE,
+  IMPLEMENTATION_TRANSPORT,
 } from '../lib'
 
 export function ImplementationInfo() {
@@ -17,7 +17,7 @@ export function ImplementationInfo() {
           <strong>TanStack Query:</strong> {IMPLEMENTATION_QUERY}
         </p>
         <p>
-          <strong>SSE Subscriptions:</strong> {IMPLEMENTATION_SSE}
+          <strong>Transport:</strong> {IMPLEMENTATION_TRANSPORT}
         </p>
         <p className="text-muted-foreground">{IMPLEMENTATION_HINT}</p>
       </CardContent>

@@ -1,41 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
-import { realtime } from '@/integrations/realtime'
-
-const TODOS_QUERY_KEY = ['todos'] as const
+import { useTRPC } from '@/integrations/trpc'
 
 export function useTodosExample() {
+  const trpc = useTRPC()
   const queryClient = useQueryClient()
   const [lastUpdate, setLastUpdate] = useState('')
 
-  const {
-    data: todos = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: TODOS_QUERY_KEY,
-    queryFn: () => realtime.todos.list.query(),
-  })
+  const { data: todos = [], isLoading, error } = useQuery(trpc.todos.list.queryOptions())
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: TODOS_QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: trpc.todos.list.queryKey() })
     setLastUpdate(new Date().toLocaleTimeString())
   }
 
-  const createMutation = useMutation({
-    mutationFn: (input: { title: string; description?: string }) =>
-      realtime.todos.create.mutate(input),
-    onSuccess: invalidate,
-  })
-  const toggleMutation = useMutation({
-    mutationFn: ({ todoId, completed }: { todoId: string; completed: boolean }) =>
-      realtime.todos.update.mutate({ todoId, completed }),
-    onSuccess: invalidate,
-  })
-  const deleteMutation = useMutation({
-    mutationFn: (todoId: string) => realtime.todos.delete.mutate({ todoId }),
-    onSuccess: invalidate,
-  })
+  const createMutation = useMutation(trpc.todos.create.mutationOptions({ onSuccess: invalidate }))
+  const toggleMutation = useMutation(trpc.todos.update.mutationOptions({ onSuccess: invalidate }))
+  const deleteMutation = useMutation(trpc.todos.delete.mutationOptions({ onSuccess: invalidate }))
 
   const handleCreateTodo = (e: FormEvent, title: string, description: string) => {
     e.preventDefault()
@@ -44,7 +25,7 @@ export function useTodosExample() {
   }
   const handleToggleTodo = (todoId: string, completed: boolean) =>
     toggleMutation.mutate({ todoId, completed: !completed })
-  const handleDeleteTodo = (todoId: string) => deleteMutation.mutate(todoId)
+  const handleDeleteTodo = (todoId: string) => deleteMutation.mutate({ todoId })
 
   return {
     todos,

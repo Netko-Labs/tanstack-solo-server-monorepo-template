@@ -1,11 +1,11 @@
 export const TODOS_PAGE_TITLE = 'Todos Example'
 export const TODOS_PAGE_DESCRIPTION =
-  'Demonstrating tRPC + TanStack Query with queries, mutations, and SSE subscriptions'
+  'Demonstrating tRPC + TanStack Query with queries and mutations over HTTP'
 
-export const SUBSCRIPTION_TITLE = 'Real-time Updates'
+export const SUBSCRIPTION_TITLE = 'Transport'
 export const SUBSCRIPTION_DESCRIPTION =
-  'Using Server-Sent Events (SSE) for real-time synchronization'
-export const SUBSCRIPTION_BADGE = 'SSE Active'
+  'Queries and mutations batch over /api/trpc; the WebSocket is reserved for subscriptions'
+export const SUBSCRIPTION_BADGE = 'HTTP batch'
 
 export const CREATE_TODO_TITLE = 'Create New Todo'
 export const CREATE_TODO_DESCRIPTION = 'Add a new item to your todo list'
@@ -23,7 +23,6 @@ export const LIST_EMPTY = 'No todos yet. Create one above!'
 export const IMPLEMENTATION_TITLE = 'Implementation Details'
 export const IMPLEMENTATION_QUERY =
   'Using useQuery and useMutation with tRPC integration for type-safe data fetching.'
-export const IMPLEMENTATION_SSE =
-  'Real-time updates via httpSubscriptionLink. Server pushes updates when data changes.'
-export const IMPLEMENTATION_HINT =
-  'Try opening this page in multiple browser windows and see the real-time updates!'
+export const IMPLEMENTATION_TRANSPORT =
+  'Queries and mutations batch over HTTP (/api/trpc); only subscriptions use the WebSocket.'
+export const IMPLEMENTATION_HINT = 'Mutations are protectedProcedures — sign in first.'

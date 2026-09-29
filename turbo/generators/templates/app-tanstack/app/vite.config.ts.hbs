@@ -7,7 +7,7 @@ import tsConfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
   server: {
-    port: 3000,
+    port: Number(process.env.PORT ?? 3000),
   },
   plugins: [
     tsConfigPaths({
@@ -15,7 +15,10 @@ export default defineConfig({
     }),
     tailwindcss(),
     tanstackStart(),
-    nitro(),
+    nitro({
+      experimental: { websocket: true },
+      handlers: [{ route: '/trpc-ws', handler: './src/server/trpc-ws.ts' }],
+    }),
     viteReact(),
   ],
 })

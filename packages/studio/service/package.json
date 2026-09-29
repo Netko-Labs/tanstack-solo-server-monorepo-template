@@ -12,8 +12,8 @@
     "@temp-repo/studio-domain": "workspace:*",
     "@temp-repo/studio-repository": "workspace:*",
     "@temp-repo/typescript-config": "workspace:*",
-    "better-auth": "^1.7.4",
-    "drizzle-orm": "^0.45.2",
+    "better-auth": "^1.7.6",
+    "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12"
   },
   "scripts": {

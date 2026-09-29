@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import type { ChatMessage, Member } from '@temp-repo/realtime-domain'
+import type { ChatMessage, Member } from '@temp-repo/studio-domain'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { realtime } from '@/integrations/realtime'
-import { useTRPC } from '@/integrations/trpc'
+import { trpcClient, useTRPC } from '@/integrations/trpc'
 import { scrollIntoView } from '@/shared/dom-events'
 import type { ConnectionStatus } from '../types'
 import { appendUniqueChatMessage } from '../utils'
@@ -29,7 +28,7 @@ export function useChatExample() {
       return
     }
     setConnectionStatus('connecting')
-    const sub = realtime.room.stream.subscribe(
+    const sub = trpcClient.room.stream.subscribe(
       { roomId: ROOM_ID },
       {
         onData: (event) => {
@@ -57,7 +56,7 @@ export function useChatExample() {
   const handleSendMessage = (e: FormEvent, content: string) => {
     e.preventDefault()
     if (!content.trim() || !currentUser) return
-    realtime.room.send.mutate({ roomId: ROOM_ID, content })
+    trpcClient.room.send.mutate({ roomId: ROOM_ID, content })
   }
 
   return {

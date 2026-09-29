@@ -1,0 +1,30 @@
+diff --git a/dist/runtime/internal/vite/dev-entry.mjs b/dist/runtime/internal/vite/dev-entry.mjs
+index cb1176ee093ecfc362080044279eae86abd82f9a..f04ea1bf3ee4d0887b2c6a569ad033a4c634b8f1 100644
+--- a/dist/runtime/internal/vite/dev-entry.mjs
++++ b/dist/runtime/internal/vite/dev-entry.mjs
+@@ -9,7 +9,10 @@ const nitroApp = useNitroApp();
+ 
+ export const fetch = nitroApp.fetch;
+ 
+-const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
++// Bun/Deno dev workers serve via Bun.serve/Deno.serve: crossws hooks are installed by the
++// runner through the `websocket` export instead of the Node upgrade adapter.
++const isNodeRuntime = !("Bun" in globalThis) && !("Deno" in globalThis);
++const ws = import.meta._websocket && isNodeRuntime ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
+ 
+ if (import.meta._tasks) {
+   startScheduleRunner({});
+diff --git a/dist/runtime/internal/vite/dev-worker.mjs b/dist/runtime/internal/vite/dev-worker.mjs
+index 3ced9371804165a184fbed4a1d5256537ab734f1..a910f15563e9d675777f2f5b355625f7612c7de7 100644
+--- a/dist/runtime/internal/vite/dev-worker.mjs
++++ b/dist/runtime/internal/vite/dev-worker.mjs
+@@ -266,6 +266,9 @@ export async function fetch(req) {
+   }
+ }
+ 
++// Non-Node runtimes: let the env-runner install the crossws server plugin (hooks resolve via fetch).
++export const websocket = "Bun" in globalThis || "Deno" in globalThis ? {} : undefined;
++
+ export function upgrade(context) {
+   const handleUpgrade = envs.nitro?.entry?.handleUpgrade;
+   if (handleUpgrade) {

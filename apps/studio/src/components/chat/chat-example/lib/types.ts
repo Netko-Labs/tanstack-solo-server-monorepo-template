@@ -1,21 +1,7 @@
-import type { ChatMessage, Member } from '@temp-repo/realtime-domain'
+import type { ChatMessage, Member } from '@temp-repo/studio-domain'
 import type { FormEvent, RefObject } from 'react'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
-
-export interface ChatInitEvent {
-  id: string
-  type: 'init'
-  messages: ChatMessage[]
-}
-
-export interface ChatMessageEvent {
-  id: string
-  type: 'message'
-  message: ChatMessage
-}
-
-export type ChatEvent = ChatInitEvent | ChatMessageEvent
 
 export interface ConnectionStatusProps {
   status: ConnectionStatus
