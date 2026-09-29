@@ -48,4 +48,3 @@ export const protectedProcedure = t.procedure.use(async ({ next, ctx }) => {
   }
   return next({ ctx: { user, session } })
 })
-

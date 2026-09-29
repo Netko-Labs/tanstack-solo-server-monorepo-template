@@ -1,4 +1,4 @@
-import { studioEnvConfig } from '@temp-repo/{{ name }}-config'
+import { {{ camelCase name }}EnvConfig } from '@temp-repo/{{ name }}-config'
 import { appRouter, createContext, createTRPCWebSocketHooks } from '@temp-repo/{{ name }}-trpc'
 import { defineWebSocketHandler } from 'nitro/h3'
 
@@ -10,7 +10,7 @@ export default defineWebSocketHandler(
   createTRPCWebSocketHooks({
     router: appRouter,
     createContext,
-    trustedOrigins: [studioEnvConfig.app.baseUrl, ...studioEnvConfig.auth.trustedOrigins],
+    trustedOrigins: [{{ camelCase name }}EnvConfig.app.baseUrl, ...{{ camelCase name }}EnvConfig.auth.trustedOrigins],
     keepAlive: { pingMs: WS_PING_MS, pongWaitMs: WS_PONG_WAIT_MS },
   }),
 )

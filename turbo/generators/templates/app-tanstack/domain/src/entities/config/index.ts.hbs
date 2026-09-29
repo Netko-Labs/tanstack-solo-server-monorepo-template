@@ -11,8 +11,6 @@ export const {{ pascalCase name }}ConfigSchema = z.object({
     dev: z.boolean(),
     baseUrl: z.string().url(),
     port: z.number().int().positive(),
-    cors: z.array(z.string()),
-    encryptionKey: z.string(),
   }),
   cache: z.object({
     url: z.string(),
@@ -22,8 +20,8 @@ export const {{ pascalCase name }}ConfigSchema = z.object({
   }),
   auth: z.object({
     secret: z.string().optional(),
+    trustedOrigins: z.array(z.string()).default([]),
   }),
 })
 
 export type {{ pascalCase name }}Config = z.infer<typeof {{ pascalCase name }}ConfigSchema>
-
