@@ -29,7 +29,7 @@ export async function dockerUp(args: string[]) {
 
   console.log(`🐳 Starting Docker containers for ${appName}...`)
 
-  await run(['docker', 'compose', '--profile', appName, 'up', '-d'], {
+  await run(['docker', 'compose', '--profile', appName, 'up', '-d', '--wait'], {
     cwd: appDir,
   })
 

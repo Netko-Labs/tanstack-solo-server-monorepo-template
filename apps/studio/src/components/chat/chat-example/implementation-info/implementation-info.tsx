@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@temp-repo/ui/componen
 import {
   IMPLEMENTATION_AUTH,
   IMPLEMENTATION_HINT,
-  IMPLEMENTATION_SSE,
   IMPLEMENTATION_TITLE,
+  IMPLEMENTATION_WS,
 } from '../lib'
 
 export function ImplementationInfo() {
@@ -14,7 +14,7 @@ export function ImplementationInfo() {
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p>
-          <strong>SSE Subscriptions:</strong> {IMPLEMENTATION_SSE}
+          <strong>WebSocket Subscription:</strong> {IMPLEMENTATION_WS}
         </p>
         <p>
           <strong>Authentication:</strong> {IMPLEMENTATION_AUTH}

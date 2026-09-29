@@ -111,6 +111,7 @@
       "**",
       "!**/node_modules",
       "!**/.turbo",
+      "!.claude/worktrees",
       "!**/.next",
       "!**/routeTree.gen.ts",
       "!**/public",

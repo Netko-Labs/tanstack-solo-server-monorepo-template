@@ -23,7 +23,7 @@ export const LIST_EMPTY = 'No todos yet. Create one above!'
 export const IMPLEMENTATION_TITLE = 'Implementation Details'
 export const IMPLEMENTATION_QUERY =
   'Using useQuery and useMutation with tRPC integration for type-safe data fetching.'
-export const IMPLEMENTATION_SSE =
-  'Real-time updates via httpSubscriptionLink. Server pushes updates when data changes.'
+export const IMPLEMENTATION_TRANSPORT =
+  'Queries and mutations ride the realtime server over one lazy tRPC WebSocket (wsLink), shared with the chat room.'
 export const IMPLEMENTATION_HINT =
-  'Try opening this page in multiple browser windows and see the real-time updates!'
+  'Mutations are protectedProcedures on the realtime server — sign in first.'
