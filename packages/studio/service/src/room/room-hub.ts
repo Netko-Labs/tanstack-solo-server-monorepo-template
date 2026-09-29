@@ -12,7 +12,10 @@ const logger = createLogger('room')
 
 /** Room lifecycle on top of a bus: join → sync → live events + heartbeat → leave. */
 export class RoomHub {
-  constructor(readonly bus: RoomBus) {}
+  constructor(
+    readonly bus: RoomBus,
+    private readonly loadHistory: () => Promise<ChatMessage[]> = getChatMessages,
+  ) {}
 
   async *stream(roomId: string, member: Member, signal?: AbortSignal): AsyncGenerator<RoomEvent> {
     const queue = createAsyncQueue<RoomEvent>(signal)
@@ -36,7 +39,7 @@ export class RoomHub {
     try {
       const members = await this.bus.members(roomId)
       signature = presenceSignature(members)
-      yield { type: 'sync', members, messages: await getChatMessages() }
+      yield { type: 'sync', members, messages: await this.loadHistory() }
       for await (const event of queue) yield event
     } finally {
       clearInterval(tick)
