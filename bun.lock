@@ -26,6 +26,7 @@
         "@tanstack/react-router-devtools": "^1.167.2",
         "@tanstack/react-start": "^1.168.59",
         "@temp-repo/logger": "workspace:*",
+        "@temp-repo/studio-config": "workspace:*",
         "@temp-repo/studio-domain": "workspace:*",
         "@temp-repo/studio-repository": "workspace:*",
         "@temp-repo/studio-service": "workspace:*",
@@ -158,6 +159,10 @@
         "better-auth": "^1.7.6",
         "drizzle-orm": "^0.45.3",
         "jose": "^6.2.12",
+        "superjson": "^2.2.6",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
       },
     },
     "packages/studio/trpc": {
