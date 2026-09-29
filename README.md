@@ -1,15 +1,14 @@
 # TanStack Solo Server Monorepo Template
 
-A modern, type-safe full-stack **two-app** template: a TanStack Start frontend + auth server (`studio`) and a headless tRPC **WebSocket** server (`realtime`), wired with Drizzle ORM, TanStack Query, cross-service JWT auth, and Bun.
+A modern, type-safe full-stack **solo-server** template: one TanStack Start app (`studio`) that serves the UI, better-auth, tRPC over HTTP **and** tRPC over a native **WebSocket** (`/trpc-ws`), wired with Drizzle ORM, TanStack Query, and Bun.
 
 ## 🚀 Features
 
-- 🏛️ **Two-app architecture** - `studio` (TanStack Start frontend + auth) and `realtime` (headless tRPC WebSocket server)
-- 🔄 **tRPC** - End-to-end type-safe APIs (HTTP for studio auth, `wsLink` for the realtime server)
-- 🔌 **WebSocket real-time** - presence + live chat room on the standalone realtime server
+- 🏛️ **Solo server** - one Nitro/Bun process serves SSR, `/api/auth`, `/api/trpc` and the `/trpc-ws` WebSocket
+- 🔄 **tRPC** - End-to-end type-safe APIs (`httpBatchLink` for queries/mutations, `wsLink` for subscriptions via `splitLink`)
+- 🔌 **WebSocket real-time** - presence + live chat room over crossws (Nitro `experimental.websocket`), same-origin cookie auth
 - 🔑 **Magic-link auth** - better-auth magic link + a `/sign-in` page (Resend email, console fallback)
-- 🔐 **Cross-service JWT** - studio mints JWTs; realtime verifies via JWKS (no shared secret)
-- 📊 **TanStack Query** + 🗃️ **Drizzle ORM** - typed data fetching + `drizzle-zod` schemas; two databases
+- 📊 **TanStack Query** + 🗃️ **Drizzle ORM** - typed data fetching + `drizzle-zod` schemas; one database
 - 📦 **Turborepo** + ⚙️ **Bun** - fast monorepo tooling and runtime
 - 🎯 **TypeScript** - Full type safety across the stack
 
@@ -17,11 +16,11 @@ A modern, type-safe full-stack **two-app** template: a TanStack Start frontend +
 
 ### Working examples
 
-- ✅ **Todos** — CRUD against the realtime server over tRPC-WebSocket, JWT-authorized
+- ✅ **Todos** — CRUD over tRPC HTTP batching, session-authorized
 - ✅ **Presence + live chat** — a WebSocket room: who's-online presence (join/leave) + live messages
-- ✅ **Magic-link sign-in** — email → link → session → JWT, on a dedicated `/sign-in` page
+- ✅ **Magic-link sign-in** — email → link → session cookie, on a dedicated `/sign-in` page
 - ✅ **drizzle-zod** — Zod schemas generated from Drizzle tables
-- ✅ **Clean architecture** — `domain → repository → service → trpc` per app, with cross-service JWT/JWKS
+- ✅ **Clean architecture** — `domain → repository → service → trpc → ui`
 
 ## 🏗️ Project Structure
 
@@ -33,8 +32,9 @@ A modern, type-safe full-stack **two-app** template: a TanStack Start frontend +
 │           ├── components/     # React components (feature folders + definitions/)
 │           ├── integrations/   # TanStack Query + tRPC setup
 │           │   ├── tanstack-query/
-│           │   └── trpc/
-│           └── routes/         # File-based routing (thin Route exports)
+│           │   └── trpc/       # client.ts: httpBatchLink + wsLink (splitLink)
+│           ├── routes/         # File-based routing (thin Route exports)
+│           └── server/         # Nitro handlers (trpc-ws.ts → /trpc-ws)
 │
 ├── packages/
 │   ├── studio/
@@ -90,8 +90,8 @@ bunx drizzle-kit push
 bun run repo dev --app studio
 # or: bun run dev
 
-# Server will start at http://localhost:3000
-# Visit http://localhost:3000/todos to see the example
+# Server will start at http://localhost:3000 (WebSocket at ws://localhost:3000/trpc-ws)
+# Visit http://localhost:3000/chat for presence + live chat, /todos for CRUD
 ```
 
 ## 📖 Architecture Patterns
@@ -250,7 +250,7 @@ export const todosSubscriptions = router({
 ### Frontend Integration (`apps/studio/src/integrations`)
 
 **tRPC client**:
-- `http-client.ts` - HTTP batch link + SSE subscriptions via `trpcClient`
+- `client.ts` - `splitLink`: `httpBatchLink` for queries/mutations, `wsLink` (lazy, same-origin `/trpc-ws`) for subscriptions
 - `react.ts` - TanStack Query + tRPC context (`useTRPC`, `TRPCProvider`)
 
 **Usage in Components**:
@@ -273,13 +273,13 @@ function TodosExample() {
   )
 
   useEffect(() => {
-    const unsubscribe = trpcClient.todos.onUpdate.subscribe(undefined, {
-      onData: (data) => {
-        queryClient.setQueryData(trpc.todos.list.queryKey(), data.todos)
+    const sub = trpcClient.room.stream.subscribe({ roomId: 'lobby' }, {
+      onData: (event) => {
+        if (event.type === 'chat') queryClient.invalidateQueries({ queryKey: trpc.room.messages.queryKey() })
       },
     })
-    return () => unsubscribe.unsubscribe()
-  }, [queryClient, trpc.todos.list])
+    return () => sub.unsubscribe()
+  }, [queryClient, trpc.room.messages])
 }
 ```
 
@@ -311,13 +311,15 @@ service/src/
 ### 3. Merged tRPC Routers
 Routers are split by concern and merged:
 ```typescript
-export const todosRouter = mergeRouters(todosQueries, todosMutations, todosSubscriptions)
+export const todosRouter = mergeRouters(todosQueries, todosMutations)
 ```
 
-### 4. tRPC HTTP + SSE Client
+### 4. tRPC HTTP + WebSocket in one process
 
-- **HTTP client** (`trpcClient`): queries, mutations, and SSE subscriptions in this template
-- **WebSocket client**: add under `src/integrations/trpc/` when your stack requires it
+- **Client** (`trpcClient`): `splitLink` sends subscriptions over `wsLink` and everything else over `httpBatchLink`. SSR builds HTTP-only links.
+- **Server**: `apps/studio/src/server/trpc-ws.ts` is a Nitro handler (`defineWebSocketHandler`) mounted at `/trpc-ws` from `vite.config.ts`. `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler`, so the wire protocol is stock tRPC.
+- **Auth**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch and WebSocket paths. No JWT hop.
+- **Dev under Bun**: `patches/nitro@*.patch` (via `bun patch`) lets Nitro's Vite dev worker install the crossws Bun plugin; without it `vite dev` answers upgrades with 426.
 
 ## 📦 Dependencies
 
@@ -330,25 +332,24 @@ Key packages added:
 
 ## 🚀 Deploy (Coolify + Railpack)
 
-One Coolify application per app, both built from the repo root by [Railpack](https://railpack.com). Each app owns `apps/{app}/railpack.json`: the build command and a pruned deploy image (bun toolchain + the app bundle, no `node_modules`).
+One Coolify application, built from the repo root by [Railpack](https://railpack.com). `apps/studio/railpack.json` holds the build command and a pruned deploy image (bun toolchain + `.output`, no `node_modules`). WebSockets need nothing extra: Coolify's Traefik proxies the `/trpc-ws` upgrade like any HTTP/1.1 request.
 
-Per application, in Coolify:
+In Coolify:
 
 1. **Build Pack** → Railpack. **Base Directory** → `/` (shared workspace monorepo, not the app folder).
-2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` (or the realtime one) with **Build Variable** enabled. Studio also needs `VITE_REALTIME_URL=wss://<realtime-domain>/trpc-ws` as a **Build Variable** — Vite inlines it into the client bundle, so a runtime-only value is invisible to the browser.
-3. **Pre-deployment command** → `bun apps/studio/.output/migrate/migrate.js` (realtime: `bun apps/realtime/dist/migrate/migrate.js`).
-4. **Healthcheck** → `/api/health` on port 3000 (studio) or `/health` on port 3001 (realtime). **Watch Paths** → `apps/{app}/**`, `packages/{app}/**`, `packages/configs/{app}-config/**`, `packages/shared/**`, `package.json`, `bun.lock`.
-5. Runtime variables: studio needs `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL`,
-   `ENCRYPTION_KEY` (optional `RESEND_API_KEY`, `EMAIL_FROM`, `TRUSTED_ORIGINS`, `CORS`); realtime needs
-   `DATABASE_URL`, `WEB_BASE_URL` (studio's public URL, used for JWKS), `CORS`.
+2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` with **Build Variable** enabled.
+3. **Pre-deployment command** → `bun apps/studio/.output/migrate/migrate.js`.
+4. **Healthcheck** → `/api/health` on port 3000. **Watch Paths** → `apps/studio/**`, `packages/studio/**`, `packages/configs/studio-config/**`, `packages/shared/**`, `patches/**`, `package.json`, `bun.lock`.
+5. Runtime variables: `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL`, `ENCRYPTION_KEY`
+   (optional `RESEND_API_KEY`, `EMAIL_FROM`, `TRUSTED_ORIGINS`, `CORS`).
 
 What a deploy does:
 
 ```
 bun install --frozen-lockfile
-bun run repo build --app {app}            # .output/ (studio) or dist/ (realtime) + {out}/migrate/
-bun apps/{app}/{out}/migrate/migrate.js   # pre-deploy: drizzle migrations, bundled, no drizzle-kit
-bun apps/{app}/{out}/<entry>              # start
+bun run repo build --app studio             # .output/ + .output/migrate/
+bun apps/studio/.output/migrate/migrate.js  # pre-deploy: drizzle migrations, bundled, no drizzle-kit
+bun apps/studio/.output/server/index.mjs    # start (HTTP + WebSocket on one port)
 ```
 
 If Coolify's Railpack build ignores `RAILPACK_CONFIG_FILE`, the fallback is the **Build Command** / **Start Command** fields with the same two commands — the app still deploys, but without the pruned image.
@@ -361,8 +362,8 @@ railpack plan --config-file apps/studio/railpack.json .
 
 ## 🚧 Production Notes
 
-### Replace SSE Polling with Redis Pub/Sub
-For production, replace the polling-based subscription with Redis:
+### Replace the in-memory RoomHub with Redis Pub/Sub
+`RoomHub` fans out per process. For more than one instance, replace it with Redis:
 ```typescript
 // Use Redis Pub/Sub or PostgreSQL LISTEN/NOTIFY
 for await (const event of createRedisIterable(channel, signal)) {

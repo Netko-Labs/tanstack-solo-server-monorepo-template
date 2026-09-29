@@ -15,7 +15,10 @@ export default defineConfig({
     }),
     tailwindcss(),
     tanstackStart(),
-    nitro(),
+    nitro({
+      experimental: { websocket: true },
+      handlers: [{ route: '/trpc-ws', handler: './src/server/trpc-ws.ts' }],
+    }),
     viteReact(),
   ],
 })

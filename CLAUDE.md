@@ -17,12 +17,9 @@ they describe this repo's specific topology, scaffolding, and commands.
 
 - Runtime and package manager: `bun@1.2.23`
 - Monorepo tooling: Turborepo
-- Two apps:
-  - `apps/studio` — TanStack Start (React 19, Tailwind, Base UI, Tabler Icons) frontend + an **auth-only** tRPC/better-auth backend (magic link + jwt/jwks). The frontend + identity provider.
-  - `apps/realtime` — a **headless** Hono + Bun server that owns all transactional operations **and** the presence/live-chat room, all as tRPC over a single **WebSocket** (`/trpc-ws`). Verifies studio JWTs via JWKS — no shared secret.
-- Studio packages: `packages/studio/{domain,repository,service,trpc}` (auth only) + `packages/configs/studio-config`.
-- Realtime packages: `packages/realtime/{domain,repository,service,trpc}` + `packages/configs/realtime-config`.
-- Two databases: studio (auth tables) and realtime (business/realtime data).
+- One app, `apps/studio` — TanStack Start (React 19, Tailwind, Base UI, Tabler Icons) on Nitro/Bun. The same process serves SSR, better-auth (`/api/auth`), tRPC over HTTP (`/api/trpc`) **and** tRPC over a native **WebSocket** (`/trpc-ws`, crossws via Nitro `experimental.websocket`).
+- Packages: `packages/studio/{domain,repository,service,trpc}` + `packages/configs/studio-config`.
+- One PostgreSQL database (auth tables + todos + chat).
 - Shared tooling and UI live under `packages/shared/*` (`cli`, `logger`, `ui`, `typescript-config`).
 
 When extending the template with additional apps, colocate app-specific packages under `packages/{app-name}/*` and config under `packages/configs/{app-name}-config`. Keep cross-cutting concerns in `packages/shared/*`.
@@ -33,22 +30,22 @@ The generic layering pattern and per-layer folder structure (`domain → reposit
 ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend Layering** in
 `@docs/conventions.md`. This section records only the concrete studio-stack specifics:
 
-- `apps/studio` backend is **auth only**: better-auth is mounted at `/api/auth` (magic link + `jwt`/`jwks`); the studio tRPC `appRouter` is just `{ auth }`. All transactional data + logic lives on the realtime server. Put `drizzle-zod` entities in the relevant `domain` package (`createInsertSchema()`/`createUpdateSchema()`/`createSelectSchema()`).
-- `apps/realtime` is a **standalone** Hono + Bun server (`@valkyrie-resistance/trpc-ws-hono-bun-adapter`) exposing its tRPC `appRouter` over a single WebSocket at `/trpc-ws`. `packages/realtime/{domain,repository,service,trpc}` hold the tables/entities + a `RoomEvent` union, the DB client, business logic + an in-memory `RoomHub`, and the router (todos + a room presence/chat subscription via an async-generator).
-- **Cross-service auth**: studio mints a JWT (`GET /api/auth/token`); the realtime tRPC context reads it from the WS `connectionParams.token` and verifies it against studio's JWKS (`/api/auth/jwks`) with `jose` — no shared secret. The frontend uses one `wsLink` + `createWSClient` realtime client (`src/integrations/realtime`).
+- better-auth is mounted at `/api/auth` (magic link + `jwt`/`jwks`, the latter kept for future external consumers). The tRPC `appRouter` is `{ auth, room, todos }`. `drizzle-zod` entities live in `domain` (`createInsertSchema()`/`createUpdateSchema()`/`createSelectSchema()`); `domain/schemas/room.ts` holds `Member` + the `RoomEvent` union; `service/room` is the in-memory `RoomHub`; `trpc/routers/room` exposes `messages`/`send`/`stream` (async-generator subscription).
+- **WebSocket transport**: `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler` (stock wire protocol, so `wsLink` works unchanged). `apps/studio/src/server/trpc-ws.ts` wraps it in `defineWebSocketHandler` and `vite.config.ts` mounts it at `/trpc-ws` via the nitro plugin `handlers` option. Never add a second WebSocket entry; extend the router instead.
+- **Auth on the socket**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch adapter and the WebSocket bridge. No JWT hop, no `connectionParams`.
+- **Client**: `src/integrations/trpc/client.ts` builds a `splitLink` — subscriptions over a lazy `wsLink` to the same origin, everything else over `httpBatchLink`. SSR gets HTTP-only links.
+- **Nitro patch**: `patches/nitro@*.patch` (applied by `bun install` via `patchedDependencies`) makes Nitro's Vite dev worker install the crossws Bun plugin. Without it `vite dev` under Bun answers upgrades with 426. Re-check it when bumping `nitro`.
 
 ## Scaffolding
 
-- **`bun run gen:app`** — Turbo generator in `turbo/generators/config.ts`. Prompts for a name and a **type** (`studio` | `realtime`), then creates the app under `apps/{name}` plus layered packages (`domain`, `repository`, `service`, `trpc`) and `packages/configs/{name}-config`.
-- **Studio template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC HTTP API: `components/core/root/` shell, tRPC client under `src/integrations/trpc/`, TanStack Query provider, `@temp-repo/ui`, Nitro + Vite 8.
-- **Realtime template** — `turbo/generators/templates/app-realtime/`. A headless Hono + Bun tRPC-WebSocket server (presence + chat room) with JWKS auth; mirrors `apps/realtime`.
+- **`bun run gen:app`** — Turbo generator in `turbo/generators/config.ts`. Prompts for a name, then creates the app under `apps/{name}` plus layered packages (`domain`, `repository`, `service`, `trpc`) and `packages/configs/{name}-config`.
+- **App template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC over HTTP and WebSocket: `components/core/root/` shell (devtools behind a DEV-only lazy import), `src/server/trpc-ws.ts`, `integrations/trpc/` split client, `trpc/src/ws/` bridge, TanStack Query provider, `@temp-repo/ui`, Nitro + rolldown-vite.
 - **Reference app** — treat `apps/studio` as the living example when extending a generated app. Root `CLAUDE.md` applies to all apps unless an app adds a local override.
 - **`bun run gen:lib`** — shared library under `packages/shared/{name}`.
 
 ## Commands
 
-- Studio (frontend + auth) development: `bun run repo dev --app studio` (localhost:3000)
-- Realtime (WebSocket server) development: `bun run repo dev --app realtime` (localhost:3001)
+- Development: `bun run repo dev --app studio` (localhost:3000, WebSocket at `/trpc-ws`)
 - Web production build: `bun run repo build --app studio`
 - Web preview: `bun run repo serve --app studio`
 - Docker up/down: `bun run repo docker:up --app studio` / `bun run repo docker:down --app studio`

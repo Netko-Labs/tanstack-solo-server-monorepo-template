@@ -70,29 +70,11 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
           return true
         },
       },
-      {
-        type: 'list',
-        name: 'type',
-        message: 'What type of app do you want to create?',
-        choices: [
-          {
-            name: 'Studio — TanStack Start frontend + tRPC HTTP API',
-            value: 'studio',
-          },
-          {
-            name: 'Realtime — headless tRPC WebSocket server (presence + chat)',
-            value: 'realtime',
-          },
-        ],
-      },
     ],
-    actions: (answers) => {
-      const appType = (answers?.type as 'studio' | 'realtime') ?? 'studio'
-
+    actions: () => {
       const actions: PlopTypes.ActionType[] = []
 
-      // Studio => TanStack Start app; Realtime => headless tRPC WebSocket server.
-      const templateFolder = appType === 'realtime' ? 'app-realtime' : 'app-tanstack'
+      const templateFolder = 'app-tanstack'
 
       // ─────────────────────────────────────────────────────────────────────────
       // 1. Create the main app in apps/{appName}/

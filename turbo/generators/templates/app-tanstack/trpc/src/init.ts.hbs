@@ -1,22 +1,12 @@
 import { createLogger } from '@temp-repo/logger'
 import type { Context } from '@temp-repo/{{ name }}-domain'
 import { initTRPC, TRPCError } from '@trpc/server'
-import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch'
 import superjson from 'superjson'
 
 const logger = createLogger('trpc')
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  sse: {
-    ping: {
-      enabled: true,
-      intervalMs: 2_000, // Ping every 2 seconds to keep connection alive
-    },
-    client: {
-      reconnectAfterInactivityMs: 3_000,
-    },
-  },
   errorFormatter: ({ shape, error }) => {
     // Log all tRPC errors with context
     logger.error(
@@ -37,7 +27,7 @@ export const router = t.router
 export const mergeRouters = t.mergeRouters
 
 //* Context
-export const createContext = async (_opts: FetchCreateContextFnOptions): Promise<Context> => {
+export const createContext = async (_opts: { req: Request }): Promise<Context> => {
   // Add your auth logic here to extract user from request
   // Example with cookies/tokens:
   // const token = _opts.req.headers.get('authorization')?.split(' ')[1]

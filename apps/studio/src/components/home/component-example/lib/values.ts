@@ -2,7 +2,7 @@ import type { FeatureCardProps } from './types'
 
 export const PAGE_TITLE = 'Studio Demo'
 export const PAGE_DESCRIPTION =
-  'A modern full-stack monorepo template with TanStack Start, tRPC, Better Auth, and real-time SSE subscriptions.'
+  'A modern full-stack monorepo template with TanStack Start, tRPC, Better Auth, and real-time WebSocket subscriptions.'
 
 export const AUTH_SECTION_TITLE = 'Authentication'
 export const INTERACTIVE_SECTION_TITLE = 'Interactive Examples'
@@ -16,9 +16,9 @@ export const FEATURE_CARDS: FeatureCardProps[] = [
   {
     title: 'Todos Example',
     description:
-      'CRUD operations with real-time SSE updates. Create, update, and delete todos with instant synchronization.',
+      'CRUD operations over tRPC HTTP batching. Create, update, and delete todos with TanStack Query.',
     href: '/todos',
-    badge: 'SSE',
+    badge: 'HTTP',
   },
   {
     title: 'Chat Example',
@@ -38,7 +38,7 @@ export const TECH_STACK_ITEMS = [
   {
     title: 'tRPC',
     description: 'End-to-end typesafe APIs',
-    body: 'Type-safe queries, mutations, and SSE subscriptions with automatic inference.',
+    body: 'Type-safe queries, mutations, and WebSocket subscriptions with automatic inference.',
   },
   {
     title: 'Better Auth',
@@ -92,22 +92,20 @@ function TodosComponent() {
 `
 
 export const CODE_EXAMPLE_SUBSCRIPTION = `
-// SSE subscription for real-time updates
+// WebSocket subscription (wsLink → /trpc-ws) for presence + live chat
 import { trpcClient } from '@/integrations/trpc'
 
 useEffect(() => {
-  const unsubscribe = trpcClient.chat.onMessage.subscribe(undefined, {
-    onData: (data) => {
-      if (data.type === 'init') {
-        setMessages(data.messages)
-      } else if (data.type === 'message') {
-        setMessages((prev) => [...prev, data.message])
-      }
+  const unsubscribe = trpcClient.room.stream.subscribe(
+    { roomId: 'lobby' },
+    {
+      onData: (event) => {
+        if (event.type === 'sync') setMessages(event.messages)
+        else if (event.type === 'chat') setMessages((prev) => [...prev, event.message])
+      },
+      onError: (err) => console.error('ws error:', err),
     },
-    onError: (err) => {
-      console.error('SSE error:', err)
-    },
-  })
+  )
 
   return () => unsubscribe.unsubscribe()
 }, [])

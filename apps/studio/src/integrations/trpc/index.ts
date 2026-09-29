@@ -1,8 +1,2 @@
-/**
- * tRPC Integration
- *
- * tRPC client and React integration using SSE for subscriptions.
- */
-
-export { trpcClient } from './http-client'
+export { trpcClient } from './client'
 export { TRPCProvider, useTRPC } from './react'

@@ -1,12 +1,5 @@
-import type { Todo } from '@temp-repo/realtime-domain'
+import type { Todo } from '@temp-repo/studio-domain'
 import type { FormEvent } from 'react'
-
-export interface TodoUpdateEvent {
-  id: string
-  type: 'sync' | 'update'
-  todos: Todo[]
-  timestamp: number
-}
 
 export interface CreateTodoFormProps {
   onSubmit: (e: FormEvent, title: string, description: string) => void

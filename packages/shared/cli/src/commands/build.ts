@@ -2,7 +2,6 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import {
   getAppDir,
-  getAppKind,
   getAvailableApps,
   getRepositoryDir,
   parseAppArg,
@@ -38,21 +37,16 @@ export async function build(args: string[]) {
   const appDir = getAppDir(appName)
   const envFile = path.join(appDir, '.env')
   const appEnv = loadEnvFile(envFile)
-  const kind = getAppKind(appName)
 
   console.log(`📦 Building ${appName} for production...`)
 
-  const command =
-    kind === 'vite'
-      ? ['bun', '--bun', 'vite', 'build']
-      : ['bun', 'build', 'src/index.ts', '--outdir', 'dist', '--target', 'bun']
-
-  await run(command, {
+  // A local .env usually says NODE_ENV=development; a production bundle must not inherit it.
+  await run(['bun', '--bun', 'vite', 'build'], {
     cwd: appDir,
-    env: appEnv,
+    env: { ...appEnv, NODE_ENV: 'production' },
   })
 
-  await bundleMigrator(appName, path.join(appDir, kind === 'vite' ? '.output' : 'dist'))
+  await bundleMigrator(appName, path.join(appDir, '.output'))
 
   console.log(`✅ Build for ${appName} completed!`)
 }

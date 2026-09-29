@@ -15,7 +15,7 @@ export function CodeExamples() {
       <TabsList>
         <TabsTrigger value="trpc">tRPC Router</TabsTrigger>
         <TabsTrigger value="query">React Query</TabsTrigger>
-        <TabsTrigger value="subscription">SSE Subscription</TabsTrigger>
+        <TabsTrigger value="subscription">WebSocket Subscription</TabsTrigger>
       </TabsList>
 
       <TabsContent value="trpc" className="mt-4">
@@ -45,8 +45,8 @@ export function CodeExamples() {
       <TabsContent value="subscription" className="mt-4">
         <Card>
           <CardHeader>
-            <CardTitle>SSE Subscriptions</CardTitle>
-            <CardDescription>Real-time updates via Server-Sent Events</CardDescription>
+            <CardTitle>WebSocket Subscriptions</CardTitle>
+            <CardDescription>Real-time updates over tRPC wsLink</CardDescription>
           </CardHeader>
           <CardContent>
             <CodeBlock code={CODE_EXAMPLE_SUBSCRIPTION} />

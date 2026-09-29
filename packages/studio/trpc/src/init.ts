@@ -2,22 +2,12 @@ import { createLogger } from '@temp-repo/logger'
 import type { Context } from '@temp-repo/studio-domain'
 import { auth } from '@temp-repo/studio-service'
 import { initTRPC, TRPCError } from '@trpc/server'
-import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch'
 import superjson from 'superjson'
 
 const logger = createLogger('trpc')
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  sse: {
-    ping: {
-      enabled: true,
-      intervalMs: 2_000, // Ping every 2 seconds to keep connection alive
-    },
-    client: {
-      reconnectAfterInactivityMs: 3_000,
-    },
-  },
   errorFormatter: ({ shape, error }) => {
     // Log all tRPC errors with context
     logger.error(
@@ -37,8 +27,8 @@ const t = initTRPC.context<Context>().create({
 export const router = t.router
 export const mergeRouters = t.mergeRouters
 
-//* Context
-export const createContext = async ({ req }: FetchCreateContextFnOptions): Promise<Context> => {
+//* Context — shared by the HTTP (fetch) adapter and the WebSocket upgrade request
+export const createContext = async ({ req }: { req: Request }): Promise<Context> => {
   const authResponse = await auth.api.getSession({
     headers: req.headers,
   })

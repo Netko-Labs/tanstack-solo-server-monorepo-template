@@ -18,7 +18,7 @@ export const GUEST_MESSAGE = 'You must be logged in to send messages.'
 
 export const IMPLEMENTATION_TITLE = 'Implementation Details'
 export const IMPLEMENTATION_WS =
-  'Presence + messages stream over one wsLink subscription to the realtime server: subscribe = join, disconnect = leave.'
+  'Presence + messages stream over one wsLink subscription to /trpc-ws: subscribe = join, disconnect = leave.'
 export const IMPLEMENTATION_AUTH = 'Sending messages requires login using protectedProcedure.'
 export const IMPLEMENTATION_HINT =
   'Try opening this page in multiple browser windows to see real-time updates!'
