@@ -1,15 +1,15 @@
-import { type Todo, type TodoUpdate, todoTable } from '@temp-repo/studio-domain'
+import { type Todo, type TodoPatchInput, todoTable } from '@temp-repo/studio-domain'
 import { db } from '@temp-repo/studio-repository'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 export const updateTodo = async (
-  todoId: string,
-  data: Partial<TodoUpdate>,
+  userId: string,
+  { todoId, ...data }: TodoPatchInput,
 ): Promise<Todo | undefined> => {
   return await db
     .update(todoTable)
     .set(data)
-    .where(eq(todoTable.id, todoId))
+    .where(and(eq(todoTable.userId, userId), eq(todoTable.id, todoId)))
     .returning()
     .then(([r]) => r)
 }

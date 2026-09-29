@@ -1,11 +1,11 @@
 import { type Todo, todoTable } from '@temp-repo/studio-domain'
 import { db } from '@temp-repo/studio-repository'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
-export const deleteTodo = async (todoId: string): Promise<Todo | undefined> => {
+export const deleteTodo = async (userId: string, todoId: string): Promise<Todo | undefined> => {
   return await db
     .delete(todoTable)
-    .where(eq(todoTable.id, todoId))
+    .where(and(eq(todoTable.userId, userId), eq(todoTable.id, todoId)))
     .returning()
     .then(([r]) => r)
 }
