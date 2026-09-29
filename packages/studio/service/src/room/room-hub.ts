@@ -63,4 +63,11 @@ class RoomHub {
   }
 }
 
-export const hub = new RoomHub()
+// One hub per process, not per module graph: dev evaluates the HTTP route (Vite `ssr` env)
+// and the WebSocket handler (`nitro` env) separately, and HMR re-evaluates modules.
+const HUB_KEY = Symbol.for('studio.room-hub')
+const globalHub = globalThis as typeof globalThis & Record<symbol, RoomHub | undefined>
+
+globalHub[HUB_KEY] ??= new RoomHub()
+
+export const hub: RoomHub = globalHub[HUB_KEY]
