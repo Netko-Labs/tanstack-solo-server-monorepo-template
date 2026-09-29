@@ -1,9 +1,9 @@
 import { studioEnvConfig } from '@temp-repo/studio-config'
-import { account, jwks, session, user, verification } from '@temp-repo/studio-domain'
+import { account, session, user, verification } from '@temp-repo/studio-domain'
 import { db } from '@temp-repo/studio-repository'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { jwt, lastLoginMethod, magicLink } from 'better-auth/plugins'
+import { lastLoginMethod, magicLink } from 'better-auth/plugins'
 import { sendMagicLinkEmail } from '../email'
 
 export const auth = betterAuth({
@@ -17,7 +17,6 @@ export const auth = betterAuth({
       session,
       account,
       verification,
-      jwks,
     },
   }),
   advanced: {
@@ -31,11 +30,6 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    jwt({
-      jwt: {
-        expirationTime: '1d',
-      },
-    }),
     magicLink({
       expiresIn: 60 * 10, // 10 minutes
       sendMagicLink: async ({ email, url }) => {

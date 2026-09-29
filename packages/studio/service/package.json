@@ -14,8 +14,7 @@
     "@temp-repo/typescript-config": "workspace:*",
     "superjson": "^2.2.6",
     "better-auth": "^1.7.6",
-    "drizzle-orm": "^0.45.3",
-    "jose": "^6.2.12"
+    "drizzle-orm": "^0.45.3"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2"

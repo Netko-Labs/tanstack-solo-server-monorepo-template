@@ -340,8 +340,9 @@ In Coolify:
 2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` with **Build Variable** enabled.
 3. **Pre-deployment command** → `bun apps/studio/.output/migrate/migrate.js`.
 4. **Healthcheck** → `/api/health` on port 3000. **Watch Paths** → `apps/studio/**`, `packages/studio/**`, `packages/configs/studio-config/**`, `packages/shared/**`, `patches/**`, `package.json`, `bun.lock`.
-5. Runtime variables: `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL`, `ENCRYPTION_KEY`
-   (optional `RESEND_API_KEY`, `EMAIL_FROM`, `TRUSTED_ORIGINS`, `CORS`).
+5. Runtime variables: `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL` (Redis; empty means the
+   room bus stays in-process, so set it before running more than one instance). Optional:
+   `TRUSTED_ORIGINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`.
 
 What a deploy does:
 

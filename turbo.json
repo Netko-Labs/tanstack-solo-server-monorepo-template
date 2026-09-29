@@ -6,7 +6,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".output/**", "dist/**"],
-      "env": ["AUTH_SECRET", "BASE_URL", "DATABASE_URL", "CACHE_URL", "ENCRYPTION_KEY"]
+      "env": ["AUTH_SECRET", "BASE_URL", "DATABASE_URL", "CACHE_URL"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
