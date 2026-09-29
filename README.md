@@ -318,7 +318,7 @@ export const todosRouter = mergeRouters(todosQueries, todosMutations)
 
 - **Client** (`trpcClient`): `splitLink` sends subscriptions over `wsLink` and everything else over `httpBatchLink`. SSR builds HTTP-only links.
 - **Server**: `apps/studio/src/server/trpc-ws.ts` is a Nitro handler (`defineWebSocketHandler`) mounted at `/trpc-ws` from `vite.config.ts`. `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler`, so the wire protocol is stock tRPC.
-- **Auth**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch and WebSocket paths. No JWT hop.
+- **Auth**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch and WebSocket paths. The upgrade hook enforces an origin allow-list.
 - **Dev under Bun**: `patches/nitro@*.patch` (via `bun patch`) lets Nitro's Vite dev worker install the crossws Bun plugin; without it `vite dev` answers upgrades with 426.
 
 ## 📦 Dependencies
@@ -363,14 +363,17 @@ railpack plan --config-file apps/studio/railpack.json .
 
 ## 🚧 Production Notes
 
-### Replace the in-memory RoomHub with Redis Pub/Sub
-`RoomHub` fans out per process. For more than one instance, replace it with Redis:
-```typescript
-// Use Redis Pub/Sub or PostgreSQL LISTEN/NOTIFY
-for await (const event of createRedisIterable(channel, signal)) {
-  yield event
-}
-```
+### Scaling past one instance
+Presence + chat fan out through a `RoomBus` (`packages/studio/service/src/room/`). With `CACHE_URL`
+set the Redis implementation is used: events go over a channel per room, presence lives in a hash
+plus a per-member TTL key refreshed by a 15 s heartbeat (idle after 30 s, gone after 45 s), so a
+crashed instance's users expire on their own. Without `CACHE_URL` the in-process bus is used, which
+is fine for one instance and for tests. Chat history is always Postgres.
+
+### Sockets behind the proxy
+The tRPC adapter pings every 30 s so idle-timeouts never close a quiet tab, and the crossws upgrade
+hook rejects browser origins outside `BASE_URL` + `TRUSTED_ORIGINS` (cookies ride cross-site
+upgrades; CORS does not apply to WebSockets).
 
 ## 📝 License
 

@@ -52,8 +52,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Repo typecheck: `bun run check-types`
 - Repo lint and formatting check: `bun run fmt-lint`
 - Repo lint and formatting fix: `bun run fmt-lint:fix`
-- Repo tests: `bun run test`
-- End-to-end tests: `bun run repo test:e2e`
+- Repo tests: `bun run test` (bun test via turbo; the Redis bus contract test runs only when `CACHE_URL` is set)
 - Generate app: `bun run gen:app`
 - Generate library: `bun run gen:lib`
 - Studio DB generate: `bun run repo db:generate --app studio`
