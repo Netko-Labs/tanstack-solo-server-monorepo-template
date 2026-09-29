@@ -25,13 +25,18 @@ export const Route = createFileRoute('/api/health')({
           dbStatus = 'unavailable'
         }
 
-        return Response.json({
-          ...health,
-          responseTime: Date.now() - startTime,
-          checks: {
-            database: dbStatus,
+        // Coolify's healthcheck reads the status code, not the body.
+        return Response.json(
+          {
+            ...health,
+            status: dbStatus === 'connected' ? health.status : ('degraded' as const),
+            responseTime: Date.now() - startTime,
+            checks: {
+              database: dbStatus,
+            },
           },
-        })
+          { status: dbStatus === 'connected' ? 200 : 503 },
+        )
       },
     },
   },

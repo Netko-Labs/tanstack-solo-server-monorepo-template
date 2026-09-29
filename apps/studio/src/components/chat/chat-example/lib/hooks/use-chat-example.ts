@@ -47,7 +47,10 @@ export function useChatExample() {
           }
         },
         onError: () => setConnectionStatus('disconnected'),
-        onComplete: () => setConnectionStatus('disconnected'),
+        onConnectionStateChange: ({ state }) => {
+          if (state === 'connecting') setConnectionStatus('connecting')
+          if (state === 'pending') setConnectionStatus('connected')
+        },
       },
     )
     return () => sub.unsubscribe()
