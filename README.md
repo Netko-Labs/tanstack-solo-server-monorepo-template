@@ -4,7 +4,7 @@ A modern, type-safe full-stack **two-app** template: a TanStack Start frontend +
 
 ## 🚀 Features
 
-- 🏛️ **Two-app architecture** - `studio` (TanStack Start frontend + auth) and `realtime` (headless tRPC WebSocket server), openhotel-shaped
+- 🏛️ **Two-app architecture** - `studio` (TanStack Start frontend + auth) and `realtime` (headless tRPC WebSocket server)
 - 🔄 **tRPC** - End-to-end type-safe APIs (HTTP for studio auth, `wsLink` for the realtime server)
 - 🔌 **WebSocket real-time** - presence + live chat room on the standalone realtime server
 - 🔑 **Magic-link auth** - better-auth magic link + a `/sign-in` page (Resend email, console fallback)
@@ -335,7 +335,7 @@ One Coolify application per app, both built from the repo root by [Railpack](htt
 Per application, in Coolify:
 
 1. **Build Pack** → Railpack. **Base Directory** → `/` (shared workspace monorepo, not the app folder).
-2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` (or the realtime one) with **Build Variable** enabled.
+2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` (or the realtime one) with **Build Variable** enabled. Studio also needs `VITE_REALTIME_URL=wss://<realtime-domain>/trpc-ws` as a **Build Variable** — Vite inlines it into the client bundle, so a runtime-only value is invisible to the browser.
 3. **Pre-deployment command** → `bun apps/studio/.output/migrate/migrate.js` (realtime: `bun apps/realtime/dist/migrate/migrate.js`).
 4. **Healthcheck** → `/api/health` on port 3000 (studio) or `/health` on port 3001 (realtime). **Watch Paths** → `apps/{app}/**`, `packages/{app}/**`, `packages/configs/{app}-config/**`, `packages/shared/**`, `package.json`, `bun.lock`.
 5. Runtime variables: studio needs `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL`,
