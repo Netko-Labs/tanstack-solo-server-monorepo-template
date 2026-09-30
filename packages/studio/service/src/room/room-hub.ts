@@ -44,12 +44,13 @@ export class RoomHub {
       const members = await this.bus.members(roomId)
       if (signal?.aborted) return
       signature = presenceSignature(members)
-      yield { type: 'sync', members, messages }
-      // Everything queued before the snapshot may already be in it (this member's own join,
-      // joins of users listed, chats in the history); those copies are echoes. Later events pass.
+      // Everything queued up to this point may already be in the snapshot (this member's own
+      // join, joins of listed users, chats in history); those copies are echoes. Anything that
+      // arrives while the consumer holds the sync event is real and passes.
       const snapshotUsers = new Set(members.map((m) => m.userId))
       const snapshotMessages = new Set(messages.map((m) => m.id))
       let backlog = queue.size()
+      yield { type: 'sync', members, messages }
       for await (const event of queue) {
         if (backlog > 0) {
           backlog -= 1
