@@ -51,7 +51,11 @@ if current then next.status = cjson.decode(current).status end
 redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(next))
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
 `
-/** KEYS[1]=members hash · ARGV: connectionId, userId, status → 1 if that connection was updated */
+/**
+ * KEYS[1]=members hash · ARGV: connectionId, userId, status, alivePrefix, channel
+ * → 1 if that connection was updated. Builds the per-user presence snapshot and publishes it
+ * inside the script, so concurrent status changes cannot publish snapshots out of order.
+ */
 const SET_STATUS_LUA = `
 local raw = redis.call('HGET', KEYS[1], ARGV[1])
 if not raw then return 0 end
@@ -59,6 +63,24 @@ local m = cjson.decode(raw)
 if m.userId ~= ARGV[2] then return 0 end
 m.status = ARGV[3]
 redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(m))
+local byUser = {}
+local order = {}
+local all = redis.call('HGETALL', KEYS[1])
+for i = 1, #all, 2 do
+  if redis.call('EXISTS', ARGV[4] .. all[i]) == 1 then
+    local rec = cjson.decode(all[i + 1])
+    local prev = byUser[rec.userId]
+    if not prev then
+      byUser[rec.userId] = rec
+      order[#order + 1] = rec.userId
+    elseif prev.status == 'idle' and rec.status == 'active' then
+      byUser[rec.userId] = rec
+    end
+  end
+end
+local encoded = {}
+for _, userId in ipairs(order) do encoded[#encoded + 1] = cjson.encode(byUser[userId]) end
+redis.call('PUBLISH', ARGV[5], '{"json":{"type":"presence","members":[' .. table.concat(encoded, ',') .. ']}}')
 return 1
 `
 /** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId → 1 if the stale record was dropped */
@@ -229,11 +251,18 @@ export class RedisRoomBus implements RoomBus {
     status: MemberStatus,
   ): Promise<boolean> {
     const updated = Number(
-      await this.commands.eval(SET_STATUS_LUA, 1, membersKey(roomId), connectionId, userId, status),
+      await this.commands.eval(
+        SET_STATUS_LUA,
+        1,
+        membersKey(roomId),
+        connectionId,
+        userId,
+        status,
+        aliveKey(roomId, ''),
+        roomChannel(roomId),
+      ),
     )
-    if (updated !== 1) return false
-    await this.publish(roomId, { type: 'presence', members: await this.members(roomId) })
-    return true
+    return updated === 1
   }
 
   async members(roomId: string): Promise<Member[]> {

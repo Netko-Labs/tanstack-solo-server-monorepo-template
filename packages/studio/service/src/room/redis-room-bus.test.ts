@@ -34,7 +34,16 @@ describe.skipIf(!url)('RedisRoomBus across two instances', () => {
 
     await a.join(room, 'c2', member)
     expect(await a.setStatus(room, 'c1', 'intruder', 'idle')).toBe(false)
+    const presence = waitFor<RoomEvent>((resolve) => {
+      b.subscribe(room, (event) => {
+        if (event.type === 'presence') resolve(event)
+      })
+    })
+    await Bun.sleep(50)
     expect(await a.setStatus(room, 'c1', member.userId, 'idle')).toBe(true)
+    const snapshot = await presence
+    if (snapshot.type !== 'presence') throw new Error('unreachable')
+    expect(snapshot.members).toEqual([member])
     expect((await b.members(room))[0]?.status).toBe('active')
     expect(await a.setStatus(room, 'c2', member.userId, 'idle')).toBe(true)
     expect((await b.members(room))[0]?.status).toBe('idle')
