@@ -22,10 +22,13 @@ export class RoomHub {
     const queue = createAsyncQueue<RoomEvent>(signal)
     const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
     let joined = false
+    let closing = false
+    let inFlight: Promise<void> = Promise.resolve()
     let signature = ''
 
     const tick = setInterval(() => {
-      this.bus
+      if (closing) return
+      inFlight = this.bus
         .heartbeat(roomId, connectionId, member)
         .then(() => this.bus.members(roomId))
         .then((members) => {
@@ -60,8 +63,11 @@ export class RoomHub {
         yield event
       }
     } finally {
+      closing = true
       clearInterval(tick)
       unsubscribe()
+      // A heartbeat still in flight would re-assert the record after the leave.
+      await inFlight.catch(() => {})
       if (joined) await this.bus.leave(roomId, connectionId)
     }
   }

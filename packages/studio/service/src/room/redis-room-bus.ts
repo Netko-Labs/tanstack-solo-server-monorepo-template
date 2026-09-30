@@ -28,25 +28,41 @@ local function liveConnections(hash, alivePrefix, userId)
   return n
 end
 `
-/** KEYS[1]=members hash · ARGV: connectionId, memberJson, now, ttl, userId, alivePrefix → live count */
+/**
+ * KEYS[1]=members hash · ARGV: connectionId, memberJson, now, ttl, userId, alivePrefix,
+ * channel, joinPayload → live count. Publishes inside the script so the transition event
+ * is ordered with the state change across instances.
+ */
 const JOIN_LUA = `${COUNT_LIVE_LUA}
 redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
 redis.call('SET', ARGV[6] .. ARGV[1], ARGV[3], 'EX', ARGV[4])
-return liveConnections(KEYS[1], ARGV[6], ARGV[5])
+local n = liveConnections(KEYS[1], ARGV[6], ARGV[5])
+if n == 1 then redis.call('PUBLISH', ARGV[7], ARGV[8]) end
+return n
+`
+/** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId, memberJson, now, ttl */
+const HEARTBEAT_LUA = `
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
 `
 /** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId → 1 if the stale record was dropped */
 const PRUNE_LUA = `
 if redis.call('EXISTS', KEYS[2]) == 1 then return 0 end
 return redis.call('HDEL', KEYS[1], ARGV[1])
 `
-/** KEYS[1]=members hash · ARGV: connectionId, alivePrefix → [userId, remaining live count] */
+/**
+ * KEYS[1]=members hash · ARGV: connectionId, alivePrefix, channel, leavePayloadPrefix
+ * → [userId, remaining live count]. The leave event is published inside the script.
+ */
 const LEAVE_LUA = `${COUNT_LIVE_LUA}
 local raw = redis.call('HGET', KEYS[1], ARGV[1])
 redis.call('HDEL', KEYS[1], ARGV[1])
 redis.call('DEL', ARGV[2] .. ARGV[1])
 if not raw then return { '', -1 } end
 local userId = cjson.decode(raw).userId
-return { userId, liveConnections(KEYS[1], ARGV[2], userId) }
+local n = liveConnections(KEYS[1], ARGV[2], userId)
+if n == 0 then redis.call('PUBLISH', ARGV[3], ARGV[4]) end
+return { userId, n }
 `
 
 /**
@@ -84,7 +100,7 @@ export class RedisRoomBus implements RoomBus {
   // Join/leave decide first-or-last inside one script, so concurrent connections of the
   // same user cannot both see "someone else is here" and both stay silent.
   async join(roomId: string, connectionId: string, member: Member): Promise<void> {
-    const live = Number(
+    try {
       await this.commands.eval(
         JOIN_LUA,
         1,
@@ -95,34 +111,43 @@ export class RedisRoomBus implements RoomBus {
         PRESENCE_TTL_S,
         member.userId,
         aliveKey(roomId, ''),
-      ),
-    )
-    if (live === 1) await this.publish(roomId, { type: 'join', member })
+        roomChannel(roomId),
+        serializeEvent({ type: 'join', member }),
+      )
+    } catch (err) {
+      logger.warn({ err: String(err), roomId }, 'join failed')
+      throw err
+    }
   }
 
   async heartbeat(roomId: string, connectionId: string, member: Member): Promise<void> {
-    await this.commands.hset(membersKey(roomId), { [connectionId]: JSON.stringify(member) })
-    await this.commands.set(
+    await this.commands.eval(
+      HEARTBEAT_LUA,
+      2,
+      membersKey(roomId),
       aliveKey(roomId, connectionId),
+      connectionId,
+      JSON.stringify(member),
       String(Date.now()),
-      'EX',
       PRESENCE_TTL_S,
     )
   }
 
   async leave(roomId: string, connectionId: string): Promise<boolean> {
+    const raw = await this.commands.hget(membersKey(roomId), connectionId)
+    const parsed = raw ? MemberSchema.safeParse(JSON.parse(raw)) : undefined
+    const userId = parsed?.success ? parsed.data.userId : ''
     const result = (await this.commands.eval(
       LEAVE_LUA,
       1,
       membersKey(roomId),
       connectionId,
       aliveKey(roomId, ''),
+      roomChannel(roomId),
+      serializeEvent({ type: 'leave', userId }),
     )) as [string, number]
-    const [userId, remaining] = result
-    if (!userId || Number(remaining) < 0) return false
-    const last = Number(remaining) === 0
-    if (last) await this.publish(roomId, { type: 'leave', userId })
-    return last
+    const remaining = Number(result[1])
+    return Boolean(result[0]) && remaining === 0
   }
 
   async members(roomId: string): Promise<Member[]> {

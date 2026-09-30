@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import { useTRPC } from '@/integrations/trpc'
+import { useSession } from '@/integrations/auth'
 
-/** `auth.me` is public and returns null for anonymous visitors, so no error path here. */
+/** The reactive better-auth session: sign-in/out updates it, so no stale cached user. */
 export function useCurrentUser() {
-  const trpc = useTRPC()
-  return useQuery(trpc.auth.me.queryOptions())
+  const { data: session, isPending } = useSession()
+  return { data: session?.user ?? null, isPending }
 }
