@@ -107,6 +107,23 @@ describe('RedisRoomBus reconnect', () => {
       'unsub:room:lobby',
       'sub:room:lobby',
     ])
+    expect((bus as unknown as { restoreChains: Map<string, unknown> }).restoreChains.size).toBe(0)
+  })
+
+  test('a reconnect listener that throws does not silence the others', async () => {
+    const sub = fakeSubscriber()
+    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    let notified = 0
+    bus.onReconnect(() => {
+      throw new Error('boom')
+    })
+    bus.onReconnect(() => {
+      notified += 1
+    })
+    sub.client.onconnect?.call(sub.client)
+    sub.client.onconnect?.call(sub.client)
+    await Bun.sleep(10)
+    expect(notified).toBe(1)
   })
 
   test('a retry left over from an older restore is dropped once a newer restore succeeds', async () => {

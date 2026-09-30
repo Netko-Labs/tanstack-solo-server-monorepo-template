@@ -3,11 +3,13 @@ import type { createCacheClient } from '@temp-repo/studio-repository'
 
 const PROBE_TIMEOUT_MS = 2_000
 
-const withTimeout = <T>(work: Promise<T>): Promise<T> =>
-  Promise.race([
-    work,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), PROBE_TIMEOUT_MS)),
-  ])
+const withTimeout = <T>(work: Promise<T>): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timeout')), PROBE_TIMEOUT_MS)
+  })
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer))
+}
 
 // One throwaway client per probe, closed either way: an unreachable Redis would otherwise
 // keep it retrying in the background for every health request.

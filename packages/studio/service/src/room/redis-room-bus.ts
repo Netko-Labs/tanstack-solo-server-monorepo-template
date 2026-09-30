@@ -129,9 +129,7 @@ export class RedisRoomBus implements RoomBus {
         return
       }
       logger.warn('subscriber reconnected; restoring subscriptions')
-      this.restoreSubscriptions().then(() => {
-        for (const listener of this.reconnectListeners) listener()
-      })
+      this.restoreSubscriptions().then(() => this.notifyReconnect())
     }
     this.subscriber.onclose = (err) => logger.warn({ err: String(err) }, 'subscriber closed')
     this.commands.onclose = (err) => logger.warn({ err: String(err) }, 'commands closed')
@@ -177,6 +175,17 @@ export class RedisRoomBus implements RoomBus {
     return () => this.reconnectListeners.delete(listener)
   }
 
+  // One listener throwing must not cost the others their resync.
+  private notifyReconnect(): void {
+    for (const listener of this.reconnectListeners) {
+      try {
+        listener()
+      } catch (err) {
+        logger.warn({ err: String(err) }, 'reconnect listener threw')
+      }
+    }
+  }
+
   close(): void {
     this.subscriber.close()
     this.commands.close()
@@ -208,6 +217,9 @@ export class RedisRoomBus implements RoomBus {
   private chained(channel: string, task: () => Promise<void>): Promise<void> {
     const next = (this.restoreChains.get(channel) ?? Promise.resolve()).then(task, task)
     this.restoreChains.set(channel, next)
+    next.finally(() => {
+      if (this.restoreChains.get(channel) === next) this.restoreChains.delete(channel)
+    })
     return next
   }
 
@@ -231,7 +243,7 @@ export class RedisRoomBus implements RoomBus {
         this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
         return
       }
-      if (attempt > 1) for (const listener of this.reconnectListeners) listener()
+      if (attempt > 1) this.notifyReconnect()
     } catch (err) {
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
       void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() =>
