@@ -205,23 +205,28 @@ export class RedisRoomBus implements RoomBus {
   // long as the listener is still wanted: a deaf instance is never an acceptable steady state.
   // A late success resyncs again, because events published while the channel was down
   // are gone for good. A newer restore supersedes pending retries, so a callback is
-  // never subscribed twice.
+  // never subscribed twice; a listener dropped meanwhile is never restored.
   private async resubscribe(
     channel: string,
     onMessage: (raw: string) => void,
     generation: number,
     attempt = 1,
   ): Promise<void> {
+    const wanted = () =>
+      generation === this.restoreGeneration && this.listeners.get(channel)?.has(onMessage)
+    if (!wanted()) return
     try {
       await this.subscriber.subscribe(channel, onMessage)
+      if (!wanted()) {
+        this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+        return
+      }
       if (attempt > 1) for (const listener of this.reconnectListeners) listener()
     } catch (err) {
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
-      void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() => {
-        const wanted =
-          generation === this.restoreGeneration && this.listeners.get(channel)?.has(onMessage)
-        if (wanted) return this.resubscribe(channel, onMessage, generation, attempt + 1)
-      })
+      void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() =>
+        this.resubscribe(channel, onMessage, generation, attempt + 1),
+      )
     }
   }
 

@@ -9,12 +9,15 @@ function fakeSubscriber() {
     onconnect: null as (() => void) | null,
     onclose: null as ((error: Error) => void) | null,
     failUntil: 0,
+    unsubscribeDelayMs: 0,
     async subscribe(channel: string) {
       calls.push(channel)
       if (calls.length <= this.failUntil) throw new Error('SUBSCRIBE refused')
       return 1
     },
-    async unsubscribe() {},
+    async unsubscribe() {
+      if (this.unsubscribeDelayMs > 0) await Bun.sleep(this.unsubscribeDelayMs)
+    },
     close() {},
   }
   return { client: client as unknown as RedisClient, calls }
@@ -66,6 +69,20 @@ describe('RedisRoomBus reconnect', () => {
     expect(notified).toBe(2)
     expect(sub.calls.slice(2).filter((c) => c === 'room:lobby').length).toBeGreaterThanOrEqual(1)
     expect(sub.calls.slice(2).filter((c) => c === 'room:other').length).toBeGreaterThanOrEqual(1)
+  })
+
+  test('a listener dropped while its restore is in flight is not subscribed again', async () => {
+    const sub = fakeSubscriber()
+    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    const stop = await bus.subscribe('lobby', () => {})
+    await bus.subscribe('other', () => {})
+    ;(sub.client as unknown as { unsubscribeDelayMs: number }).unsubscribeDelayMs = 20
+
+    sub.client.onconnect?.call(sub.client)
+    sub.client.onconnect?.call(sub.client)
+    stop()
+    await Bun.sleep(60)
+    expect(sub.calls.slice(2)).toEqual(['room:other'])
   })
 
   test('a retry left over from an older restore is dropped once a newer restore succeeds', async () => {
