@@ -6,6 +6,7 @@ export interface PresenceRecord {
 }
 
 export type RoomListener = (event: RoomEvent) => void
+export type MemberStatus = Member['status']
 
 /**
  * Fan-out + presence for one process (Local) or all instances (Redis). Presence is
@@ -20,7 +21,12 @@ export interface RoomBus {
   heartbeat(roomId: string, connectionId: string, member: Member): Promise<void>
   /** Resolves true when this was the user's last connection in the room. */
   leave(roomId: string, connectionId: string): Promise<boolean>
+  /** Client-reported status for every connection of the user; fans out a presence snapshot. */
+  setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void>
   members(roomId: string): Promise<Member[]>
+  /** Fires after the transport recovered; events published meanwhile were lost. */
+  onReconnect(listener: () => void): () => void
+  close(): void
 }
 
 export interface AsyncQueue<T> extends AsyncIterable<T> {

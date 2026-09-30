@@ -1,6 +1,6 @@
 import { type Member, type RoomEvent, RoomEventSchema } from '@temp-repo/studio-domain'
 import superjson from 'superjson'
-import { IDLE_AFTER_MS, PRESENCE_TTL_S, ROOM_KEY_PREFIX } from './constants'
+import { PRESENCE_TTL_S, ROOM_KEY_PREFIX } from './constants'
 import type { AsyncQueue, PresenceRecord } from './types'
 
 export const roomChannel = (roomId: string) => `${ROOM_KEY_PREFIX}:${roomId}`
@@ -22,18 +22,14 @@ export function parseEvent(raw: string): RoomEvent | undefined {
 export const isExpired = (lastSeen: number, now: number): boolean =>
   now - lastSeen > PRESENCE_TTL_S * 1000
 
-export const withStatus = (member: Member, lastSeen: number, now: number): Member => ({
-  ...member,
-  status: now - lastSeen > IDLE_AFTER_MS ? 'idle' : 'active',
-})
-
 /** Collapse connections into one entry per user; any active connection makes the user active. */
-export function aggregateMembers(records: PresenceRecord[], now: number): Member[] {
+export function aggregateMembers(records: PresenceRecord[]): Member[] {
   const byUser = new Map<string, Member>()
-  for (const record of records) {
-    const next = withStatus(record.member, record.lastSeen, now)
-    const prev = byUser.get(next.userId)
-    if (!prev || (prev.status === 'idle' && next.status === 'active')) byUser.set(next.userId, next)
+  for (const { member } of records) {
+    const prev = byUser.get(member.userId)
+    if (!prev || (prev.status === 'idle' && member.status === 'active')) {
+      byUser.set(member.userId, member)
+    }
   }
   return [...byUser.values()]
 }

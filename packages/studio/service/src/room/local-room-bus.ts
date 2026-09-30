@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import type { Member, RoomEvent } from '@temp-repo/studio-domain'
-import type { PresenceRecord, RoomBus, RoomListener } from './types'
+import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from './types'
 import { aggregateMembers, isExpired } from './utils'
 
 export class LocalRoomBus implements RoomBus {
@@ -30,7 +30,8 @@ export class LocalRoomBus implements RoomBus {
   }
 
   async heartbeat(roomId: string, connectionId: string, member: Member): Promise<void> {
-    this.roomOf(roomId).set(connectionId, { member, lastSeen: Date.now() })
+    const current = this.presence.get(roomId)?.get(connectionId)?.member ?? member
+    this.roomOf(roomId).set(connectionId, { member: current, lastSeen: Date.now() })
   }
 
   async leave(roomId: string, connectionId: string): Promise<boolean> {
@@ -43,8 +44,24 @@ export class LocalRoomBus implements RoomBus {
     return last
   }
 
+  async setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void> {
+    for (const record of this.liveRecords(roomId)) {
+      if (record.member.userId === userId) record.member = { ...record.member, status }
+    }
+    await this.publish(roomId, { type: 'presence', members: await this.members(roomId) })
+  }
+
   async members(roomId: string): Promise<Member[]> {
-    return aggregateMembers(this.liveRecords(roomId), Date.now())
+    return aggregateMembers(this.liveRecords(roomId))
+  }
+
+  onReconnect(_listener: () => void): () => void {
+    return () => {}
+  }
+
+  close(): void {
+    this.emitter.removeAllListeners()
+    this.presence.clear()
   }
 
   private liveConnections(roomId: string, userId: string): number {

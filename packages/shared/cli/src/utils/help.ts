@@ -34,9 +34,6 @@ Testing
   test [--app <name>]        Run unit tests
   test --watch               Run tests in watch mode
   test --coverage            Run tests with coverage
-  test:e2e --app <name>      Run Playwright E2E tests
-  test:e2e --headed          Run E2E tests with browser visible
-  test:e2e --ui              Open Playwright UI
 
 Utilities
   status                     Show monorepo status (docker, ports, apps)

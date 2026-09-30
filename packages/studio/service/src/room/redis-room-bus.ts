@@ -2,7 +2,7 @@ import { createLogger } from '@temp-repo/logger'
 import { type Member, MemberSchema, type RoomEvent } from '@temp-repo/studio-domain'
 import type { RedisClient } from 'bun'
 import { PRESENCE_TTL_S } from './constants'
-import type { PresenceRecord, RoomBus, RoomListener } from './types'
+import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from './types'
 import {
   aggregateMembers,
   aliveKey,
@@ -40,10 +40,28 @@ local n = liveConnections(KEYS[1], ARGV[6], ARGV[5])
 if n == 1 then redis.call('PUBLISH', ARGV[7], ARGV[8]) end
 return n
 `
-/** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId, memberJson, now, ttl */
+/**
+ * KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId, memberJson, now, ttl.
+ * Keeps an existing record (it may carry a client-set status); only writes the JSON when
+ * the record is missing.
+ */
 const HEARTBEAT_LUA = `
-redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+if redis.call('HEXISTS', KEYS[1], ARGV[1]) == 0 then redis.call('HSET', KEYS[1], ARGV[1], ARGV[2]) end
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
+`
+/** KEYS[1]=members hash · ARGV: userId, status → records updated */
+const SET_STATUS_LUA = `
+local n = 0
+local all = redis.call('HGETALL', KEYS[1])
+for i = 1, #all, 2 do
+  local m = cjson.decode(all[i + 1])
+  if m.userId == ARGV[1] then
+    m.status = ARGV[2]
+    redis.call('HSET', KEYS[1], all[i], cjson.encode(m))
+    n = n + 1
+  end
+end
+return n
 `
 /** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId → 1 if the stale record was dropped */
 const PRUNE_LUA = `
@@ -71,10 +89,31 @@ return { userId, n }
  * connections expire on read.
  */
 export class RedisRoomBus implements RoomBus {
+  private readonly listeners = new Map<string, Set<(raw: string) => void>>()
+  private readonly reconnectListeners = new Set<() => void>()
+  private connectedOnce = false
+
   constructor(
     private readonly commands: RedisClient,
     private readonly subscriber: RedisClient,
-  ) {}
+  ) {
+    // Bun re-establishes the connection but not the SUBSCRIBEs; redo them and tell the
+    // hub, because anything published during the outage never reached this instance.
+    this.subscriber.onconnect = () => {
+      if (!this.connectedOnce) {
+        this.connectedOnce = true
+        return
+      }
+      logger.warn('subscriber reconnected; restoring subscriptions')
+      this.restoreSubscriptions()
+        .then(() => {
+          for (const listener of this.reconnectListeners) listener()
+        })
+        .catch((err) => logger.warn({ err: String(err) }, 'restoring subscriptions failed'))
+    }
+    this.subscriber.onclose = (err) => logger.warn({ err: String(err) }, 'subscriber closed')
+    this.commands.onclose = (err) => logger.warn({ err: String(err) }, 'commands closed')
+  }
 
   async publish(roomId: string, event: RoomEvent): Promise<void> {
     try {
@@ -91,9 +130,33 @@ export class RedisRoomBus implements RoomBus {
       if (event) listener(event)
       else logger.warn({ roomId }, 'dropped malformed room event')
     }
+    let set = this.listeners.get(channel)
+    if (!set) {
+      set = new Set()
+      this.listeners.set(channel, set)
+    }
+    set.add(onMessage)
     await this.subscriber.subscribe(channel, onMessage)
     return () => {
+      set.delete(onMessage)
+      if (set.size === 0) this.listeners.delete(channel)
       this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+    }
+  }
+
+  onReconnect(listener: () => void): () => void {
+    this.reconnectListeners.add(listener)
+    return () => this.reconnectListeners.delete(listener)
+  }
+
+  close(): void {
+    this.subscriber.close()
+    this.commands.close()
+  }
+
+  private async restoreSubscriptions(): Promise<void> {
+    for (const [channel, set] of this.listeners) {
+      for (const onMessage of set) await this.subscriber.subscribe(channel, onMessage)
     }
   }
 
@@ -150,9 +213,13 @@ export class RedisRoomBus implements RoomBus {
     return Boolean(result[0]) && remaining === 0
   }
 
+  async setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void> {
+    await this.commands.eval(SET_STATUS_LUA, 1, membersKey(roomId), userId, status)
+    await this.publish(roomId, { type: 'presence', members: await this.members(roomId) })
+  }
+
   async members(roomId: string): Promise<Member[]> {
-    const now = Date.now()
-    return aggregateMembers(await this.liveRecords(roomId, now), now)
+    return aggregateMembers(await this.liveRecords(roomId, Date.now()))
   }
 
   // Drop the record only if the alive key is still missing at that instant, so a heartbeat

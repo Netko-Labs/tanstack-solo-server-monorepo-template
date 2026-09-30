@@ -2,7 +2,20 @@ import { describe, expect, test } from 'bun:test'
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
 import { LocalRoomBus } from './local-room-bus'
 import { RoomHub } from './room-hub'
+import type { RoomBus } from './types'
 import { parseEvent, serializeEvent } from './utils'
+
+/** LocalRoomBus with a reconnect signal the test can fire. */
+class ReconnectableBus extends LocalRoomBus implements RoomBus {
+  private readonly reconnectListeners = new Set<() => void>()
+  override onReconnect(listener: () => void): () => void {
+    this.reconnectListeners.add(listener)
+    return () => this.reconnectListeners.delete(listener)
+  }
+  fireReconnect(): void {
+    for (const listener of this.reconnectListeners) listener()
+  }
+}
 
 const member = (userId: string): Member => ({ userId, name: userId, status: 'active' })
 const message: ChatMessage = {
@@ -139,6 +152,37 @@ describe('RoomHub over LocalRoomBus', () => {
     const next = take(stream, 1)
     await hub.chat('lobby', live)
     expect(await next).toEqual([{ type: 'chat', message: live }])
+    await stream.return(undefined)
+  })
+
+  test('client-set status fans out as a presence snapshot', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => [])
+    const stream = hub.stream('lobby', member('a'))
+    await take(stream, 1)
+
+    const next = take(stream, 1)
+    await hub.setStatus('lobby', 'a', 'idle')
+    const [presence] = await next
+    if (presence?.type !== 'presence') throw new Error('unreachable')
+    expect(presence.members).toEqual([{ ...member('a'), status: 'idle' }])
+    expect((await hub.members('lobby'))[0]?.status).toBe('idle')
+    await stream.return(undefined)
+  })
+
+  test('a transport reconnect pushes a fresh sync', async () => {
+    const bus = new ReconnectableBus()
+    const history = [message]
+    const hub = new RoomHub(bus, async () => history)
+    const stream = hub.stream('lobby', member('a'))
+    await take(stream, 1)
+
+    history.push({ ...message, id: crypto.randomUUID(), content: 'missed during outage' })
+    const next = take(stream, 1)
+    bus.fireReconnect()
+    const [resync] = await next
+    if (resync?.type !== 'sync') throw new Error('unreachable')
+    expect(resync.messages).toHaveLength(2)
     await stream.return(undefined)
   })
 

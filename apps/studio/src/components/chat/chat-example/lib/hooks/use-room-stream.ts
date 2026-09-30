@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react'
 import { trpcClient } from '@/integrations/trpc'
+import { useDocumentVisibility } from '@/shared/dom-events'
 import type { RoomState } from '../types'
 import { INITIAL_ROOM_STATE, roomIdentity, roomReducer } from '../utils'
 
@@ -27,6 +28,11 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
     )
     return () => sub.unsubscribe()
   }, [roomId, userId, identity])
+
+  // Presence status is the client's call: a hidden tab is idle, a visible one active.
+  useDocumentVisibility((visible) => {
+    trpcClient.room.setStatus.mutate({ roomId, status: visible ? 'active' : 'idle' })
+  }, Boolean(userId))
 
   // Never render the previous room/user's state during the switch, not even for a frame.
   if (state.identity !== identity) {

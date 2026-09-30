@@ -5,7 +5,7 @@ import { getChatMessages } from '../queries/chat'
 import { HEARTBEAT_MS } from './constants'
 import { LocalRoomBus } from './local-room-bus'
 import { RedisRoomBus } from './redis-room-bus'
-import type { RoomBus } from './types'
+import type { MemberStatus, RoomBus } from './types'
 import { createAsyncQueue, presenceSignature } from './utils'
 
 const logger = createLogger('room')
@@ -21,6 +21,13 @@ export class RoomHub {
     const connectionId = crypto.randomUUID()
     const queue = createAsyncQueue<RoomEvent>(signal)
     const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
+    // After a transport reconnect the client re-syncs from a fresh snapshot: events published
+    // during the outage are gone for good, so a diff cannot repair the view.
+    const offReconnect = this.bus.onReconnect(() => {
+      this.snapshot(roomId)
+        .then((sync) => queue.push(sync))
+        .catch((err) => logger.warn({ err: String(err), roomId }, 'resync failed'))
+    })
     let joined = false
     let closing = false
     let inFlight: Promise<void> | undefined
@@ -48,17 +55,16 @@ export class RoomHub {
     try {
       await this.bus.join(roomId, connectionId, member)
       joined = true
-      const messages = await this.loadHistory()
-      const members = await this.bus.members(roomId)
+      const sync = await this.snapshot(roomId)
       if (signal?.aborted) return
-      signature = presenceSignature(members)
+      signature = presenceSignature(sync.members)
       // Everything queued up to this point may already be in the snapshot (this member's own
       // join, joins of listed users, chats in history); those copies are echoes. Anything that
       // arrives while the consumer holds the sync event is real and passes.
-      const snapshotUsers = new Set(members.map((m) => m.userId))
-      const snapshotMessages = new Set(messages.map((m) => m.id))
+      const snapshotUsers = new Set(sync.members.map((m) => m.userId))
+      const snapshotMessages = new Set(sync.messages.map((m) => m.id))
       let backlog = queue.size()
-      yield { type: 'sync', members, messages }
+      yield sync
       for await (const event of queue) {
         if (backlog > 0) {
           backlog -= 1
@@ -70,6 +76,7 @@ export class RoomHub {
     } finally {
       closing = true
       clearInterval(tick)
+      offReconnect()
       unsubscribe()
       // A heartbeat still in flight would re-assert the record after the leave.
       await inFlight
@@ -79,6 +86,16 @@ export class RoomHub {
 
   chat(roomId: string, message: ChatMessage): Promise<void> {
     return this.bus.publish(roomId, { type: 'chat', message })
+  }
+
+  setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void> {
+    return this.bus.setStatus(roomId, userId, status)
+  }
+
+  private async snapshot(roomId: string): Promise<Extract<RoomEvent, { type: 'sync' }>> {
+    const messages = await this.loadHistory()
+    const members = await this.bus.members(roomId)
+    return { type: 'sync', members, messages }
   }
 
   members(roomId: string): Promise<Member[]> {
@@ -93,9 +110,16 @@ function createBus(): RoomBus {
 }
 
 // One hub per process, not per module graph: dev evaluates the HTTP route (Vite `ssr` env)
-// and the WebSocket handler (`nitro` env) separately, and HMR re-evaluates modules.
+// and the WebSocket handler (`nitro` env) separately. On HMR the old hub is closed and
+// dropped so the re-evaluated module builds a fresh one instead of serving stale code.
 const HUB_KEY = Symbol.for('studio.room-hub')
 const globalHub = globalThis as typeof globalThis & Record<symbol, RoomHub | undefined>
 globalHub[HUB_KEY] ??= new RoomHub(createBus())
 
 export const hub: RoomHub = globalHub[HUB_KEY]
+
+const hot = (import.meta as { hot?: { dispose(cb: () => void): void } }).hot
+hot?.dispose(() => {
+  globalHub[HUB_KEY]?.bus.close()
+  globalHub[HUB_KEY] = undefined
+})

@@ -33,6 +33,10 @@ describe.skipIf(!url)('RedisRoomBus across two instances', () => {
     expect((await b.members(room)).map((m) => m.userId)).toEqual(['u1'])
 
     await a.join(room, 'c2', member)
+    await a.setStatus(room, member.userId, 'idle')
+    expect((await b.members(room))[0]?.status).toBe('idle')
+    await a.heartbeat(room, 'c1', member)
+    expect((await b.members(room))[0]?.status).toBe('idle')
     expect(await a.leave(room, 'c1')).toBe(false)
     expect((await b.members(room)).map((m) => m.userId)).toEqual(['u1'])
     expect(await a.leave(room, 'c2')).toBe(true)
