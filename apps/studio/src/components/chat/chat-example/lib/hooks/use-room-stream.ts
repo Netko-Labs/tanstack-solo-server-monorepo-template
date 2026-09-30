@@ -1,8 +1,8 @@
 import { useEffect, useReducer } from 'react'
 import { trpcClient } from '@/integrations/trpc'
-import { useDocumentVisibility } from '@/shared/dom-events'
 import type { RoomState } from '../types'
 import { INITIAL_ROOM_STATE, roomIdentity, roomReducer } from '../utils'
+import { useStatusReporter } from './use-status-reporter'
 
 /** Subscribe = join, unsubscribe = leave. Resubscribes when the user or the room changes. */
 export function useRoomStream(roomId: string, userId: string | undefined) {
@@ -18,17 +18,7 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
     const sub = trpcClient.room.stream.subscribe(
       { roomId },
       {
-        onData: (event) => {
-          dispatch({ type: 'event', event })
-          // Joined (first sync) while already hidden: the server default is active.
-          if (event.type === 'sync' && document.visibilityState !== 'visible') {
-            trpcClient.room.setStatus.mutate({
-              roomId,
-              connectionId: event.connectionId,
-              status: 'idle',
-            })
-          }
-        },
+        onData: (event) => dispatch({ type: 'event', event }),
         onError: () => dispatch({ type: 'status', connectionStatus: 'disconnected' }),
         onConnectionStateChange: ({ state: link }) => {
           if (link === 'connecting') dispatch({ type: 'status', connectionStatus: 'connecting' })
@@ -39,16 +29,9 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
     return () => sub.unsubscribe()
   }, [roomId, userId, identity])
 
-  // Presence status is this tab's call for its own connection: hidden is idle, visible is
-  // active; the server aggregates across a user's tabs with active winning.
-  useDocumentVisibility((visible) => {
-    if (!state.connectionId) return
-    trpcClient.room.setStatus.mutate({
-      roomId,
-      connectionId: state.connectionId,
-      status: visible ? 'active' : 'idle',
-    })
-  }, Boolean(userId))
+  // Presence status is this tab's call for its own connection; the server aggregates
+  // across a user's tabs with active winning.
+  useStatusReporter(roomId, state.identity === identity ? state.connectionId : undefined)
 
   // Never render the previous room/user's state during the switch, not even for a frame.
   if (state.identity !== identity) {
