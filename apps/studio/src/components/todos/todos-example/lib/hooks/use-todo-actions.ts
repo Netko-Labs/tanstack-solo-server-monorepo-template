@@ -33,7 +33,7 @@ export function useTodoActions(listKey: QueryKey, onSuccess: (action: TodoAction
     inFlight.some(
       (action) =>
         action?.type === type &&
-        (todoId === undefined || !('todoId' in action) || action.todoId === todoId),
+        (todoId === undefined || ('todoId' in action && action.todoId === todoId)),
     )
 
   return { dispatch: mutation.mutate, isPending, error: mutation.error?.message }

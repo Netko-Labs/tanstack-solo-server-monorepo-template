@@ -90,6 +90,8 @@ function releaseFinished(socket: PeerSocket, text: string): void {
  * Tracks subscription ids per socket from the wire messages so a peer cannot open an
  * unbounded number of streams. Returns false when the frame must be refused. Only
  * subscription starts count; a batch of queries or mutations is never refused here.
+ * A start that reuses a live id is refused outright: tRPC would answer it with an error,
+ * and that error frame would otherwise untrack the stream still running under the id.
  */
 function trackSubscriptions(socket: PeerSocket, text: string): boolean {
   const items = parseFrame(text)
@@ -97,7 +99,10 @@ function trackSubscriptions(socket: PeerSocket, text: string): boolean {
   for (const item of items) {
     if (typeof item !== 'object' || item === null) continue
     const { id, method } = item as { id?: unknown; method?: unknown }
-    if (method === 'subscription') socket.subscriptions.add(String(id))
+    if (method === 'subscription') {
+      if (socket.subscriptions.has(String(id))) return false
+      socket.subscriptions.add(String(id))
+    }
     if (method === 'subscription.stop') socket.subscriptions.delete(String(id))
   }
   return socket.subscriptions.size <= MAX_SUBSCRIPTIONS_PER_PEER

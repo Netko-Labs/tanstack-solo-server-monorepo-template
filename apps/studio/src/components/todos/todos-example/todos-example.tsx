@@ -9,7 +9,7 @@ import { TransportInfo } from './transport-info'
 
 export function TodosExample() {
   const { data: session } = useSession()
-  const todos = useTodosExample()
+  const todos = useTodosExample(Boolean(session))
 
   return (
     <div className="container mx-auto max-w-4xl space-y-6 p-6">

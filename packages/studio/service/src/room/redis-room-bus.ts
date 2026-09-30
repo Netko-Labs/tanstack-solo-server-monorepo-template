@@ -1,7 +1,7 @@
 import { createLogger } from '@temp-repo/logger'
 import { type Member, MemberSchema, type RoomEvent } from '@temp-repo/studio-domain'
 import type { RedisClient } from 'bun'
-import { PRESENCE_TTL_S, RESTORE_ATTEMPTS, RESTORE_BACKOFF_MS } from './constants'
+import { PRESENCE_TTL_S, RESTORE_BACKOFF_MAX_MS, RESTORE_BACKOFF_MS } from './constants'
 import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from './types'
 import {
   aggregateMembers,
@@ -192,8 +192,8 @@ export class RedisRoomBus implements RoomBus {
     }
   }
 
-  // A channel that fails to come back is retried with backoff while its listener is still
-  // wanted; giving up is logged at error because that instance is then deaf to the room.
+  // A channel that fails to come back is retried with capped backoff for as long as its
+  // listener is still wanted: a deaf instance is never an acceptable steady state.
   private async resubscribe(
     channel: string,
     onMessage: (raw: string) => void,
@@ -202,12 +202,8 @@ export class RedisRoomBus implements RoomBus {
     try {
       await this.subscriber.subscribe(channel, onMessage)
     } catch (err) {
-      if (attempt >= RESTORE_ATTEMPTS) {
-        logger.error({ err: String(err), channel }, 'restore failed for channel')
-        return
-      }
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
-      await Bun.sleep(RESTORE_BACKOFF_MS * attempt)
+      await Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS))
       if (this.listeners.get(channel)?.has(onMessage)) {
         await this.resubscribe(channel, onMessage, attempt + 1)
       }

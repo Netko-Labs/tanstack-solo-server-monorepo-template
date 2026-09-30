@@ -130,4 +130,14 @@ describe('crossws ↔ tRPC bridge', () => {
     for (let id = 200; id <= 200 + MAX_SUBSCRIPTIONS_PER_PEER; id += 1) subscribe(id)
     expect(peer.closed).toBe(true)
   })
+
+  test('subscription cap: a start that reuses a live id closes the socket', () => {
+    const peer = fakePeer('http://app.test')
+    hooks.open(peer)
+    const start = JSON.stringify({ id: 7, method: 'subscription', params: { path: 'ticks' } })
+    hooks.message(peer, { text: () => start })
+    expect(peer.closed).toBe(false)
+    hooks.message(peer, { text: () => start })
+    expect(peer.closed).toBe(true)
+  })
 })
