@@ -15,7 +15,7 @@ they describe this repo's specific topology, scaffolding, and commands.
 
 ## Repository Overview
 
-- Runtime and package manager: `bun@1.2.23`
+- Runtime and package manager: `bun@1.4.0` (`packageManager` in package.json; CI installs that version)
 - Monorepo tooling: Turborepo
 - One app, `apps/studio` — TanStack Start (React 19, Tailwind, Base UI, Tabler Icons) on Nitro/Bun. The same process serves SSR, better-auth (`/api/auth`), tRPC over HTTP (`/api/trpc`) **and** tRPC over a native **WebSocket** (`/trpc-ws`, crossws via Nitro `experimental.websocket`).
 - Packages: `packages/studio/{domain,repository,service,trpc}` + `packages/configs/studio-config`.
