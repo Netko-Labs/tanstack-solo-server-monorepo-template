@@ -7,16 +7,9 @@ import {
 } from '@temp-repo/ui/components/card'
 import type { TodoListProps } from '../lib'
 import { LIST_EMPTY, LIST_LOADING, LIST_TITLE } from '../lib'
-import { TodoItemRow } from './todo-item/todo-item'
+import { TodoItemRow } from './todo-item'
 
-export function TodoList({
-  todos,
-  isLoading,
-  onToggle,
-  onDelete,
-  isTogglePending,
-  isDeletePending,
-}: TodoListProps) {
+export function TodoList({ todos, isLoading, onToggle, onDelete, isPending }: TodoListProps) {
   return (
     <Card>
       <CardHeader>
@@ -39,8 +32,7 @@ export function TodoList({
                 showSeparator={index > 0}
                 onToggle={onToggle}
                 onDelete={onDelete}
-                isTogglePending={isTogglePending}
-                isDeletePending={isDeletePending}
+                isPending={isPending}
               />
             ))}
           </div>

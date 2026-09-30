@@ -29,6 +29,13 @@
       "when": 1790721539743,
       "tag": "0003_lush_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790787616936,
+      "tag": "0004_lush_gorgon",
+      "breakpoints": true
     }
   ]
 }

@@ -1,24 +1,19 @@
 import { Button } from '@temp-repo/ui/components/button'
+import { Checkbox } from '@temp-repo/ui/components/checkbox'
 import { Separator } from '@temp-repo/ui/components/separator'
 import { Fragment } from 'react'
 import { formatDateTime } from '@/shared/format-date'
 import type { TodoItemProps, TodoItemRowProps } from '../../lib'
 
-export function TodoItem({
-  todo,
-  onToggle,
-  onDelete,
-  isTogglePending,
-  isDeletePending,
-}: TodoItemProps) {
+export function TodoItem({ todo, onToggle, onDelete, isPending }: TodoItemProps) {
   return (
     <div className="flex items-start gap-4">
-      <input
-        type="checkbox"
+      <Checkbox
+        aria-label={`Complete ${todo.title}`}
         checked={todo.completed}
-        onChange={() => onToggle(todo.id, todo.completed)}
-        className="mt-1 h-5 w-5 cursor-pointer"
-        disabled={isTogglePending}
+        onCheckedChange={() => onToggle(todo.id, todo.completed)}
+        className="mt-1"
+        disabled={isPending('toggle', todo.id)}
       />
       <div className="flex-1">
         <h3
@@ -40,8 +35,9 @@ export function TodoItem({
       <Button
         variant="destructive"
         size="sm"
+        aria-label={`Delete ${todo.title}`}
         onClick={() => onDelete(todo.id)}
-        disabled={isDeletePending}
+        disabled={isPending('delete', todo.id)}
       >
         Delete
       </Button>
@@ -49,14 +45,10 @@ export function TodoItem({
   )
 }
 
-export function TodoItemSeparator() {
-  return <Separator />
-}
-
 export function TodoItemRow({ todo, showSeparator, ...props }: TodoItemRowProps) {
   return (
     <Fragment>
-      {showSeparator && <TodoItemSeparator />}
+      {showSeparator && <Separator />}
       <TodoItem todo={todo} {...props} />
     </Fragment>
   )

@@ -10,6 +10,22 @@ const isEnabled = (args: (string | undefined)[]): boolean => {
   return args.every((arg) => arg !== undefined && arg !== '')
 }
 
+const MIN_AUTH_SECRET_LENGTH = 32
+
+// A production boot with a localhost BASE_URL or a console-logged magic link is a
+// misconfiguration that must fail loudly, not serve.
+function assertProductionEnv(): void {
+  if (process.env.NODE_ENV !== 'production') return
+  const missing = ['BASE_URL', 'DATABASE_URL', 'AUTH_SECRET', 'RESEND_API_KEY'].filter(
+    (name) => !process.env[name],
+  )
+  if (missing.length > 0) throw new Error(`production requires ${missing.join(', ')}`)
+  if ((process.env.AUTH_SECRET?.length ?? 0) < MIN_AUTH_SECRET_LENGTH) {
+    throw new Error(`AUTH_SECRET must be at least ${MIN_AUTH_SECRET_LENGTH} characters`)
+  }
+}
+assertProductionEnv()
+
 const studioConfig: StudioConfig = {
   app: {
     dev: process.env.NODE_ENV !== 'production',

@@ -4,8 +4,8 @@ import { renderMagicLinkEmail } from './magic-link-email'
 const logger = createLogger('email')
 
 /**
- * Deliver a magic-link email via Resend when `RESEND_API_KEY` is set; otherwise
- * log the link to the console (dev fallback).
+ * Deliver a magic-link email via Resend. Without `RESEND_API_KEY` the link is logged
+ * instead, which is a sign-in credential in plain text: allowed in development only.
  */
 export async function sendMagicLinkEmail({
   email,
@@ -18,6 +18,9 @@ export async function sendMagicLinkEmail({
   const from = process.env.EMAIL_FROM ?? 'Studio <onboarding@resend.dev>'
 
   if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('RESEND_API_KEY is required to send magic links in production')
+    }
     logger.info(`\n✨ Magic Link for ${email}:\n${url}\n`)
     return
   }
@@ -33,6 +36,7 @@ export async function sendMagicLinkEmail({
     }),
   })
   if (!res.ok) {
-    logger.error({ status: res.status, body: await res.text() }, 'Resend send failed')
+    logger.error({ status: res.status }, 'Resend send failed')
+    throw new Error(`magic link delivery failed (${res.status})`)
   }
 }

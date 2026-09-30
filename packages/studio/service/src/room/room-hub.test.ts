@@ -20,6 +20,7 @@ class ReconnectableBus extends LocalRoomBus implements RoomBus {
 const member = (userId: string): Member => ({ userId, name: userId, status: 'active' })
 const message: ChatMessage = {
   id: crypto.randomUUID(),
+  roomId: 'lobby',
   content: 'hi',
   authorId: 'a',
   authorName: 'a',

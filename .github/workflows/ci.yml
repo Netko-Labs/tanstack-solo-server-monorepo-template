@@ -20,10 +20,17 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            .turbo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
       - run: bun run check-types
       - run: bun run fmt-lint
       - run: bun run test
+      - run: bun run repo build --app studio
 
   generator:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -36,6 +43,7 @@ jobs:
       - run: bunx turbo gen app --args smoke
       - run: bun install
       - run: bun run check-types
+      - run: bun run repo build --app smoke
 
   commitlint:
     if: github.event_name == 'pull_request'
@@ -45,5 +53,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bunx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}

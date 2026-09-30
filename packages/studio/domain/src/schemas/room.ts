@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { ChatMessageSchema } from '../entities/chat'
 
+/** Bounded and predictable: room ids become Redis keys and pub/sub channels. */
+export const RoomIdSchema = z.string().regex(/^[a-z0-9-]{1,64}$/)
+
 export const MemberSchema = z.object({
   userId: z.string(),
   name: z.string(),

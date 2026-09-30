@@ -16,14 +16,31 @@ const logger = createLogger('room')
 
 /** Room lifecycle on top of a bus: join → sync → live events + heartbeat → leave. */
 export class RoomHub {
+  private activeStreams = 0
+
   constructor(
     readonly bus: RoomBus,
-    private readonly loadHistory: () => Promise<ChatMessage[]> = getChatMessages,
+    private readonly loadHistory: (roomId: string) => Promise<ChatMessage[]> = getChatMessages,
   ) {}
 
-  async *stream(roomId: string, member: Member, signal?: AbortSignal): AsyncGenerator<RoomEvent> {
+  /**
+   * `until` ends the stream when the caller's session expires, so a revoked or expired
+   * login cannot keep a live channel open past its lifetime.
+   */
+  async *stream(
+    roomId: string,
+    member: Member,
+    signal?: AbortSignal,
+    until?: Date,
+  ): AsyncGenerator<RoomEvent> {
     const connectionId = crypto.randomUUID()
-    const queue = createAsyncQueue<QueueItem>(signal)
+    const controller = new AbortController()
+    signal?.addEventListener('abort', () => controller.abort(), { once: true })
+    const deadline = until
+      ? setTimeout(() => controller.abort(), Math.max(0, until.getTime() - Date.now()))
+      : undefined
+    this.activeStreams += 1
+    const queue = createAsyncQueue<QueueItem>(controller.signal)
     const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
     // After a transport reconnect the client re-syncs from a fresh snapshot: events published
     // during the outage are gone for good, so a diff cannot repair the view. The marker keeps
@@ -58,7 +75,7 @@ export class RoomHub {
       await this.bus.join(roomId, connectionId, member)
       joined = true
       let sync = await this.snapshot(roomId, connectionId)
-      if (signal?.aborted) return
+      if (controller.signal.aborted) return
       signature = presenceSignature(sync.members)
       // Joins queued before a snapshot for users it already lists are echoes (a later rejoin
       // is real, so this is backlog-scoped). Chat ids are immutable, so any chat already in a
@@ -88,12 +105,23 @@ export class RoomHub {
     } finally {
       closing = true
       clearInterval(tick)
+      clearTimeout(deadline)
       offReconnect()
       unsubscribe()
       // A heartbeat still in flight would re-assert the record after the leave.
       await inFlight
-      if (joined) await this.bus.leave(roomId, connectionId)
+      try {
+        if (joined) await this.bus.leave(roomId, connectionId)
+      } finally {
+        this.activeStreams -= 1
+      }
     }
+  }
+
+  /** Resolves once every stream has run its leave, or after `timeoutMs`. */
+  async drain(timeoutMs: number): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    while (this.activeStreams > 0 && Date.now() < deadline) await Bun.sleep(25)
   }
 
   chat(roomId: string, message: ChatMessage): Promise<void> {
@@ -110,7 +138,7 @@ export class RoomHub {
   }
 
   private async snapshot(roomId: string, connectionId: string): Promise<Sync> {
-    const messages = await this.loadHistory()
+    const messages = await this.loadHistory(roomId)
     const members = await this.bus.members(roomId)
     return { type: 'sync', connectionId, members, messages }
   }

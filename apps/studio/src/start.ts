@@ -13,16 +13,17 @@ const requestLoggerMiddleware = createMiddleware().server(async ({ next, request
   const url = new URL(request.url)
   const path = url.pathname
 
-  // Skip logging for tRPC routes - they have their own logging middleware
-  if (path.startsWith('/api/trpc')) {
+  // tRPC has its own logging; health probes would log two lines every few seconds.
+  if (path.startsWith('/api/trpc') || path === '/api/health') {
     return next()
   }
 
   const startTime = Date.now()
   const { method } = request
 
-  // Log incoming request with sparkle ✨
-  logger.info({ method, path, query: url.search || undefined }, '→ incoming')
+  // Query values can be credentials (magic-link tokens, OAuth codes): log the keys only.
+  const queryKeys = [...url.searchParams.keys()]
+  logger.info({ method, path, queryKeys: queryKeys.length ? queryKeys : undefined }, '→ incoming')
 
   try {
     const nextResponse = await next()

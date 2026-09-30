@@ -23,7 +23,7 @@ const _protoStudioConfigSchema = z.object({
     url: z.string(),
   }),
   db: z.object({
-    url: z.string(),
+    url: z.string().min(1),
   }),
   auth: z.object({
     secret: z.string().optional(),

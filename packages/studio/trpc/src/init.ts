@@ -9,20 +9,29 @@ const logger = createLogger('trpc')
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter: ({ shape, error }) => {
-    // Log all tRPC errors with context
-    logger.error(
+    // Client errors (auth, validation) are expected traffic; only server faults are errors.
+    // Drizzle wraps the pg error in a message that embeds the SQL params, so log the root.
+    const root = rootCause(error)
+    const level = error.code === 'INTERNAL_SERVER_ERROR' ? 'error' : 'debug'
+    logger[level](
       {
-        code: shape.code,
+        code: error.code,
         path: shape.data?.path,
         httpStatus: shape.data?.httpStatus,
-        err: error.message,
-        cause: error.cause instanceof Error ? error.cause.message : undefined,
+        err: root.message,
+        errCode: 'code' in root ? String(root.code) : undefined,
       },
-      `tRPC error: ${error.message}`,
+      `tRPC ${error.code}`,
     )
     return shape
   },
 })
+
+function rootCause(error: Error): Error & { code?: unknown } {
+  let current: Error = error
+  while (current.cause instanceof Error) current = current.cause
+  return current
+}
 
 export const router = t.router
 export const mergeRouters = t.mergeRouters
@@ -64,16 +73,8 @@ const loggingMiddleware = t.middleware(async ({ path, type, next }) => {
   } catch (error) {
     const duration = Date.now() - startTime
 
-    // Log procedure error (detailed error logging handled by errorFormatter)
-    logger.error(
-      {
-        path,
-        type,
-        duration,
-        err: error instanceof Error ? error.message : String(error),
-      },
-      '✗ failed',
-    )
+    // Detailed logging happens in errorFormatter; this is the timing line.
+    logger.debug({ path, type, duration }, '✗ failed')
 
     throw error
   }
@@ -85,7 +86,8 @@ const loggedProcedure = t.procedure.use(loggingMiddleware)
 export const publicProcedure = loggedProcedure
 export const protectedProcedure = loggedProcedure.use(async ({ next, ctx }) => {
   const { user, session } = ctx
-  if (!session || !user) {
+  // A WebSocket keeps the context it opened with, so expiry must be checked per call.
+  if (!session || !user || session.expiresAt.getTime() <= Date.now()) {
     throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
   return next({ ctx: { user, session } })

@@ -35,6 +35,7 @@ end
  */
 const JOIN_LUA = `${COUNT_LIVE_LUA}
 redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+redis.call('EXPIRE', KEYS[1], ARGV[4] * 2)
 redis.call('SET', ARGV[6] .. ARGV[1], ARGV[3], 'EX', ARGV[4])
 local n = liveConnections(KEYS[1], ARGV[6], ARGV[5])
 if n == 1 then redis.call('PUBLISH', ARGV[7], ARGV[8]) end
@@ -49,6 +50,7 @@ local next = cjson.decode(ARGV[2])
 local current = redis.call('HGET', KEYS[1], ARGV[1])
 if current then next.status = cjson.decode(current).status end
 redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(next))
+redis.call('EXPIRE', KEYS[1], ARGV[4] * 2)
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
 `
 /**
@@ -125,11 +127,9 @@ export class RedisRoomBus implements RoomBus {
         return
       }
       logger.warn('subscriber reconnected; restoring subscriptions')
-      this.restoreSubscriptions()
-        .then(() => {
-          for (const listener of this.reconnectListeners) listener()
-        })
-        .catch((err) => logger.warn({ err: String(err) }, 'restoring subscriptions failed'))
+      this.restoreSubscriptions().then(() => {
+        for (const listener of this.reconnectListeners) listener()
+      })
     }
     this.subscriber.onclose = (err) => logger.warn({ err: String(err) }, 'subscriber closed')
     this.commands.onclose = (err) => logger.warn({ err: String(err) }, 'commands closed')
@@ -182,11 +182,16 @@ export class RedisRoomBus implements RoomBus {
 
   // Bun keeps the local listener across the reconnect while the server-side SUBSCRIBE is
   // gone; re-subscribing without dropping it first would deliver every message twice.
+  // One failed channel must not stop the rest, and listeners always get the resync.
   private async restoreSubscriptions(): Promise<void> {
     for (const [channel, set] of this.listeners) {
       for (const onMessage of set) {
-        await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
-        await this.subscriber.subscribe(channel, onMessage)
+        try {
+          await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+          await this.subscriber.subscribe(channel, onMessage)
+        } catch (err) {
+          logger.warn({ err: String(err), channel }, 'restore failed for channel')
+        }
       }
     }
   }

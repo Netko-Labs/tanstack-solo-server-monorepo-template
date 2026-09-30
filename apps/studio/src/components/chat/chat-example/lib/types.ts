@@ -1,5 +1,4 @@
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
-import type { FormEvent, RefObject } from 'react'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -27,7 +26,13 @@ export interface MessageListProps {
   messages: ChatMessage[]
   isLoading: boolean
   currentUserId?: string
-  messagesEndRef: RefObject<HTMLDivElement | null>
+}
+
+export interface StatusReporterState {
+  inFlight: boolean
+  cancelled: boolean
+  latest?: Member['status']
+  sent?: Member['status']
 }
 
 export interface ChatMessageItemProps {
@@ -36,8 +41,9 @@ export interface ChatMessageItemProps {
 }
 
 export interface SendMessageFormProps {
-  onSubmit: (e: FormEvent, content: string) => void
+  onSend: (content: string) => Promise<boolean>
   isPending: boolean
+  error?: string
 }
 
 export interface MembersListProps {
