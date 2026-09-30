@@ -2,22 +2,23 @@ import { createLogger } from '@temp-repo/logger'
 import { type Member, MemberSchema, type RoomEvent } from '@temp-repo/studio-domain'
 import type { RedisClient } from 'bun'
 import { PRESENCE_TTL_S } from './constants'
-import type { RoomBus, RoomListener } from './types'
+import type { PresenceRecord, RoomBus, RoomListener } from './types'
 import {
+  aggregateMembers,
   aliveKey,
   isExpired,
   membersKey,
   parseEvent,
   roomChannel,
   serializeEvent,
-  withStatus,
 } from './utils'
 
 const logger = createLogger('room-bus')
 
 /**
- * Cross-instance bus: events fan out over a channel per room; presence lives in a
- * hash plus a TTL'd alive key per member, so a dead instance's users expire on read.
+ * Cross-instance bus: events fan out over a channel per room; presence is a hash of
+ * connectionId → member plus a TTL'd alive key per connection, so a dead instance's
+ * connections expire on read.
  */
 export class RedisRoomBus implements RoomBus {
   constructor(
@@ -48,37 +49,61 @@ export class RedisRoomBus implements RoomBus {
     }
   }
 
-  async join(roomId: string, member: Member): Promise<void> {
-    const now = Date.now()
-    await this.commands.hset(membersKey(roomId), { [member.userId]: JSON.stringify(member) })
-    await this.commands.set(aliveKey(roomId, member.userId), String(now), 'EX', PRESENCE_TTL_S)
-    await this.publish(roomId, { type: 'join', member })
+  async join(roomId: string, connectionId: string, member: Member): Promise<void> {
+    const wasPresent = await this.hasUser(roomId, member.userId)
+    await this.commands.hset(membersKey(roomId), { [connectionId]: JSON.stringify(member) })
+    await this.commands.set(
+      aliveKey(roomId, connectionId),
+      String(Date.now()),
+      'EX',
+      PRESENCE_TTL_S,
+    )
+    if (!wasPresent) await this.publish(roomId, { type: 'join', member })
   }
 
-  async heartbeat(roomId: string, userId: string): Promise<void> {
-    await this.commands.set(aliveKey(roomId, userId), String(Date.now()), 'EX', PRESENCE_TTL_S)
+  async heartbeat(roomId: string, connectionId: string): Promise<void> {
+    await this.commands.set(
+      aliveKey(roomId, connectionId),
+      String(Date.now()),
+      'EX',
+      PRESENCE_TTL_S,
+    )
   }
 
-  async leave(roomId: string, userId: string): Promise<void> {
-    await this.commands.hdel(membersKey(roomId), userId)
-    await this.commands.del(aliveKey(roomId, userId))
-    await this.publish(roomId, { type: 'leave', userId })
+  async leave(roomId: string, connectionId: string): Promise<boolean> {
+    const raw = await this.commands.hget(membersKey(roomId), connectionId)
+    await this.commands.hdel(membersKey(roomId), connectionId)
+    await this.commands.del(aliveKey(roomId, connectionId))
+    const parsed = raw ? MemberSchema.safeParse(JSON.parse(raw)) : undefined
+    if (!parsed?.success) return false
+    const last = !(await this.hasUser(roomId, parsed.data.userId))
+    if (last) await this.publish(roomId, { type: 'leave', userId: parsed.data.userId })
+    return last
   }
 
   async members(roomId: string): Promise<Member[]> {
     const now = Date.now()
+    return aggregateMembers(await this.liveRecords(roomId, now), now)
+  }
+
+  private async hasUser(roomId: string, userId: string): Promise<boolean> {
+    const records = await this.liveRecords(roomId, Date.now())
+    return records.some((record) => record.member.userId === userId)
+  }
+
+  private async liveRecords(roomId: string, now: number): Promise<PresenceRecord[]> {
     const raw = await this.commands.hgetall(membersKey(roomId))
-    const members = await Promise.all(
-      Object.entries(raw).map(async ([userId, json]) => {
-        const lastSeen = Number(await this.commands.get(aliveKey(roomId, userId)))
+    const records = await Promise.all(
+      Object.entries(raw).map(async ([connectionId, json]) => {
+        const lastSeen = Number(await this.commands.get(aliveKey(roomId, connectionId)))
         const parsed = MemberSchema.safeParse(JSON.parse(json))
         if (!parsed.success || !lastSeen || isExpired(lastSeen, now)) {
-          await this.commands.hdel(membersKey(roomId), userId)
+          await this.commands.hdel(membersKey(roomId), connectionId)
           return undefined
         }
-        return withStatus(parsed.data, lastSeen, now)
+        return { member: parsed.data, lastSeen }
       }),
     )
-    return members.filter((m): m is Member => m !== undefined)
+    return records.filter((r): r is PresenceRecord => r !== undefined)
   }
 }

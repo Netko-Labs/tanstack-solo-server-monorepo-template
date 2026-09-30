@@ -18,14 +18,15 @@ export class RoomHub {
   ) {}
 
   async *stream(roomId: string, member: Member, signal?: AbortSignal): AsyncGenerator<RoomEvent> {
+    const connectionId = crypto.randomUUID()
     const queue = createAsyncQueue<RoomEvent>(signal)
     const unsubscribe = this.bus.subscribe(roomId, (event) => queue.push(event))
-    await this.bus.join(roomId, member)
+    await this.bus.join(roomId, connectionId, member)
     let signature = ''
 
     const tick = setInterval(() => {
       this.bus
-        .heartbeat(roomId, member.userId)
+        .heartbeat(roomId, connectionId)
         .then(() => this.bus.members(roomId))
         .then((members) => {
           const next = presenceSignature(members)
@@ -44,7 +45,7 @@ export class RoomHub {
     } finally {
       clearInterval(tick)
       unsubscribe()
-      await this.bus.leave(roomId, member.userId)
+      await this.bus.leave(roomId, connectionId)
     }
   }
 

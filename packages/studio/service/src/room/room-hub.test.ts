@@ -62,6 +62,27 @@ describe('RoomHub over LocalRoomBus', () => {
     await a.return(undefined)
   })
 
+  test('same user, two connections: presence survives the first leave, drops on the last', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => [])
+    const seen: RoomEvent[] = []
+    bus.subscribe('lobby', (event) => seen.push(event))
+
+    const first = hub.stream('lobby', member('a'))
+    await take(first, 2)
+    const second = hub.stream('lobby', member('a'))
+    await take(second, 1)
+    expect(seen.filter((e) => e.type === 'join')).toHaveLength(1)
+
+    await second.return(undefined)
+    expect(seen.some((e) => e.type === 'leave')).toBe(false)
+    expect((await hub.members('lobby')).map((m) => m.userId)).toEqual(['a'])
+
+    await first.return(undefined)
+    expect(seen.at(-1)).toEqual({ type: 'leave', userId: 'a' })
+    expect(await hub.members('lobby')).toEqual([])
+  })
+
   test('abort ends the stream without a pending poll', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const controller = new AbortController()

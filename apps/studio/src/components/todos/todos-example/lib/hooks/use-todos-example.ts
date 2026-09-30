@@ -4,8 +4,11 @@ import { useTodosList } from './use-todos-list'
 
 export function useTodosExample() {
   const [lastUpdate, setLastUpdate] = useState('')
-  const { data: todos = [], isLoading, error } = useTodosList()
-  const { dispatch, isPending } = useTodoActions(() =>
+  const {
+    query: { data: todos = [], isLoading, error },
+    queryKey,
+  } = useTodosList()
+  const { dispatch, isPending } = useTodoActions(queryKey, () =>
     setLastUpdate(new Date().toLocaleTimeString()),
   )
 

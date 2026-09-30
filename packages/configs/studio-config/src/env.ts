@@ -1,5 +1,11 @@
 import { type StudioConfig, StudioConfigSchema } from '@temp-repo/studio-domain'
 
+const splitList = (value: string | undefined): string[] =>
+  value
+    ?.split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean) ?? []
+
 const isEnabled = (args: (string | undefined)[]): boolean => {
   return args.every((arg) => arg !== undefined && arg !== '')
 }
@@ -21,7 +27,7 @@ const studioConfig: StudioConfig = {
     emailAndPassword: {
       enabled: false,
     },
-    trustedOrigins: process.env.TRUSTED_ORIGINS?.split(',') ?? [],
+    trustedOrigins: splitList(process.env.TRUSTED_ORIGINS),
     socialProviders: {
       github: {
         enabled: isEnabled([process.env.GITHUB_CLIENT_ID, process.env.GITHUB_CLIENT_SECRET]),

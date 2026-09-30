@@ -2,11 +2,10 @@ import { useEffect, useReducer } from 'react'
 import { trpcClient } from '@/integrations/trpc'
 import { INITIAL_ROOM_STATE, roomReducer } from '../utils'
 
-/** Subscribe = join, unsubscribe = leave. Reconnects only when the user changes. */
+/** Subscribe = join, unsubscribe = leave. Resubscribes when the user or the room changes. */
 export function useRoomStream(roomId: string, userId: string | undefined) {
   const [state, dispatch] = useReducer(roomReducer, INITIAL_ROOM_STATE)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: resubscribe only when the user changes
   useEffect(() => {
     if (!userId) {
       dispatch({ type: 'reset', connectionStatus: 'disconnected' })
@@ -25,7 +24,7 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
       },
     )
     return () => sub.unsubscribe()
-  }, [userId])
+  }, [roomId, userId])
 
   return state
 }
