@@ -25,4 +25,5 @@ export const IMPLEMENTATION_QUERY =
   'Using useQuery and useMutation with tRPC integration for type-safe data fetching.'
 export const IMPLEMENTATION_TRANSPORT =
   'Queries and mutations batch over HTTP (/api/trpc); only subscriptions use the WebSocket.'
-export const IMPLEMENTATION_HINT = 'Mutations are protectedProcedures — sign in first.'
+export const IMPLEMENTATION_HINT =
+  'Todos are owned: every procedure is protected and scoped to the signed-in user.'

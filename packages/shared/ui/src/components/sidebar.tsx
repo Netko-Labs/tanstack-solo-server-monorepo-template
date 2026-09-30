@@ -1,3 +1,4 @@
+// conventions: >300 lines — vendored shadcn/base-ui primitive kept whole for upstream diffs; split when next touched
 import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import { IconLayoutSidebar } from '@tabler/icons-react'

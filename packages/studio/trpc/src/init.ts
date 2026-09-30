@@ -51,14 +51,14 @@ const loggingMiddleware = t.middleware(async ({ path, type, next }) => {
   const startTime = Date.now()
 
   // Log incoming procedure call
-  logger.info({ path, type }, '→ incoming')
+  logger.debug({ path, type }, '→ incoming')
 
   try {
     const result = await next()
     const duration = Date.now() - startTime
 
     // Log successful procedure completion
-    logger.info({ path, type, duration, ok: result.ok }, '← completed')
+    logger.debug({ path, type, duration, ok: result.ok }, '← completed')
 
     return result
   } catch (error) {

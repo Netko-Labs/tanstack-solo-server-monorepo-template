@@ -15,7 +15,7 @@ they describe this repo's specific topology, scaffolding, and commands.
 
 ## Repository Overview
 
-- Runtime and package manager: `bun@1.2.23`
+- Runtime and package manager: `bun@1.4.0` (`packageManager` in package.json; CI installs that version)
 - Monorepo tooling: Turborepo
 - One app, `apps/studio` — TanStack Start (React 19, Tailwind, Base UI, Tabler Icons) on Nitro/Bun. The same process serves SSR, better-auth (`/api/auth`), tRPC over HTTP (`/api/trpc`) **and** tRPC over a native **WebSocket** (`/trpc-ws`, crossws via Nitro `experimental.websocket`).
 - Packages: `packages/studio/{domain,repository,service,trpc}` + `packages/configs/studio-config`.
@@ -30,7 +30,7 @@ The generic layering pattern and per-layer folder structure (`domain → reposit
 ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend Layering** in
 `@docs/conventions.md`. This section records only the concrete studio-stack specifics:
 
-- better-auth is mounted at `/api/auth` (magic link + `jwt`/`jwks`, the latter kept for future external consumers). The tRPC `appRouter` is `{ auth, room, todos }`. `drizzle-zod` entities live in `domain` (`createInsertSchema()`/`createUpdateSchema()`/`createSelectSchema()`); `domain/schemas/room.ts` holds `Member` + the `RoomEvent` union; `service/room` is the in-memory `RoomHub`; `trpc/routers/room` exposes `messages`/`send`/`stream` (async-generator subscription).
+- better-auth is mounted at `/api/auth` (magic link; optional OAuth providers via env). The tRPC `appRouter` is `{ auth, room, todos }`. `drizzle-zod` entities live in `domain` (`createInsertSchema()`/`createUpdateSchema()`/`createSelectSchema()`); `domain/schemas/room.ts` holds `Member` + the `RoomEvent` union; `service/room` is the `RoomHub` over a `RoomBus` (in-process, or Redis pub/sub when `CACHE_URL` is set); `trpc/routers/room` exposes `messages`/`send`/`stream` (async-generator subscription).
 - **WebSocket transport**: `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler` (stock wire protocol, so `wsLink` works unchanged). `apps/studio/src/server/trpc-ws.ts` wraps it in `defineWebSocketHandler` and `vite.config.ts` mounts it at `/trpc-ws` via the nitro plugin `handlers` option. Never add a second WebSocket entry; extend the router instead.
 - **Auth on the socket**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch adapter and the WebSocket bridge. No JWT hop, no `connectionParams`.
 - **Client**: `src/integrations/trpc/client.ts` builds a `splitLink` — subscriptions over a lazy `wsLink` to the same origin, everything else over `httpBatchLink`. SSR gets HTTP-only links.
@@ -52,8 +52,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Repo typecheck: `bun run check-types`
 - Repo lint and formatting check: `bun run fmt-lint`
 - Repo lint and formatting fix: `bun run fmt-lint:fix`
-- Repo tests: `bun run test`
-- End-to-end tests: `bun run repo test:e2e`
+- Repo tests: `bun run test` (bun test via turbo; the Redis bus contract test runs only when `CACHE_URL` is set)
 - Generate app: `bun run gen:app`
 - Generate library: `bun run gen:lib`
 - Studio DB generate: `bun run repo db:generate --app studio`

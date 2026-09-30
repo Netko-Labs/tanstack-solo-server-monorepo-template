@@ -18,6 +18,7 @@
     "zod": "^4.6.5"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit"
+    "check-types": "tsgo --noEmit",
+    "test": "bun test"
   }
 }

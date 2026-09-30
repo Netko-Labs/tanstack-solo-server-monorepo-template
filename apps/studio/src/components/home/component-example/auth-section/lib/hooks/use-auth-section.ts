@@ -1,44 +1,54 @@
 import { type FormEvent, useState } from 'react'
 import { signIn, signOut, useSession } from '@/integrations/auth'
-import type { AuthMessage } from '../types'
+import type { AuthFormState } from '../types'
 import { AUTH_MAGIC_LINK_ERROR, AUTH_MAGIC_LINK_SUCCESS } from '../values'
+
+const INITIAL_FORM: AuthFormState = { email: '', isLoading: false, message: null }
 
 export function useAuthSection() {
   const { data: session, isPending } = useSession()
-  const [email, setEmail] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState<AuthMessage | null>(null)
+  const [form, setForm] = useState<AuthFormState>(INITIAL_FORM)
+  const patch = (next: Partial<AuthFormState>) => setForm((prev) => ({ ...prev, ...next }))
 
   const handleMagicLink = async (e: FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setMessage(null)
+    patch({ isLoading: true, message: null })
     try {
-      const result = await signIn.magicLink({ email })
+      const result = await signIn.magicLink({ email: form.email })
       if (result.error) {
-        setMessage({ type: 'error', text: result.error.message || AUTH_MAGIC_LINK_ERROR })
+        patch({ message: { type: 'error', text: result.error.message || AUTH_MAGIC_LINK_ERROR } })
       } else {
-        setMessage({ type: 'success', text: AUTH_MAGIC_LINK_SUCCESS })
-        setEmail('')
+        patch({ email: '', message: { type: 'success', text: AUTH_MAGIC_LINK_SUCCESS } })
       }
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err instanceof Error ? err.message : AUTH_MAGIC_LINK_ERROR,
+      patch({
+        message: {
+          type: 'error',
+          text: err instanceof Error ? err.message : AUTH_MAGIC_LINK_ERROR,
+        },
       })
     } finally {
-      setIsLoading(false)
+      patch({ isLoading: false })
     }
   }
 
   const handleSignOut = async () => {
-    setIsLoading(true)
+    patch({ isLoading: true })
     try {
       await signOut()
     } finally {
-      setIsLoading(false)
+      patch({ isLoading: false })
     }
   }
 
-  return { session, isPending, email, setEmail, isLoading, message, handleMagicLink, handleSignOut }
+  return {
+    session,
+    isPending,
+    email: form.email,
+    setEmail: (email: string) => patch({ email }),
+    isLoading: form.isLoading,
+    message: form.message,
+    handleMagicLink,
+    handleSignOut,
+  }
 }

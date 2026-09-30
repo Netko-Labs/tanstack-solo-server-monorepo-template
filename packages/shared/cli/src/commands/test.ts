@@ -3,7 +3,7 @@ import { getPackageScope } from '../utils/scope'
 import { getRootDir, run } from '../utils/shell'
 
 /**
- * Run unit tests with vitest via turbo
+ * Run unit tests (bun test) via turbo
  */
 export const test = async (args: string[]) => {
   const appName = parseAppArg(args)
@@ -23,7 +23,7 @@ export const test = async (args: string[]) => {
     cmd.push('--filter', `${scope}/${appName}...`)
   }
 
-  // Pass additional flags to vitest
+  // Pass additional flags to bun test
   const extraFlags: string[] = []
   if (watch) extraFlags.push('--watch')
   if (coverage) extraFlags.push('--coverage')

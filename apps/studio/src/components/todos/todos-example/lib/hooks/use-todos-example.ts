@@ -1,40 +1,34 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
-import { useTRPC } from '@/integrations/trpc'
+import { useTodoActions } from './use-todo-actions'
+import { useTodosList } from './use-todos-list'
 
 export function useTodosExample() {
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
   const [lastUpdate, setLastUpdate] = useState('')
-
-  const { data: todos = [], isLoading, error } = useQuery(trpc.todos.list.queryOptions())
-
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: trpc.todos.list.queryKey() })
-    setLastUpdate(new Date().toLocaleTimeString())
-  }
-
-  const createMutation = useMutation(trpc.todos.create.mutationOptions({ onSuccess: invalidate }))
-  const toggleMutation = useMutation(trpc.todos.update.mutationOptions({ onSuccess: invalidate }))
-  const deleteMutation = useMutation(trpc.todos.delete.mutationOptions({ onSuccess: invalidate }))
+  const {
+    query: { data: todos = [], isLoading, error },
+    queryKey,
+  } = useTodosList()
+  const { dispatch, isPending } = useTodoActions(queryKey, () =>
+    setLastUpdate(new Date().toLocaleTimeString()),
+  )
 
   const handleCreateTodo = (e: FormEvent, title: string, description: string) => {
     e.preventDefault()
     if (!title.trim()) return
-    createMutation.mutate({ title, description: description || undefined })
+    dispatch({ type: 'create', input: { title, description: description || undefined } })
   }
   const handleToggleTodo = (todoId: string, completed: boolean) =>
-    toggleMutation.mutate({ todoId, completed: !completed })
-  const handleDeleteTodo = (todoId: string) => deleteMutation.mutate({ todoId })
+    dispatch({ type: 'toggle', todoId, completed: !completed })
+  const handleDeleteTodo = (todoId: string) => dispatch({ type: 'delete', todoId })
 
   return {
     todos,
     isLoading,
     error,
     lastUpdate,
-    createMutation,
-    toggleMutation,
-    deleteMutation,
+    createMutation: { isPending: isPending('create') },
+    toggleMutation: { isPending: isPending('toggle') },
+    deleteMutation: { isPending: isPending('delete') },
     handleCreateTodo,
     handleToggleTodo,
     handleDeleteTodo,

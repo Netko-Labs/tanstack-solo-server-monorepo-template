@@ -1,5 +1,10 @@
-import type { Todo } from '@temp-repo/studio-domain'
+import type { Todo, TodoCreateInput } from '@temp-repo/studio-domain'
 import type { FormEvent } from 'react'
+
+export type TodoAction =
+  | { type: 'create'; input: TodoCreateInput }
+  | { type: 'toggle'; todoId: string; completed: boolean }
+  | { type: 'delete'; todoId: string }
 
 export interface CreateTodoFormProps {
   onSubmit: (e: FormEvent, title: string, description: string) => void

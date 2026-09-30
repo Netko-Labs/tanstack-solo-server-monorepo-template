@@ -162,47 +162,6 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
         },
       })
 
-      // ─────────────────────────────────────────────────────────────────────────
-      // 8. Update compose.yml to add profile for new app
-      // ─────────────────────────────────────────────────────────────────────────
-      actions.push({
-        type: 'append',
-        path: '{{ turbo.paths.root }}/compose.yml',
-        pattern: /^services:/m,
-        template: `
-  # {{ pascalCase name }} App Services
-  db-{{ name }}:
-    image: postgres:17
-    profiles: [{{ name }}]
-    ports:
-      - "{{{ dockerPort name "DB_PORT" "5433" "5432" }}}"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: {{ name }}
-    volumes:
-      - {{ name }}_postgres_data:/var/lib/postgresql/data
-
-  redis-{{ name }}:
-    image: redis:latest
-    profiles: [{{ name }}]
-    ports:
-      - "{{{ dockerPort name "REDIS_PORT" "6380" "6379" }}}"
-    volumes:
-      - {{ name }}_redis_data:/data
-
-`,
-      })
-
-      // Add volumes for the new app
-      actions.push({
-        type: 'append',
-        path: '{{ turbo.paths.root }}/compose.yml',
-        template: `  {{ name }}_postgres_data:
-  {{ name }}_redis_data:
-`,
-      })
-
       return actions
     },
   })

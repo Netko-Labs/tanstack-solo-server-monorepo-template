@@ -29,6 +29,21 @@ class PeerSocket extends EventEmitter {
   }
 }
 
+// Browsers send Origin in canonical form (lowercase host, default port dropped, no path);
+// compare configured entries the same way.
+function canonicalOrigin(value: string): string | undefined {
+  try {
+    return new URL(value).origin
+  } catch {
+    return undefined
+  }
+}
+
+function isTrustedOrigin(origin: string, trusted: readonly string[]): boolean {
+  const target = canonicalOrigin(origin)
+  return target !== undefined && trusted.some((entry) => canonicalOrigin(entry) === target)
+}
+
 // tRPC's adapter reads `req.url` + `req.headers.host` (connectionParams live in the query).
 function toNodeRequest(request: Request) {
   const url = new URL(request.url)
@@ -53,11 +68,22 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       return opts.createContext({ req: request })
     },
     onError: ({ error, path }) => opts.onError?.({ error, path }),
+    // Protocol-level: the adapter sends a "PING" message and resets on any message back
+    // (wsLink answers "PONG"); no WebSocket ping frames are involved.
+    keepAlive: opts.keepAlive ? { enabled: true, ...opts.keepAlive } : undefined,
     // getWSConnectionHandler never touches `wss`; only applyWSSHandler does.
     wss: undefined as unknown as WSSHandlerOptions<TRouter>['wss'],
   } as WSSHandlerOptions<TRouter>)
 
   return {
+    // Browsers attach cookies to cross-site upgrades and never apply CORS to sockets, so
+    // this allow-list is what stands between a hostile tab and the session. Non-browser
+    // clients send no Origin and carry no ambient cookie, so they pass.
+    upgrade(request) {
+      const origin = request.headers.get('origin')
+      if (!origin || isTrustedOrigin(origin, opts.trustedOrigins)) return undefined
+      return new Response('forbidden origin', { status: 403 })
+    },
     open(peer) {
       const socket = new PeerSocket(peer)
       sockets.set(peer.id, socket)

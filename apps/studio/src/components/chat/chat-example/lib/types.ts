@@ -1,7 +1,20 @@
-import type { ChatMessage, Member } from '@temp-repo/studio-domain'
+import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
 import type { FormEvent, RefObject } from 'react'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+
+export interface RoomState {
+  /** `${roomId}:${userId}` the state belongs to; a different identity renders as empty. */
+  identity: string
+  messages: ChatMessage[]
+  members: Member[]
+  connectionStatus: ConnectionStatus
+}
+
+export type RoomAction =
+  | { type: 'reset'; identity: string; connectionStatus: ConnectionStatus }
+  | { type: 'status'; connectionStatus: ConnectionStatus }
+  | { type: 'event'; event: RoomEvent }
 
 export interface ConnectionStatusProps {
   status: ConnectionStatus

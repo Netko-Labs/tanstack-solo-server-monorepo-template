@@ -93,15 +93,6 @@ export const verification = pgTable(
  * ^._.^ JWKS Table ^._.^
  * JSON Web Key Sets - the cryptographic fur keeping your tokens warm
  */
-export const jwks = pgTable('jwks', {
-  id: text('id').primaryKey(),
-  publicKey: text('public_key').notNull(),
-  privateKey: text('private_key').notNull(),
-  createdAt: timestamp('created_at').notNull(),
-  expiresAt: timestamp('expires_at'),
-  alg: text('alg'),
-  crv: text('crv'),
-})
 
 /**
  * ₍^. .^₎⟆ Passkey Table ₍^. .^₎⟆

@@ -1,10 +1,13 @@
-import { type Todo, type TodoInsert, todoTable } from '@temp-repo/studio-domain'
+import { type Todo, type TodoCreateInput, todoTable } from '@temp-repo/studio-domain'
 import { db } from '@temp-repo/studio-repository'
 
-export const createTodo = async (data: TodoInsert): Promise<Todo | undefined> => {
+export const createTodo = async (
+  userId: string,
+  data: TodoCreateInput,
+): Promise<Todo | undefined> => {
   return await db
     .insert(todoTable)
-    .values(data)
+    .values({ ...data, userId })
     .returning()
     .then(([r]) => r)
 }

@@ -5,6 +5,12 @@ export interface AuthMessage {
   text: string
 }
 
+export interface AuthFormState {
+  email: string
+  isLoading: boolean
+  message: AuthMessage | null
+}
+
 export interface AuthLoggedInProps {
   session: {
     user: {
