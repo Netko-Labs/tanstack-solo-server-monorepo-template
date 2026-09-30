@@ -134,11 +134,12 @@ describe('crossws ↔ tRPC bridge', () => {
   test('subscription cap: any request reusing an in-flight id closes the socket', () => {
     const frame = (method: string) =>
       JSON.stringify({ id: 7, method, params: { path: method === 'query' ? 'hello' : 'ticks' } })
-    for (const [first, second] of [
+    const pairs = [
       ['subscription', 'subscription'],
       ['subscription', 'query'],
       ['query', 'subscription'],
-    ]) {
+    ] as const
+    for (const [first, second] of pairs) {
       const peer = fakePeer('http://app.test')
       hooks.open(peer)
       hooks.message(peer, { text: () => frame(first) })
