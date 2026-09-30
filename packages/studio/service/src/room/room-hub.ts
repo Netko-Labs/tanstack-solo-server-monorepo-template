@@ -42,14 +42,18 @@ export class RoomHub {
       joined = true
       const members = await this.bus.members(roomId)
       signature = presenceSignature(members)
-      yield { type: 'sync', members, messages: await this.loadHistory() }
-      // The snapshot already lists this member; the join queued before it is an echo.
+      const messages = await this.loadHistory()
+      yield { type: 'sync', members, messages }
+      // The snapshot is the boundary: the member's own join and any chat that landed while
+      // history loaded are already in it, so their queued copies are echoes.
+      const inSnapshot = new Set(messages.map((message) => message.id))
       let ownJoinPending = true
       for await (const event of queue) {
         if (ownJoinPending && event.type === 'join' && event.member.userId === member.userId) {
           ownJoinPending = false
           continue
         }
+        if (event.type === 'chat' && inSnapshot.has(event.message.id)) continue
         yield event
       }
     } finally {

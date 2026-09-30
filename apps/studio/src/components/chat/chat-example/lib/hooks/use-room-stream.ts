@@ -1,17 +1,19 @@
 import { useEffect, useReducer } from 'react'
 import { trpcClient } from '@/integrations/trpc'
-import { INITIAL_ROOM_STATE, roomReducer } from '../utils'
+import type { RoomState } from '../types'
+import { INITIAL_ROOM_STATE, roomIdentity, roomReducer } from '../utils'
 
 /** Subscribe = join, unsubscribe = leave. Resubscribes when the user or the room changes. */
 export function useRoomStream(roomId: string, userId: string | undefined) {
   const [state, dispatch] = useReducer(roomReducer, INITIAL_ROOM_STATE)
+  const identity = roomIdentity(roomId, userId)
 
   useEffect(() => {
     if (!userId) {
-      dispatch({ type: 'reset', connectionStatus: 'disconnected' })
+      dispatch({ type: 'reset', identity, connectionStatus: 'disconnected' })
       return
     }
-    dispatch({ type: 'reset', connectionStatus: 'connecting' })
+    dispatch({ type: 'reset', identity, connectionStatus: 'connecting' })
     const sub = trpcClient.room.stream.subscribe(
       { roomId },
       {
@@ -24,7 +26,16 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
       },
     )
     return () => sub.unsubscribe()
-  }, [roomId, userId])
+  }, [roomId, userId, identity])
 
+  // Never render the previous room/user's state during the switch, not even for a frame.
+  if (state.identity !== identity) {
+    const fresh: RoomState = {
+      ...INITIAL_ROOM_STATE,
+      identity,
+      connectionStatus: userId ? 'connecting' : 'disconnected',
+    }
+    return fresh
+  }
   return state
 }

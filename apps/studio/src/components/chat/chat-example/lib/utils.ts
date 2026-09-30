@@ -15,15 +15,23 @@ const upsertMember = (members: Member[], member: Member): Member[] => [
 ]
 
 export const INITIAL_ROOM_STATE: RoomState = {
+  identity: '',
   messages: [],
   members: [],
   connectionStatus: 'connecting',
 }
 
+export const roomIdentity = (roomId: string, userId: string | undefined): string =>
+  `${roomId}:${userId ?? ''}`
+
 export function roomReducer(state: RoomState, action: RoomAction): RoomState {
   switch (action.type) {
     case 'reset':
-      return { ...INITIAL_ROOM_STATE, connectionStatus: action.connectionStatus }
+      return {
+        ...INITIAL_ROOM_STATE,
+        identity: action.identity,
+        connectionStatus: action.connectionStatus,
+      }
     case 'status':
       return { ...state, connectionStatus: action.connectionStatus }
     case 'event': {

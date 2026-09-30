@@ -4,13 +4,15 @@ import type { FormEvent, RefObject } from 'react'
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
 export interface RoomState {
+  /** `${roomId}:${userId}` the state belongs to; a different identity renders as empty. */
+  identity: string
   messages: ChatMessage[]
   members: Member[]
   connectionStatus: ConnectionStatus
 }
 
 export type RoomAction =
-  | { type: 'reset'; connectionStatus: ConnectionStatus }
+  | { type: 'reset'; identity: string; connectionStatus: ConnectionStatus }
   | { type: 'status'; connectionStatus: ConnectionStatus }
   | { type: 'event'; event: RoomEvent }
 

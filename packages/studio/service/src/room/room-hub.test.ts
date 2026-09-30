@@ -33,9 +33,10 @@ describe('RoomHub over LocalRoomBus', () => {
     expect(sync.members.map((m) => m.userId)).toEqual(['a'])
     expect(sync.messages).toEqual([message])
 
+    const live = { ...message, id: 'm2', content: 'live' }
     const next = take(stream, 1)
-    await hub.chat('lobby', message)
-    expect(await next).toEqual([{ type: 'chat', message }])
+    await hub.chat('lobby', live)
+    expect(await next).toEqual([{ type: 'chat', message: live }])
     await stream.return(undefined)
   })
 
@@ -80,6 +81,24 @@ describe('RoomHub over LocalRoomBus', () => {
     await first.return(undefined)
     expect(seen.at(-1)).toEqual({ type: 'leave', userId: 'a' })
     expect(await hub.members('lobby')).toEqual([])
+  })
+
+  test('a chat published while history loads is not delivered twice', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => {
+      await bus.publish('lobby', { type: 'chat', message })
+      return [message]
+    })
+    const stream = hub.stream('lobby', member('a'))
+    const [sync] = await take(stream, 1)
+    if (sync?.type !== 'sync') throw new Error('unreachable')
+    expect(sync.messages).toEqual([message])
+
+    const later = { ...message, id: 'm2', content: 'after' }
+    const next = take(stream, 1)
+    await hub.chat('lobby', later)
+    expect(await next).toEqual([{ type: 'chat', message: later }])
+    await stream.return(undefined)
   })
 
   test('abort ends the stream without a pending poll', async () => {
