@@ -36,7 +36,7 @@ function fakePeer(origin?: string, onSend?: (peer: { id: string }, data: string)
 const hooks = createTRPCWebSocketHooks({
   router,
   createContext: async () => ({}),
-  trustedOrigins: ['http://app.test/'],
+  trustedOrigins: ['http://app.test:80/', 'HTTPS://Studio.Example'],
 })
 
 const until = async (check: () => boolean, ms = 1000) => {
@@ -70,6 +70,8 @@ describe('crossws ↔ tRPC bridge', () => {
 
   test('upgrade: trusted origin passes, foreign origin is 403, no origin passes', () => {
     expect(hooks.upgrade(fakePeer('http://app.test').request)).toBeUndefined()
+    expect(hooks.upgrade(fakePeer('https://studio.example').request)).toBeUndefined()
+    expect(hooks.upgrade(fakePeer('https://studio.example:444').request)?.status).toBe(403)
     expect(hooks.upgrade(fakePeer('https://evil.example').request)?.status).toBe(403)
     expect(hooks.upgrade(fakePeer().request)).toBeUndefined()
   })

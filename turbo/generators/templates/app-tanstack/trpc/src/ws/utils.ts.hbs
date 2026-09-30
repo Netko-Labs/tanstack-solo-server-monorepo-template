@@ -29,10 +29,19 @@ class PeerSocket extends EventEmitter {
   }
 }
 
-const withoutTrailingSlash = (url: string) => (url.endsWith('/') ? url.slice(0, -1) : url)
+// Browsers send Origin in canonical form (lowercase host, default port dropped, no path);
+// compare configured entries the same way.
+function canonicalOrigin(value: string): string | undefined {
+  try {
+    return new URL(value).origin
+  } catch {
+    return undefined
+  }
+}
 
 function isTrustedOrigin(origin: string, trusted: readonly string[]): boolean {
-  return trusted.some((entry) => withoutTrailingSlash(entry) === origin)
+  const target = canonicalOrigin(origin)
+  return target !== undefined && trusted.some((entry) => canonicalOrigin(entry) === target)
 }
 
 // tRPC's adapter reads `req.url` + `req.headers.host` (connectionParams live in the query).
