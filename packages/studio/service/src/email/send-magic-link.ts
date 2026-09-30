@@ -18,8 +18,8 @@ export async function sendMagicLinkEmail({
   const from = process.env.EMAIL_FROM ?? 'Studio <onboarding@resend.dev>'
 
   if (!apiKey) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('RESEND_API_KEY is required to send magic links in production')
+    if (process.env.NODE_ENV !== 'development') {
+      throw new Error('RESEND_API_KEY is required to send magic links outside development')
     }
     logger.info(`\n✨ Magic Link for ${email}:\n${url}\n`)
     return
