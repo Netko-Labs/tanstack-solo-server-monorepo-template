@@ -42,11 +42,13 @@ return n
 `
 /**
  * KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId, memberJson, now, ttl.
- * Keeps an existing record (it may carry a client-set status); only writes the JSON when
- * the record is missing.
+ * Writes fresh member details but keeps the stored status (the client owns it).
  */
 const HEARTBEAT_LUA = `
-if redis.call('HEXISTS', KEYS[1], ARGV[1]) == 0 then redis.call('HSET', KEYS[1], ARGV[1], ARGV[2]) end
+local next = cjson.decode(ARGV[2])
+local current = redis.call('HGET', KEYS[1], ARGV[1])
+if current then next.status = cjson.decode(current).status end
+redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(next))
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
 `
 /** KEYS[1]=members hash · ARGV: userId, status → records updated */

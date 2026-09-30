@@ -29,9 +29,11 @@ export class LocalRoomBus implements RoomBus {
     }
   }
 
+  // Fresh details, stored status: the client owns status, the session owns the rest.
   async heartbeat(roomId: string, connectionId: string, member: Member): Promise<void> {
-    const current = this.presence.get(roomId)?.get(connectionId)?.member ?? member
-    this.roomOf(roomId).set(connectionId, { member: current, lastSeen: Date.now() })
+    const current = this.presence.get(roomId)?.get(connectionId)?.member
+    const next = current ? { ...member, status: current.status } : member
+    this.roomOf(roomId).set(connectionId, { member: next, lastSeen: Date.now() })
   }
 
   async leave(roomId: string, connectionId: string): Promise<boolean> {

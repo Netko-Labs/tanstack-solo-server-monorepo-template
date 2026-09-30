@@ -206,6 +206,20 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
+  test('a chat already in the snapshot is suppressed even when its notification trails', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => [message])
+    const stream = hub.stream('lobby', member('a'))
+    await take(stream, 1)
+
+    const fresh = { ...message, id: crypto.randomUUID(), content: 'fresh' }
+    const next = take(stream, 1)
+    await bus.publish('lobby', { type: 'chat', message })
+    await bus.publish('lobby', { type: 'chat', message: fresh })
+    expect(await next).toEqual([{ type: 'chat', message: fresh }])
+    await stream.return(undefined)
+  })
+
   test('abort ends the stream without a pending poll', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const controller = new AbortController()

@@ -60,11 +60,12 @@ export class RoomHub {
       let sync = await this.snapshot(roomId)
       if (signal?.aborted) return
       signature = presenceSignature(sync.members)
-      // Everything queued up to a snapshot may already be in it (this member's own join, joins
-      // of listed users, chats in history); those copies are echoes. Anything that arrives
-      // while the consumer holds the sync event is real and passes.
+      // Joins queued before a snapshot for users it already lists are echoes (a later rejoin
+      // is real, so this is backlog-scoped). Chat ids are immutable, so any chat already in a
+      // snapshot is suppressed for the stream's lifetime: its notification may trail the
+      // history read by more than the backlog window.
       let snapshotUsers = new Set(sync.members.map((m) => m.userId))
-      let snapshotMessages = new Set(sync.messages.map((m) => m.id))
+      const seenMessages = new Set(sync.messages.map((m) => m.id))
       let backlog = queue.size()
       yield sync
       for await (const item of queue) {
@@ -72,15 +73,15 @@ export class RoomHub {
           sync = await this.snapshot(roomId)
           signature = presenceSignature(sync.members)
           snapshotUsers = new Set(sync.members.map((m) => m.userId))
-          snapshotMessages = new Set(sync.messages.map((m) => m.id))
+          for (const m of sync.messages) seenMessages.add(m.id)
           backlog = queue.size()
           yield sync
           continue
         }
+        if (item.type === 'chat' && seenMessages.has(item.message.id)) continue
         if (backlog > 0) {
           backlog -= 1
           if (item.type === 'join' && snapshotUsers.has(item.member.userId)) continue
-          if (item.type === 'chat' && snapshotMessages.has(item.message.id)) continue
         }
         yield item
       }
