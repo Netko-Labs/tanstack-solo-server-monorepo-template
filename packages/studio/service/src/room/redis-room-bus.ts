@@ -114,6 +114,7 @@ export class RedisRoomBus implements RoomBus {
   private readonly listeners = new Map<string, Set<(raw: string) => void>>()
   private readonly reconnectListeners = new Set<() => void>()
   private connectedOnce = false
+  private restoreGeneration = 0
 
   constructor(
     private readonly commands: RedisClient,
@@ -184,6 +185,7 @@ export class RedisRoomBus implements RoomBus {
   // gone; re-subscribing without dropping it first would deliver every message twice.
   // One failed channel must not stop the rest, and listeners always get the resync.
   private async restoreSubscriptions(): Promise<void> {
+    const generation = ++this.restoreGeneration
     const restores: Promise<void>[] = []
     for (const [channel, set] of this.listeners) {
       for (const onMessage of set) {
@@ -191,7 +193,7 @@ export class RedisRoomBus implements RoomBus {
           this.subscriber
             .unsubscribe(channel, onMessage)
             .catch(() => {})
-            .then(() => this.resubscribe(channel, onMessage)),
+            .then(() => this.resubscribe(channel, onMessage, generation)),
         )
       }
     }
@@ -202,10 +204,12 @@ export class RedisRoomBus implements RoomBus {
   // holds back the resync. Retries continue in the background with capped backoff for as
   // long as the listener is still wanted: a deaf instance is never an acceptable steady state.
   // A late success resyncs again, because events published while the channel was down
-  // are gone for good.
+  // are gone for good. A newer restore supersedes pending retries, so a callback is
+  // never subscribed twice.
   private async resubscribe(
     channel: string,
     onMessage: (raw: string) => void,
+    generation: number,
     attempt = 1,
   ): Promise<void> {
     try {
@@ -214,9 +218,9 @@ export class RedisRoomBus implements RoomBus {
     } catch (err) {
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
       void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() => {
-        if (this.listeners.get(channel)?.has(onMessage)) {
-          return this.resubscribe(channel, onMessage, attempt + 1)
-        }
+        const wanted =
+          generation === this.restoreGeneration && this.listeners.get(channel)?.has(onMessage)
+        if (wanted) return this.resubscribe(channel, onMessage, generation, attempt + 1)
       })
     }
   }

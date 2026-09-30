@@ -67,4 +67,29 @@ describe('RedisRoomBus reconnect', () => {
     expect(sub.calls.slice(2).filter((c) => c === 'room:lobby').length).toBeGreaterThanOrEqual(1)
     expect(sub.calls.slice(2).filter((c) => c === 'room:other').length).toBeGreaterThanOrEqual(1)
   })
+
+  test('a retry left over from an older restore is dropped once a newer restore succeeds', async () => {
+    const sub = fakeSubscriber()
+    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    let notified = 0
+    bus.onReconnect(() => {
+      notified += 1
+    })
+    await bus.subscribe('lobby', () => {})
+    await bus.subscribe('other', () => {})
+    ;(sub.client as unknown as { failUntil: number }).failUntil = 3
+
+    sub.client.onconnect?.call(sub.client)
+    sub.client.onconnect?.call(sub.client)
+    await Bun.sleep(10)
+    expect(notified).toBe(1)
+    sub.client.onconnect?.call(sub.client)
+    await Bun.sleep(10)
+    expect(notified).toBe(2)
+    expect(sub.calls.length).toBe(6)
+
+    await Bun.sleep(300)
+    expect(sub.calls.length).toBe(6)
+    expect(notified).toBe(2)
+  })
 })

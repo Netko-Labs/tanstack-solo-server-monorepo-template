@@ -7,12 +7,13 @@ export function useAutoScroll(count: number) {
   const pinned = useRef(true)
 
   // Pinned-ness is sampled on scroll, before a new message grows the list, so a tall
-  // message cannot read as "the reader scrolled up".
+  // message cannot read as "the reader scrolled up". The jump is instant: a smooth scroll
+  // would emit mid-flight scroll events that read as the reader scrolling up.
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when the count changes
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    if (pinned.current) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    if (pinned.current) el.scrollTop = el.scrollHeight
     const onScroll = () => {
       pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX
     }
