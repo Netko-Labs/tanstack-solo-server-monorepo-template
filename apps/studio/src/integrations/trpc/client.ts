@@ -17,8 +17,6 @@ const loggerLinkInstance = loggerLink<AppRouter>({
     (opts.direction === 'down' && opts.result instanceof Error),
 })
 
-// A socket keeps the session it opened with; it is closed whenever the user changes so
-// the next subscription authenticates as the current one.
 const wsClient: TRPCWebSocketClient | undefined =
   typeof window === 'undefined'
     ? undefined
@@ -27,8 +25,16 @@ const wsClient: TRPCWebSocketClient | undefined =
         lazy: { enabled: true, closeMs: TRPC_WS_IDLE_CLOSE_MS },
       })
 
-export function closeRealtimeSocket(): void {
-  wsClient?.close()
+let boundUserId: string | undefined
+
+/**
+ * A socket keeps the session it opened with. Binding a different user closes it so the
+ * next subscription upgrades as the current one; tRPC reopens on demand. Binding the
+ * same user again is a no-op, so sibling subscribers never cut each other off.
+ */
+export function bindRealtimeSocket(userId: string | undefined): void {
+  if (boundUserId !== undefined && boundUserId !== userId) wsClient?.close()
+  boundUserId = userId ?? ''
 }
 
 /**
