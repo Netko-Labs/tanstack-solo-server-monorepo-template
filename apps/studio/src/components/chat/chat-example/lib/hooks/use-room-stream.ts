@@ -1,5 +1,5 @@
 import { useEffect, useReducer } from 'react'
-import { closeRealtimeSocket, trpcClient } from '@/integrations/trpc'
+import { bindRealtimeSocket, trpcClient } from '@/integrations/trpc'
 import type { RoomState } from '../types'
 import { INITIAL_ROOM_STATE, roomIdentity, roomReducer } from '../utils'
 import { useStatusReporter } from './use-status-reporter'
@@ -10,8 +10,8 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
   const identity = roomIdentity(roomId, userId)
 
   useEffect(() => {
-    // The socket must not outlive the identity it authenticated as.
-    closeRealtimeSocket()
+    // The socket must not outlive the user it authenticated as.
+    bindRealtimeSocket(userId)
     if (!userId) {
       dispatch({ type: 'reset', identity, connectionStatus: 'disconnected' })
       return
