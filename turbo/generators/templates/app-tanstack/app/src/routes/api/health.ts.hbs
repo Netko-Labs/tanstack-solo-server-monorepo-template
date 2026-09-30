@@ -12,14 +12,15 @@ const withTimeout = <T>(work: Promise<T>): Promise<T> =>
 // One throwaway client per probe, closed either way: an unreachable Redis would otherwise
 // keep it retrying in the background for every health request.
 const probeCache = async (create: typeof createCacheClient) => {
-  const client = create()
+  let client: ReturnType<typeof createCacheClient> | undefined
   try {
+    client = create()
     await withTimeout(client.ping())
     return 'connected' as const
   } catch {
     return 'unavailable' as const
   } finally {
-    client.close()
+    client?.close()
   }
 }
 

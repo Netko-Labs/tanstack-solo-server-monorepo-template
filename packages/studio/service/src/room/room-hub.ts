@@ -39,10 +39,16 @@ export class RoomHub {
     if (signal?.aborted) controller.abort()
     else signal?.addEventListener('abort', () => controller.abort(), { once: true })
     const queue = createAsyncQueue<QueueItem>(controller.signal)
-    const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
-    // Counted and timed only once subscribed: a failed subscribe throws before the
-    // `finally` below exists, so nothing here may need undoing.
+    // Counted before the subscribe resolves so a drain sees streams still on their way in;
+    // a failed subscribe throws before the `finally` below exists, so it uncounts itself.
     this.activeStreams += 1
+    let unsubscribe: () => void
+    try {
+      unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
+    } catch (err) {
+      this.activeStreams -= 1
+      throw err
+    }
     const deadline = until
       ? setTimeout(() => controller.abort(), Math.max(0, until.getTime() - Date.now()))
       : undefined
