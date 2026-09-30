@@ -90,35 +90,50 @@ export async function findProcessesOnPort(port: number): Promise<string[]> {
 /**
  * Ask a process to stop; SIGTERM lets a dev server run its shutdown hooks.
  */
-export async function killProcess(pid: string): Promise<boolean> {
+export async function killProcess(pid: string, signal = 'TERM'): Promise<boolean> {
   try {
-    await $`kill ${pid}`.quiet()
+    await $`kill -${signal} ${pid}`.quiet()
     return true
   } catch {
     return false
   }
 }
 
+const PORT_RELEASE_TIMEOUT_MS = 5_000
+const PORT_POLL_MS = 200
+
+async function waitForPortRelease(port: number): Promise<boolean> {
+  const deadline = Date.now() + PORT_RELEASE_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    if ((await findProcessesOnPort(port)).length === 0) return true
+    await Bun.sleep(PORT_POLL_MS)
+  }
+  return false
+}
+
 /**
- * Kill any process running on a specific port
+ * Free a port: SIGTERM its listeners and wait until the port is actually released, so the
+ * caller can bind it right away; a holdout gets SIGKILL after the grace period.
  */
 export async function killProcessOnPort(port: number): Promise<boolean> {
   const pids = await findProcessesOnPort(port)
-  if (pids.length === 0) {
-    return false
-  }
+  if (pids.length === 0) return false
 
   console.log(`⚠️  Port ${port} is held by PID ${pids.join(', ')}; stopping it...`)
-  const results = await Promise.all(pids.map((pid) => killProcess(pid)))
-
-  if (results.every(Boolean)) {
-    console.log('✅ Process stopped')
-    // Wait a bit for the port to be released
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+  await Promise.all(pids.map((pid) => killProcess(pid)))
+  if (await waitForPortRelease(port)) {
+    console.log('✅ Port released')
     return true
   }
 
-  console.log('❌ Failed to stop the process')
+  console.log(`⚠️  Still held after ${PORT_RELEASE_TIMEOUT_MS} ms; sending SIGKILL`)
+  await Promise.all((await findProcessesOnPort(port)).map((pid) => killProcess(pid, 'KILL')))
+  if (await waitForPortRelease(port)) {
+    console.log('✅ Port released')
+    return true
+  }
+
+  console.log(`❌ Port ${port} is still held`)
   return false
 }
 

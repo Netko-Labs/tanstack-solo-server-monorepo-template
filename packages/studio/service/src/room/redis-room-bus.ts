@@ -184,16 +184,23 @@ export class RedisRoomBus implements RoomBus {
   // gone; re-subscribing without dropping it first would deliver every message twice.
   // One failed channel must not stop the rest, and listeners always get the resync.
   private async restoreSubscriptions(): Promise<void> {
+    const restores: Promise<void>[] = []
     for (const [channel, set] of this.listeners) {
       for (const onMessage of set) {
-        await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
-        await this.resubscribe(channel, onMessage)
+        restores.push(
+          this.subscriber
+            .unsubscribe(channel, onMessage)
+            .catch(() => {})
+            .then(() => this.resubscribe(channel, onMessage)),
+        )
       }
     }
+    await Promise.all(restores)
   }
 
-  // A channel that fails to come back is retried with capped backoff for as long as its
-  // listener is still wanted: a deaf instance is never an acceptable steady state.
+  // Only the first attempt is awaited, so one bad channel neither blocks the others nor
+  // holds back the resync. Retries continue in the background with capped backoff for as
+  // long as the listener is still wanted: a deaf instance is never an acceptable steady state.
   private async resubscribe(
     channel: string,
     onMessage: (raw: string) => void,
@@ -203,10 +210,11 @@ export class RedisRoomBus implements RoomBus {
       await this.subscriber.subscribe(channel, onMessage)
     } catch (err) {
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
-      await Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS))
-      if (this.listeners.get(channel)?.has(onMessage)) {
-        await this.resubscribe(channel, onMessage, attempt + 1)
-      }
+      void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() => {
+        if (this.listeners.get(channel)?.has(onMessage)) {
+          return this.resubscribe(channel, onMessage, attempt + 1)
+        }
+      })
     }
   }
 
