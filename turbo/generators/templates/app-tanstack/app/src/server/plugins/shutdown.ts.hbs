@@ -1,13 +1,11 @@
 import { closeDb } from '@temp-repo/{{ name }}-repository'
-import { closeAllPeers, hub } from '@temp-repo/{{ name }}-trpc'
+import { closeAllPeers } from '@temp-repo/{{ name }}-trpc'
 import { definePlugin } from 'nitro'
 
-const DRAIN_TIMEOUT_MS = 5_000
-
 /**
- * Registered before srvx's own SIGTERM handler, so sockets close with 1001 and their
- * room leaves run while the HTTP server is still draining. Nitro's `close` hook fires
- * once the server is closed; only then do the Redis and Postgres clients go.
+ * Registered before srvx's own SIGTERM handler, so sockets close with 1001 while the HTTP
+ * server is still draining. Nitro's `close` hook fires once the server is closed; only then
+ * does the Postgres client go.
  */
 export default definePlugin((nitroApp) => {
   const drain = () => {
@@ -17,8 +15,6 @@ export default definePlugin((nitroApp) => {
   process.once('SIGINT', drain)
 
   nitroApp.hooks.hook('close', async () => {
-    await hub.drain(DRAIN_TIMEOUT_MS)
-    hub.bus.close()
     await closeDb()
   })
 })

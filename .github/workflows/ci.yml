@@ -53,8 +53,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx turbo gen app --args smoke
       - run: bun install
-      - run: bun run check-types
+      # build first: it regenerates the route tree the typecheck reads
       - run: bun run repo build --app smoke
+      - run: bun run check-types
 
   commitlint:
     if: github.event_name == 'pull_request'
