@@ -109,17 +109,13 @@ function createBus(): RoomBus {
   return new RedisRoomBus(createCacheClient(), createCacheClient())
 }
 
-// One hub per process, not per module graph: dev evaluates the HTTP route (Vite `ssr` env)
-// and the WebSocket handler (`nitro` env) separately. On HMR the old hub is closed and
-// dropped so the re-evaluated module builds a fresh one instead of serving stale code.
-const HUB_KEY = Symbol.for('studio.room-hub')
-const globalHub = globalThis as typeof globalThis & Record<symbol, RoomHub | undefined>
-globalHub[HUB_KEY] ??= new RoomHub(createBus())
+// The bus (connections + subscriptions + presence) is one per process, not per module
+// graph: dev evaluates the HTTP route (Vite `ssr` env) and the WebSocket handler (`nitro`
+// env) separately. The hub is stateless, so every module evaluation builds a fresh one on
+// the shared bus and HMR edits to this file take effect without a restart; edits to the
+// bus files still need one.
+const BUS_KEY = Symbol.for('studio.room-bus')
+const globalBus = globalThis as typeof globalThis & Record<symbol, RoomBus | undefined>
+globalBus[BUS_KEY] ??= createBus()
 
-export const hub: RoomHub = globalHub[HUB_KEY]
-
-const hot = (import.meta as { hot?: { dispose(cb: () => void): void } }).hot
-hot?.dispose(() => {
-  globalHub[HUB_KEY]?.bus.close()
-  globalHub[HUB_KEY] = undefined
-})
+export const hub = new RoomHub(globalBus[BUS_KEY])

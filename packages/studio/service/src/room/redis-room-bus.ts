@@ -154,9 +154,14 @@ export class RedisRoomBus implements RoomBus {
     this.commands.close()
   }
 
+  // Bun keeps the local listener across the reconnect while the server-side SUBSCRIBE is
+  // gone; re-subscribing without dropping it first would deliver every message twice.
   private async restoreSubscriptions(): Promise<void> {
     for (const [channel, set] of this.listeners) {
-      for (const onMessage of set) await this.subscriber.subscribe(channel, onMessage)
+      for (const onMessage of set) {
+        await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+        await this.subscriber.subscribe(channel, onMessage)
+      }
     }
   }
 

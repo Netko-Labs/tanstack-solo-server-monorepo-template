@@ -39,7 +39,8 @@ collapse connections to one member per user (`active` beats `idle`).
 
 ## Dev gotcha
 
-`hub` is a `globalThis` singleton because Vite evaluates the HTTP route (`ssr` env) and the
-WebSocket handler (`nitro` env) as separate module graphs. On HMR the module's `dispose` closes and
-drops it so the re-evaluated code builds a new one; if a hub change ever seems ignored, restart
-`bun run repo dev --app studio`.
+The bus is a `globalThis` singleton because Vite evaluates the HTTP route (`ssr` env) and the
+WebSocket handler (`nitro` env) as separate module graphs, and both must share one set of
+connections and presence. The hub is stateless and rebuilt on every module evaluation, so edits to
+`room-hub.ts` hot-reload; edits to the bus files (`*-room-bus.ts`, `utils.ts`) keep serving the old
+instance until you restart `bun run repo dev --app studio`.
