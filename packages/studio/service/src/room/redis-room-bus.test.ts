@@ -21,9 +21,13 @@ describe.skipIf(!url)('RedisRoomBus across two instances', () => {
     const b = new RedisRoomBus(client(), client())
     const room = `test-${crypto.randomUUID()}`
 
+    let unsubscribe = () => {}
     const received = waitFor<RoomEvent>((resolve) => {
-      b.subscribe(room, resolve)
+      b.subscribe(room, resolve).then((off) => {
+        unsubscribe = off
+      })
     })
+    await Bun.sleep(50)
     await a.join(room, 'c1', member)
     expect(await received).toEqual({ type: 'join', member })
     expect((await b.members(room)).map((m) => m.userId)).toEqual(['u1'])
@@ -32,6 +36,7 @@ describe.skipIf(!url)('RedisRoomBus across two instances', () => {
     expect(await a.leave(room, 'c1')).toBe(false)
     expect((await b.members(room)).map((m) => m.userId)).toEqual(['u1'])
     expect(await a.leave(room, 'c2')).toBe(true)
+    unsubscribe()
     await Bun.sleep(100)
     expect(await b.members(room)).toEqual([])
   })

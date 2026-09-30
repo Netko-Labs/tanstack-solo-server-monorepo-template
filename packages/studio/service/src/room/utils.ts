@@ -58,6 +58,9 @@ export function createAsyncQueue<T>(signal?: AbortSignal): AsyncQueue<T> {
       items.push(item)
       notify()
     },
+    size() {
+      return items.length
+    },
     async *[Symbol.asyncIterator]() {
       while (!signal?.aborted) {
         const next = items.shift()

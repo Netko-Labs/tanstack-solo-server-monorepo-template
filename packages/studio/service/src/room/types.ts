@@ -25,4 +25,5 @@ export interface RoomBus {
 
 export interface AsyncQueue<T> extends AsyncIterable<T> {
   push(item: T): void
+  size(): number
 }

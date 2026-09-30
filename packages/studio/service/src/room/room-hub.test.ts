@@ -111,6 +111,37 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
+  test('abort while history loads yields no sync and leaves the room', async () => {
+    const bus = new LocalRoomBus()
+    const controller = new AbortController()
+    const hub = new RoomHub(bus, async () => {
+      controller.abort()
+      return []
+    })
+    const stream = hub.stream('lobby', member('a'), controller.signal)
+    const first = await stream.next()
+    expect(first.done).toBe(true)
+    expect(await hub.members('lobby')).toEqual([])
+  })
+
+  test('a join that lands before the snapshot is not replayed after it', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => {
+      await hub.bus.join('lobby', 'other', member('b'))
+      return []
+    })
+    const stream = hub.stream('lobby', member('a'))
+    const [sync] = await take(stream, 1)
+    if (sync?.type !== 'sync') throw new Error('unreachable')
+    expect(sync.members.map((m) => m.userId).sort()).toEqual(['a', 'b'])
+
+    const live = { ...message, id: crypto.randomUUID() }
+    const next = take(stream, 1)
+    await hub.chat('lobby', live)
+    expect(await next).toEqual([{ type: 'chat', message: live }])
+    await stream.return(undefined)
+  })
+
   test('abort ends the stream without a pending poll', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const controller = new AbortController()
