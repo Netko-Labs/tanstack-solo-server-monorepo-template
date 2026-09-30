@@ -59,34 +59,21 @@ A modern, type-safe full-stack **solo-server** template: one TanStack Start app 
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (v1.0+)
-- PostgreSQL database
+- [Bun](https://bun.sh/) 1.4.0 (the version in `package.json`'s `packageManager`; older Bun lacks the
+  Redis client and cannot apply the nitro patch)
+- Docker (Postgres and Redis run from `apps/studio/compose.yml`)
 
 ### Installation
 
 ```bash
-# Install dependencies
 bun install
-
-# Set up environment variables
-cp apps/studio/sample.env apps/studio/.env
-cp packages/studio/domain/sample.env packages/studio/domain/.env
-
-# Edit .env files with your database URL and other settings
-```
-
-### Database Setup
-
-```bash
-# Generate and apply migrations
-cd packages/studio/repository
-bunx drizzle-kit push
+cp apps/studio/sample.env apps/studio/.env   # defaults match the compose services
 ```
 
 ### Development
 
 ```bash
-# Start development server
+# Starts Postgres + Redis, generates and applies migrations, then the dev server
 bun run repo dev --app studio
 # or: bun run dev
 

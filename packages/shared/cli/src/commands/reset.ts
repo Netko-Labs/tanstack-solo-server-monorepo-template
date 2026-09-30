@@ -1,16 +1,10 @@
-import { $ } from 'bun'
-import { getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
-import { dbMigrate, dbSeed } from './db'
-import { dockerDown, dockerUp } from './docker'
+import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
+import { run } from '../utils/shell'
+import { dbMigrate } from './db'
+import { dockerUp } from './docker'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* RESET COMMANDS *:･ﾟ✧*:･ﾟ✧
- *
- * Reset an app's Docker containers and database (◕‿◕✿)
- */
-
-/**
- * Reset an app by stopping containers, removing volumes, and re-initializing
+ * Reset an app: stop its containers, drop their volumes, start fresh, migrate.
  */
 export async function reset(args: string[]) {
   const appName = parseAppArg(args)
@@ -29,31 +23,14 @@ export async function reset(args: string[]) {
 
   console.log(`🔄 Resetting ${appName}...\n`)
 
-  // Stop containers
-  console.log('🐳 Stopping containers...')
-  await dockerDown(args)
+  console.log('🐳 Stopping containers and removing their volumes...')
+  await run(['docker', 'compose', '--profile', appName, 'down', '-v'], { cwd: getAppDir(appName) })
 
-  // Remove volumes
-  console.log('\n🗑️  Removing Docker volumes...')
-  await $`docker volume rm db-${appName}-data redis-${appName}-data 2>/dev/null || true`
-    .quiet()
-    .nothrow()
-
-  // Start fresh
   console.log('\n🐳 Starting fresh containers...')
   await dockerUp(args)
 
-  // Wait for DB to be ready
-  console.log('\n⏳ Waiting for database...')
-  await new Promise((resolve) => setTimeout(resolve, 3000))
-
-  // Run migrations
   console.log('\n🗃️  Running migrations...')
   await dbMigrate(args)
-
-  // Seed database
-  console.log('\n🌱 Seeding database...')
-  await dbSeed(args)
 
   console.log(`\n✅ ${appName} has been reset!`)
 }

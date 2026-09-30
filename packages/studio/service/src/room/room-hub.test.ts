@@ -229,6 +229,55 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
+  test('a member whose instance died vanishes within one heartbeat interval', async () => {
+    // A dead instance publishes nothing: its records just stop being live.
+    class GhostBus extends LocalRoomBus {
+      vanish(roomId: string, connectionId: string) {
+        this.presence.get(roomId)?.delete(connectionId)
+      }
+    }
+    const bus = new GhostBus()
+    const hub = new RoomHub(bus, async () => [], 20)
+    await bus.join('lobby', 'ghost', member('ghost'))
+    const stream = hub.stream('lobby', member('a'))
+    const [sync] = await take(stream, 1)
+    if (sync?.type !== 'sync') throw new Error('unreachable')
+    expect(sync.members.map((m) => m.userId).sort()).toEqual(['a', 'ghost'])
+
+    bus.vanish('lobby', 'ghost')
+    const [presence] = await take(stream, 1)
+    expect(presence).toEqual({ type: 'presence', members: [member('a')] })
+    await stream.return(undefined)
+  })
+
+  test('a slow heartbeat cannot land after the leave', async () => {
+    let heartbeatDone = false
+    class SlowBus extends LocalRoomBus {
+      override async heartbeat(roomId: string, connectionId: string, m: Member) {
+        await Bun.sleep(80)
+        await super.heartbeat(roomId, connectionId, m)
+        heartbeatDone = true
+      }
+    }
+    const bus = new SlowBus()
+    const hub = new RoomHub(bus, async () => [], 20)
+    const stream = hub.stream('lobby', member('a'))
+    await take(stream, 1)
+    await Bun.sleep(40)
+    await stream.return(undefined)
+    expect(heartbeatDone).toBe(true)
+    expect(await bus.members('lobby')).toEqual([])
+  })
+
+  test('the bus is one per process while the hub is rebuilt per module evaluation', async () => {
+    const load = (query: string) =>
+      import(`./room-hub.ts?${query}`) as Promise<typeof import('./room-hub')>
+    const first = await load('eval=1')
+    const second = await load('eval=2')
+    expect(first.hub).not.toBe(second.hub)
+    expect(first.hub.bus).toBe(second.hub.bus)
+  })
+
   test('abort ends the stream without a pending poll', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const controller = new AbortController()

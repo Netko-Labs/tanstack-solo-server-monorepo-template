@@ -13,8 +13,17 @@ jobs:
       redis:
         image: redis:7-alpine
         ports: ['6379:6379']
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: temp-repo
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 3s --health-retries 15
     env:
       CACHE_URL: redis://localhost:6379
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/temp-repo
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -27,6 +36,8 @@ jobs:
             .turbo
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
+      - run: cp apps/studio/sample.env apps/studio/.env
+      - run: bun run repo db:migrate --app studio
       - run: bun run check-types
       - run: bun run fmt-lint
       - run: bun run test

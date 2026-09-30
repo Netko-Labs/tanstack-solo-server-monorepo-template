@@ -21,6 +21,7 @@ export class RoomHub {
   constructor(
     readonly bus: RoomBus,
     private readonly loadHistory: (roomId: string) => Promise<ChatMessage[]> = getChatMessages,
+    private readonly heartbeatMs: number = HEARTBEAT_MS,
   ) {}
 
   /**
@@ -69,7 +70,7 @@ export class RoomHub {
         .finally(() => {
           inFlight = undefined
         })
-    }, HEARTBEAT_MS)
+    }, this.heartbeatMs)
 
     try {
       await this.bus.join(roomId, connectionId, member)

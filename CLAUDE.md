@@ -47,7 +47,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 
 - Development: `bun run repo dev --app studio` (localhost:3000, WebSocket at `/trpc-ws`)
 - Web production build: `bun run repo build --app studio`
-- Web preview: `bun run repo serve --app studio`
+- Dev server only (no docker/migrations): `bun run repo serve --app studio`
 - Docker up/down: `bun run repo docker:up --app studio` / `bun run repo docker:down --app studio`
 - Repo typecheck: `bun run check-types`
 - Repo lint and formatting check: `bun run fmt-lint`
@@ -58,7 +58,6 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Studio DB generate: `bun run repo db:generate --app studio`
 - Studio DB migrate: `bun run repo db:migrate --app studio`
 - Studio DB push: `bun run repo db:push --app studio`
-- Studio DB seed: `bun run repo db:seed --app studio`
 
 ## Verification
 

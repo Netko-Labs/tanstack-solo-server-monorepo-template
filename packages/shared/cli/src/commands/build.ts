@@ -64,11 +64,19 @@ async function bundleMigrator(appName: string, outDir: string) {
   }
 
   const migrateDir = path.join(outDir, 'migrate')
+  const drizzleDir = path.join(dbDir, 'drizzle')
+
+  if (!fs.existsSync(drizzleDir)) {
+    console.log(
+      `ℹ️  No migrations yet for ${appName} (run db:generate); skipping the migrator bundle`,
+    )
+    return
+  }
 
   console.log(`🗃️  Bundling migrator for ${appName}...`)
 
   await run(['bun', 'build', entry, '--outdir', migrateDir, '--target', 'bun'], {
     cwd: getRootDir(),
   })
-  fs.cpSync(path.join(dbDir, 'drizzle'), path.join(migrateDir, 'drizzle'), { recursive: true })
+  fs.cpSync(drizzleDir, path.join(migrateDir, 'drizzle'), { recursive: true })
 }

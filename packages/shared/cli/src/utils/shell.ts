@@ -73,23 +73,26 @@ export async function runQuiet(command: string[], options?: { cwd?: string }) {
 /**
  * Find process ID running on a specific port
  */
-export async function findProcessOnPort(port: number): Promise<string | null> {
+export async function findProcessesOnPort(port: number): Promise<string[]> {
   try {
-    // Use lsof to find process on port (works on macOS/Linux)
-    const result = await $`lsof -ti :${port}`.quiet()
-    const pid = result.text().trim()
-    return pid || null
+    // Listeners only: a plain `-ti :port` also lists clients (an open browser tab).
+    const result = await $`lsof -ti tcp:${port} -sTCP:LISTEN`.quiet()
+    return result
+      .text()
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
   } catch {
-    return null
+    return []
   }
 }
 
 /**
- * Kill a process by PID
+ * Ask a process to stop; SIGTERM lets a dev server run its shutdown hooks.
  */
 export async function killProcess(pid: string): Promise<boolean> {
   try {
-    await $`kill -9 ${pid}`.quiet()
+    await $`kill ${pid}`.quiet()
     return true
   } catch {
     return false
@@ -100,22 +103,22 @@ export async function killProcess(pid: string): Promise<boolean> {
  * Kill any process running on a specific port
  */
 export async function killProcessOnPort(port: number): Promise<boolean> {
-  const pid = await findProcessOnPort(port)
-  if (!pid) {
+  const pids = await findProcessesOnPort(port)
+  if (pids.length === 0) {
     return false
   }
 
-  console.log(`⚠️  Found process (PID: ${pid}) running on port ${port}, killing it...`)
-  const killed = await killProcess(pid)
+  console.log(`⚠️  Port ${port} is held by PID ${pids.join(', ')}; stopping it...`)
+  const results = await Promise.all(pids.map((pid) => killProcess(pid)))
 
-  if (killed) {
-    console.log('✅ Process killed successfully')
+  if (results.every(Boolean)) {
+    console.log('✅ Process stopped')
     // Wait a bit for the port to be released
     await new Promise((resolve) => setTimeout(resolve, 1000))
     return true
   }
 
-  console.log('❌ Failed to kill process')
+  console.log('❌ Failed to stop the process')
   return false
 }
 

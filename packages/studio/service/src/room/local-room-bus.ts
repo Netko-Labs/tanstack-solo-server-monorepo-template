@@ -5,7 +5,7 @@ import { aggregateMembers, isExpired } from './utils'
 
 export class LocalRoomBus implements RoomBus {
   private readonly emitter = new EventEmitter()
-  private readonly presence = new Map<string, Map<string, PresenceRecord>>()
+  protected readonly presence = new Map<string, Map<string, PresenceRecord>>()
 
   constructor() {
     this.emitter.setMaxListeners(0)

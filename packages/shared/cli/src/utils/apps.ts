@@ -37,11 +37,28 @@ export function validateApp(appName: string): boolean {
  * Parse --app flag from args
  */
 export function parseAppArg(args: string[]): string | null {
-  const appIndex = args.indexOf('--app')
+  const appIndex = args.findIndex((arg) => arg === '--app' || arg === '-a')
   if (appIndex === -1 || appIndex === args.length - 1) {
     return null
   }
   return args[appIndex + 1] ?? null
+}
+
+/** The workspace package name of an app (its folder name is not it). */
+export function getAppPackageName(appName: string): string {
+  const pkg = JSON.parse(fs.readFileSync(path.join(getAppDir(appName), 'package.json'), 'utf-8'))
+  return String(pkg.name)
+}
+
+/** Fail fast with the fix, instead of failing later inside drizzle with an empty URL. */
+export function requireEnvFile(appName: string): string {
+  const envFile = path.join(getAppDir(appName), '.env')
+  if (!fs.existsSync(envFile)) {
+    console.error(`❌ apps/${appName}/.env is missing. Create it from the sample:`)
+    console.error(`   cp apps/${appName}/sample.env apps/${appName}/.env`)
+    process.exit(1)
+  }
+  return envFile
 }
 
 /**

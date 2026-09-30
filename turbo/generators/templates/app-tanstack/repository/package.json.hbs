@@ -6,20 +6,18 @@
   "scripts": {
     "check-types": "tsgo --noEmit",
     "db:generate": "bunx --bun drizzle-kit generate",
-    "db:migrate": "bunx --bun drizzle-kit migrate",
-    "db:seed": "bun run ./src/db/seed.ts"
+    "db:migrate": "bunx --bun drizzle-kit migrate"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "^0.31.11",
     "@types/bun": "^1.4.2"
   },
   "dependencies": {
     "@temp-repo/typescript-config": "workspace:*",
     "@temp-repo/{{ name }}-config": "workspace:*",
     "@temp-repo/{{ name }}-domain": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "ioredis": "^5.8.0",
+    "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.9",
-    "zod": "^4.6.2"
+    "zod": "^4.6.5"
   }
 }
