@@ -125,6 +125,20 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
+  test('a failed subscribe rejects the stream and leaves nothing for drain to wait on', async () => {
+    class DeafBus extends LocalRoomBus {
+      override subscribe(): Promise<() => void> {
+        return Promise.reject(new Error('bus down'))
+      }
+    }
+    const hub = new RoomHub(new DeafBus(), async () => [])
+    await expect(hub.stream('lobby', member('a')).next()).rejects.toThrow('bus down')
+    const started = Date.now()
+    await hub.drain(1000)
+    expect(Date.now() - started).toBeLessThan(100)
+    expect(await hub.members('lobby')).toEqual([])
+  })
+
   test('abort while history loads yields no sync and leaves the room', async () => {
     const bus = new LocalRoomBus()
     const controller = new AbortController()

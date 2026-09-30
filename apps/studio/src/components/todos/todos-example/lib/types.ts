@@ -32,6 +32,11 @@ export interface TodoItemRowProps extends TodoItemProps {
   showSeparator: boolean
 }
 
+export interface TodoWriteCounts {
+  completed: number
+  creates: number
+}
+
 export interface TransportInfoProps {
   completedWrites: number
 }

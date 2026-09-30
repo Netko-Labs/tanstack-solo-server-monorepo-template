@@ -6,7 +6,7 @@ import type { MessageLike, PeerLike, TRPCWebSocketHooks, TRPCWebSocketHooksOptio
 const WEBSOCKET_OPEN = 1
 const WEBSOCKET_CLOSED = 3
 const POLICY_VIOLATION = 1008
-/** Live subscriptions one socket may hold; a batch frame counts each of its items. */
+/** Live subscriptions one socket may hold; a slot frees on client stop or server `stopped`/error. */
 export const MAX_SUBSCRIPTIONS_PER_PEER = 16
 
 /** Adapts a crossws peer to the `ws`-shaped client tRPC's WebSocket adapter drives. */
@@ -19,7 +19,9 @@ class PeerSocket extends EventEmitter {
   }
 
   send(data: string | Uint8Array): void {
-    if (this.readyState === WEBSOCKET_OPEN) this.peer.send(data)
+    if (this.readyState !== WEBSOCKET_OPEN) return
+    if (this.subscriptions.size > 0 && typeof data === 'string') releaseFinished(this, data)
+    this.peer.send(data)
   }
 
   close(code?: number, reason?: string): void {
@@ -61,19 +63,37 @@ function toNodeRequest(request: Request) {
   return { url: `${url.pathname}${url.search}`, headers: Object.fromEntries(request.headers) }
 }
 
+function parseFrame(text: string): unknown[] | undefined {
+  try {
+    const parsed: unknown = JSON.parse(text)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return undefined
+  }
+}
+
+/** A `stopped` result or an error is the server's last word on that id; free its slot. */
+function releaseFinished(socket: PeerSocket, text: string): void {
+  if (!text.includes('"stopped"') && !text.includes('"error"')) return
+  for (const item of parseFrame(text) ?? []) {
+    if (typeof item !== 'object' || item === null) continue
+    const { id, result, error } = item as {
+      id?: unknown
+      result?: { type?: unknown }
+      error?: unknown
+    }
+    if (error !== undefined || result?.type === 'stopped') socket.subscriptions.delete(String(id))
+  }
+}
+
 /**
  * Tracks subscription ids per socket from the wire messages so a peer cannot open an
- * unbounded number of streams. Returns false when the frame must be refused.
+ * unbounded number of streams. Returns false when the frame must be refused. Only
+ * subscription starts count; a batch of queries or mutations is never refused here.
  */
 function trackSubscriptions(socket: PeerSocket, text: string): boolean {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return true
-  }
-  const items = Array.isArray(parsed) ? parsed : [parsed]
-  if (items.length > MAX_SUBSCRIPTIONS_PER_PEER) return false
+  const items = parseFrame(text)
+  if (!items) return true
   for (const item of items) {
     if (typeof item !== 'object' || item === null) continue
     const { id, method } = item as { id?: unknown; method?: unknown }

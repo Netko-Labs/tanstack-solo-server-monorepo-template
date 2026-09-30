@@ -21,9 +21,9 @@ export function TodosExample() {
       {session ? (
         <>
           <TransportInfo completedWrites={todos.completedWrites} />
-          {/* Remount on each successful write so the fields clear only when the server accepted. */}
+          {/* Remount on each accepted create so the fields clear then, and only then. */}
           <CreateTodoForm
-            key={todos.completedWrites}
+            key={todos.completedCreates}
             onSubmit={todos.handleCreateTodo}
             isPending={todos.isPending('create')}
           />

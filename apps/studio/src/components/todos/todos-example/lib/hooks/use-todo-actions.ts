@@ -15,14 +15,14 @@ const run = (action: TodoAction) => {
 }
 
 /** One command mutation for the three sibling writes; pending is read per action and per todo. */
-export function useTodoActions(listKey: QueryKey, onSuccess: () => void) {
+export function useTodoActions(listKey: QueryKey, onSuccess: (action: TodoAction) => void) {
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationKey: TODO_ACTION_KEY,
     mutationFn: run,
-    onSuccess: () => {
+    onSuccess: (_, action) => {
       queryClient.invalidateQueries({ queryKey: listKey })
-      onSuccess()
+      onSuccess(action)
     },
   })
   const inFlight = useMutationState({

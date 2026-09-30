@@ -10,8 +10,8 @@ const visibleStatus = (): Member['status'] =>
 /**
  * Reports this tab's status for its own connection: the current visibility once the
  * connection is known, then every change. Sends are serialized and coalesced to the
- * latest value; a failed send is not retried (the next change or connection will), and
- * nothing is sent for a connection that is gone.
+ * latest value; a failed value is not retried, but a newer one queued meanwhile still goes
+ * out. Nothing is sent for a connection that is gone.
  */
 export function useStatusReporter(roomId: string, connectionId: string | undefined) {
   const state = useRef<StatusReporterState>({ inFlight: false, cancelled: false })
@@ -29,11 +29,11 @@ export function useStatusReporter(roomId: string, connectionId: string | undefin
         await trpcClient.room.setStatus.mutate({ roomId, connectionId, status: next })
         s.sent = next
       } catch {
-        return
+        // Leave `sent` as is: the failed value is dropped, the comparison below sends a newer one.
       } finally {
         s.inFlight = false
       }
-      if (!s.cancelled && s.latest !== s.sent) await send()
+      if (!s.cancelled && s.latest !== next) await send()
     }
     void send()
   }

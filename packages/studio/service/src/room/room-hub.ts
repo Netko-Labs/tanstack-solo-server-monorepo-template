@@ -37,12 +37,14 @@ export class RoomHub {
     const connectionId = crypto.randomUUID()
     const controller = new AbortController()
     signal?.addEventListener('abort', () => controller.abort(), { once: true })
+    const queue = createAsyncQueue<QueueItem>(controller.signal)
+    const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
+    // Counted and timed only once subscribed: a failed subscribe throws before the
+    // `finally` below exists, so nothing here may need undoing.
+    this.activeStreams += 1
     const deadline = until
       ? setTimeout(() => controller.abort(), Math.max(0, until.getTime() - Date.now()))
       : undefined
-    this.activeStreams += 1
-    const queue = createAsyncQueue<QueueItem>(controller.signal)
-    const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
     // After a transport reconnect the client re-syncs from a fresh snapshot: events published
     // during the outage are gone for good, so a diff cannot repair the view. The marker keeps
     // queue order: the snapshot is taken when the consumer reaches it, so events queued after

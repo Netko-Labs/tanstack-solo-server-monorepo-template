@@ -12,7 +12,7 @@ const isEnabled = (args: (string | undefined)[]): boolean => {
 
 const MIN_AUTH_SECRET_LENGTH = 32
 
-// A production boot with a localhost BASE_URL or a console-logged magic link is a
+// A production boot without its public URL, database, secret or mail delivery is a
 // misconfiguration that must fail loudly, not serve.
 function assertProductionEnv(): void {
   if (process.env.NODE_ENV !== 'production') return

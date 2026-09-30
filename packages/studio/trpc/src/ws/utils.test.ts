@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { initTRPC } from '@trpc/server'
-import { createTRPCWebSocketHooks } from './utils'
+import { createTRPCWebSocketHooks, MAX_SUBSCRIPTIONS_PER_PEER } from './utils'
 
 const t = initTRPC.create()
 const router = t.router({
@@ -103,5 +103,31 @@ describe('crossws ↔ tRPC bridge', () => {
     hooks.message(peer, { text: () => 'PING' })
     await Bun.sleep(20)
     expect(peer.sent.length).toBe(sentBeforeClose)
+  })
+
+  test('subscription cap: finished streams free their slot; big query batches pass', async () => {
+    const peer = fakePeer('http://app.test')
+    hooks.open(peer)
+    const subscribe = (id: number) =>
+      hooks.message(peer, {
+        text: () => JSON.stringify({ id, method: 'subscription', params: { path: 'ticks' } }),
+      })
+    for (let id = 1; id <= MAX_SUBSCRIPTIONS_PER_PEER * 2; id += 1) {
+      subscribe(id)
+      await until(() =>
+        peer.sent.some((raw) => raw.includes(`"id":${id},"result":{"type":"stopped"}`)),
+      )
+    }
+    expect(peer.closed).toBe(false)
+    const batch = Array.from({ length: MAX_SUBSCRIPTIONS_PER_PEER + 4 }, (_, i) => ({
+      id: 100 + i,
+      method: 'query',
+      params: { path: 'hello' },
+    }))
+    hooks.message(peer, { text: () => JSON.stringify(batch) })
+    await until(() => peer.sent.filter((raw) => raw.includes('"hi"')).length === batch.length)
+    expect(peer.closed).toBe(false)
+    for (let id = 200; id <= 200 + MAX_SUBSCRIPTIONS_PER_PEER; id += 1) subscribe(id)
+    expect(peer.closed).toBe(true)
   })
 })

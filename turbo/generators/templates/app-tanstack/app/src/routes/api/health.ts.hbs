@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import type { createCacheClient } from '@temp-repo/{{ name }}-repository'
 
 const PROBE_TIMEOUT_MS = 2_000
 
@@ -7,6 +8,20 @@ const withTimeout = <T>(work: Promise<T>): Promise<T> =>
     work,
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), PROBE_TIMEOUT_MS)),
   ])
+
+// One throwaway client per probe, closed either way: an unreachable Redis would otherwise
+// keep it retrying in the background for every health request.
+const probeCache = async (create: typeof createCacheClient) => {
+  const client = create()
+  try {
+    await withTimeout(client.ping())
+    return 'connected' as const
+  } catch {
+    return 'unavailable' as const
+  } finally {
+    client.close()
+  }
+}
 
 export const Route = createFileRoute('/api/health')({
   server: {
@@ -20,11 +35,7 @@ export const Route = createFileRoute('/api/health')({
         const database = await withTimeout(db.execute(sql`SELECT 1`))
           .then(() => 'connected' as const)
           .catch(() => 'unavailable' as const)
-        const cache = CACHE_URL
-          ? await withTimeout(createCacheClient().ping())
-              .then(() => 'connected' as const)
-              .catch(() => 'unavailable' as const)
-          : ('disabled' as const)
+        const cache = CACHE_URL ? await probeCache(createCacheClient) : ('disabled' as const)
 
         const healthy = database === 'connected' && cache !== 'unavailable'
         // Coolify's healthcheck reads the status code, not the body.

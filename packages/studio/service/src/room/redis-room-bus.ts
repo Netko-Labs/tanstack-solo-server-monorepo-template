@@ -1,7 +1,7 @@
 import { createLogger } from '@temp-repo/logger'
 import { type Member, MemberSchema, type RoomEvent } from '@temp-repo/studio-domain'
 import type { RedisClient } from 'bun'
-import { PRESENCE_TTL_S } from './constants'
+import { PRESENCE_TTL_S, RESTORE_ATTEMPTS, RESTORE_BACKOFF_MS } from './constants'
 import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from './types'
 import {
   aggregateMembers,
@@ -186,12 +186,30 @@ export class RedisRoomBus implements RoomBus {
   private async restoreSubscriptions(): Promise<void> {
     for (const [channel, set] of this.listeners) {
       for (const onMessage of set) {
-        try {
-          await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
-          await this.subscriber.subscribe(channel, onMessage)
-        } catch (err) {
-          logger.warn({ err: String(err), channel }, 'restore failed for channel')
-        }
+        await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+        await this.resubscribe(channel, onMessage)
+      }
+    }
+  }
+
+  // A channel that fails to come back is retried with backoff while its listener is still
+  // wanted; giving up is logged at error because that instance is then deaf to the room.
+  private async resubscribe(
+    channel: string,
+    onMessage: (raw: string) => void,
+    attempt = 1,
+  ): Promise<void> {
+    try {
+      await this.subscriber.subscribe(channel, onMessage)
+    } catch (err) {
+      if (attempt >= RESTORE_ATTEMPTS) {
+        logger.error({ err: String(err), channel }, 'restore failed for channel')
+        return
+      }
+      logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
+      await Bun.sleep(RESTORE_BACKOFF_MS * attempt)
+      if (this.listeners.get(channel)?.has(onMessage)) {
+        await this.resubscribe(channel, onMessage, attempt + 1)
       }
     }
   }
