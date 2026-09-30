@@ -20,6 +20,7 @@ class ReconnectableBus extends LocalRoomBus implements RoomBus {
 const member = (userId: string): Member => ({ userId, name: userId, status: 'active' })
 const message: ChatMessage = {
   id: crypto.randomUUID(),
+  roomId: 'lobby',
   content: 'hi',
   authorId: 'a',
   authorName: 'a',
@@ -124,6 +125,33 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
+  test('a failed subscribe rejects the stream and leaves nothing for drain to wait on', async () => {
+    class DeafBus extends LocalRoomBus {
+      override subscribe(): Promise<() => void> {
+        return Promise.reject(new Error('bus down'))
+      }
+    }
+    const hub = new RoomHub(new DeafBus(), async () => [])
+    await expect(hub.stream('lobby', member('a')).next()).rejects.toThrow('bus down')
+    const started = Date.now()
+    await hub.drain(1000)
+    expect(Date.now() - started).toBeLessThan(100)
+    expect(await hub.members('lobby')).toEqual([])
+  })
+
+  test('an already-aborted signal ends the stream before it joins', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => [])
+    const joins: string[] = []
+    await bus.subscribe('lobby', (event) => {
+      if (event.type === 'join') joins.push(event.member.userId)
+    })
+    const stream = hub.stream('lobby', member('a'), AbortSignal.abort())
+    expect((await stream.next()).done).toBe(true)
+    expect(joins).toEqual([])
+    expect(await hub.members('lobby')).toEqual([])
+  })
+
   test('abort while history loads yields no sync and leaves the room', async () => {
     const bus = new LocalRoomBus()
     const controller = new AbortController()
@@ -226,6 +254,55 @@ describe('RoomHub over LocalRoomBus', () => {
     await bus.publish('lobby', { type: 'chat', message: fresh })
     expect(await next).toEqual([{ type: 'chat', message: fresh }])
     await stream.return(undefined)
+  })
+
+  test('a member whose instance died vanishes within one heartbeat interval', async () => {
+    // A dead instance publishes nothing: its records just stop being live.
+    class GhostBus extends LocalRoomBus {
+      vanish(roomId: string, connectionId: string) {
+        this.presence.get(roomId)?.delete(connectionId)
+      }
+    }
+    const bus = new GhostBus()
+    const hub = new RoomHub(bus, async () => [], 20)
+    await bus.join('lobby', 'ghost', member('ghost'))
+    const stream = hub.stream('lobby', member('a'))
+    const [sync] = await take(stream, 1)
+    if (sync?.type !== 'sync') throw new Error('unreachable')
+    expect(sync.members.map((m) => m.userId).sort()).toEqual(['a', 'ghost'])
+
+    bus.vanish('lobby', 'ghost')
+    const [presence] = await take(stream, 1)
+    expect(presence).toEqual({ type: 'presence', members: [member('a')] })
+    await stream.return(undefined)
+  })
+
+  test('a slow heartbeat cannot land after the leave', async () => {
+    let heartbeatDone = false
+    class SlowBus extends LocalRoomBus {
+      override async heartbeat(roomId: string, connectionId: string, m: Member) {
+        await Bun.sleep(80)
+        await super.heartbeat(roomId, connectionId, m)
+        heartbeatDone = true
+      }
+    }
+    const bus = new SlowBus()
+    const hub = new RoomHub(bus, async () => [], 20)
+    const stream = hub.stream('lobby', member('a'))
+    await take(stream, 1)
+    await Bun.sleep(40)
+    await stream.return(undefined)
+    expect(heartbeatDone).toBe(true)
+    expect(await bus.members('lobby')).toEqual([])
+  })
+
+  test('the bus is one per process while the hub is rebuilt per module evaluation', async () => {
+    const load = (query: string) =>
+      import(`./room-hub.ts?${query}`) as Promise<typeof import('./room-hub')>
+    const first = await load('eval=1')
+    const second = await load('eval=2')
+    expect(first.hub).not.toBe(second.hub)
+    expect(first.hub.bus).toBe(second.hub.bus)
   })
 
   test('abort ends the stream without a pending poll', async () => {

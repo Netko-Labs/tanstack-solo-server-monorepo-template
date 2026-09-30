@@ -1,5 +1,10 @@
-import * as path from 'node:path'
-import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
+import {
+  getAppDir,
+  getAvailableApps,
+  parseAppArg,
+  requireEnvFile,
+  validateApp,
+} from '../utils/apps'
 import { killProcessOnPort, loadEnvFile, run } from '../utils/shell'
 import { dbGenerate, dbMigrate } from './db'
 import { dockerUp } from './docker'
@@ -32,6 +37,7 @@ export async function dev(args: string[]) {
     process.exit(1)
   }
 
+  requireEnvFile(appName)
   console.log(`🚀 Starting full development setup for ${appName}...\n`)
 
   await dockerUp(args)
@@ -59,8 +65,7 @@ export async function serve(args: string[]) {
   }
 
   const appDir = getAppDir(appName)
-  const envFile = path.join(appDir, '.env')
-  const appEnv = loadEnvFile(envFile)
+  const appEnv = loadEnvFile(requireEnvFile(appName))
 
   const port = Number(appEnv.PORT || process.env.PORT || 3000)
 

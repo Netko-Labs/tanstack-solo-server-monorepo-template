@@ -1,0 +1,20 @@
+import { closeDb } from '@temp-repo/{{ name }}-repository'
+import { closeAllPeers } from '@temp-repo/{{ name }}-trpc'
+import { definePlugin } from 'nitro'
+
+/**
+ * Registered before srvx's own SIGTERM handler, so sockets close with 1001 while the HTTP
+ * server is still draining. Nitro's `close` hook fires once the server is closed; only then
+ * does the Postgres client go.
+ */
+export default definePlugin((nitroApp) => {
+  const drain = () => {
+    closeAllPeers(1001, 'server shutting down')
+  }
+  process.once('SIGTERM', drain)
+  process.once('SIGINT', drain)
+
+  nitroApp.hooks.hook('close', async () => {
+    await closeDb()
+  })
+})

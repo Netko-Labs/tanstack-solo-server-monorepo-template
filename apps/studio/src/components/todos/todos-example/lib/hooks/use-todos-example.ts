@@ -1,34 +1,38 @@
 import { type FormEvent, useState } from 'react'
+import type { TodoWriteCounts } from '../types'
 import { useTodoActions } from './use-todo-actions'
 import { useTodosList } from './use-todos-list'
 
-export function useTodosExample() {
-  const [lastUpdate, setLastUpdate] = useState('')
+/** `enabled` gates the list query: guests render nothing, so they should fetch nothing. */
+export function useTodosExample(enabled: boolean) {
+  const [writes, setWrites] = useState<TodoWriteCounts>({ completed: 0, creates: 0 })
   const {
     query: { data: todos = [], isLoading, error },
     queryKey,
-  } = useTodosList()
-  const { dispatch, isPending } = useTodoActions(queryKey, () =>
-    setLastUpdate(new Date().toLocaleTimeString()),
+  } = useTodosList(enabled)
+  const actions = useTodoActions(queryKey, (action) =>
+    setWrites((w) => ({
+      completed: w.completed + 1,
+      creates: action.type === 'create' ? w.creates + 1 : w.creates,
+    })),
   )
 
   const handleCreateTodo = (e: FormEvent, title: string, description: string) => {
     e.preventDefault()
     if (!title.trim()) return
-    dispatch({ type: 'create', input: { title, description: description || undefined } })
+    actions.dispatch({ type: 'create', input: { title, description: description || null } })
   }
   const handleToggleTodo = (todoId: string, completed: boolean) =>
-    dispatch({ type: 'toggle', todoId, completed: !completed })
-  const handleDeleteTodo = (todoId: string) => dispatch({ type: 'delete', todoId })
+    actions.dispatch({ type: 'toggle', todoId, completed: !completed })
+  const handleDeleteTodo = (todoId: string) => actions.dispatch({ type: 'delete', todoId })
 
   return {
     todos,
     isLoading,
-    error,
-    lastUpdate,
-    createMutation: { isPending: isPending('create') },
-    toggleMutation: { isPending: isPending('toggle') },
-    deleteMutation: { isPending: isPending('delete') },
+    error: error?.message ?? actions.error,
+    completedWrites: writes.completed,
+    completedCreates: writes.creates,
+    isPending: actions.isPending,
     handleCreateTodo,
     handleToggleTodo,
     handleDeleteTodo,

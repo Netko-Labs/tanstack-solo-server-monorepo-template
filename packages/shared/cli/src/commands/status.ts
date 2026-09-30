@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { getAppDir, getAvailableApps } from '../utils/apps'
-import { findProcessOnPort, loadEnvFile, runQuiet } from '../utils/shell'
+import { findProcessesOnPort, loadEnvFile, runQuiet } from '../utils/shell'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* STATUS COMMAND *:･ﾟ✧*:･ﾟ✧
@@ -35,8 +35,8 @@ export const status = async () => {
     if (existsSync(envPath)) {
       const env = loadEnvFile(envPath)
       const port = env.PORT || '3000'
-      const pid = await findProcessOnPort(Number(port))
-      console.log(`  ${app}: Port ${port} ${pid ? `(PID: ${pid})` : '(free)'}`)
+      const pids = await findProcessesOnPort(Number(port))
+      console.log(`  ${app}: Port ${port} ${pids.length ? `(PID: ${pids.join(', ')})` : '(free)'}`)
     }
   }
 }

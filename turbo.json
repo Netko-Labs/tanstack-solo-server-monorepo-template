@@ -11,8 +11,12 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "test": {
-      "env": ["CACHE_URL"]
+      "dependsOn": ["transit"],
+      "env": ["CACHE_URL", "DATABASE_URL"]
     },
     "dev": {
       "cache": false,

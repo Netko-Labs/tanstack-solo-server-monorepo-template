@@ -53,7 +53,8 @@ export async function build(args: string[]) {
 
 /**
  * Bundle the repository's `migrate.ts` (plus its `drizzle/` SQL) into `{outDir}/migrate` so a
- * deploy image without node_modules can still run `bun {outDir}/migrate/migrate.js`.
+ * deploy image without node_modules can still run `bun {outDir}/migrate/migrate.js`. The
+ * bundle is always produced: the deploy start command runs it, and it no-ops without SQL.
  */
 async function bundleMigrator(appName: string, outDir: string) {
   const dbDir = path.join(getRepositoryDir(appName), 'src', 'db')
@@ -64,11 +65,16 @@ async function bundleMigrator(appName: string, outDir: string) {
   }
 
   const migrateDir = path.join(outDir, 'migrate')
+  const drizzleDir = path.join(dbDir, 'drizzle')
 
   console.log(`🗃️  Bundling migrator for ${appName}...`)
 
   await run(['bun', 'build', entry, '--outdir', migrateDir, '--target', 'bun'], {
     cwd: getRootDir(),
   })
-  fs.cpSync(path.join(dbDir, 'drizzle'), path.join(migrateDir, 'drizzle'), { recursive: true })
+  if (fs.existsSync(drizzleDir)) {
+    fs.cpSync(drizzleDir, path.join(migrateDir, 'drizzle'), { recursive: true })
+  } else {
+    console.log(`ℹ️  No migrations yet for ${appName} (run db:generate); the migrator will no-op`)
+  }
 }

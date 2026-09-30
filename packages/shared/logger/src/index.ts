@@ -157,48 +157,11 @@ function createKawaiiPrettyStream() {
 }
 
 /**
- * Create the kawaii logger instance ♪(´ε` )
- *
- * In development: Pretty prints with Japanese flair
- * In production: Standard JSON for log aggregation (still kawaii at heart)
+ * Development: pretty, kawaii, debug level. Production: plain JSON for log shippers,
+ * info level, no decoration fields.
  */
 export const logger = isDevelopment
-  ? pino(
-      {
-        level: process.env.LOG_LEVEL || 'debug',
-      },
-      createKawaiiPrettyStream(),
-    )
-  : pino({
-      level: process.env.LOG_LEVEL || 'info',
-      formatters: {
-        level: (label: string) => {
-          return { level: label, kawaii: kawaiiPrefixes[label] || '(・・)' }
-        },
-      },
-    })
+  ? pino({ level: process.env.LOG_LEVEL || 'debug' }, createKawaiiPrettyStream())
+  : pino({ level: process.env.LOG_LEVEL || 'info' })
 
-/**
- * Create a child logger with a specific context/namespace
- * Great for module-specific logging! ヾ(＾∇＾)
- *
- * @example
- * const dbLogger = createLogger('database')
- * dbLogger.info('Connected!') // Outputs with [database] prefix
- */
-export function createLogger(namespace: string) {
-  return logger.child({ namespace: `[${namespace}]` })
-}
-
-/**
- * Log levels available:
- *
- * logger.fatal() - (;-;) ヤバイ!!   - System is unusable, panic mode!
- * logger.error() - (>_<) ダメ!     - Error occurred, but we're surviving
- * logger.warn()  - (・_・;) チョット... - Something's off, heads up!
- * logger.info()  - (◕‿◕) ヨシ!     - Normal operations, all good~
- * logger.debug() - (._.) ナルホド~  - Debugging info for the curious
- * logger.trace() - (*^ω^) ミッケ!   - Super detailed, found something!
- */
-
-export default logger
+export const createLogger = (namespace: string) => logger.child({ namespace: `[${namespace}]` })

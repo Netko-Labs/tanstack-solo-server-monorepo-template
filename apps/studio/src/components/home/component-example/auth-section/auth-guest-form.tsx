@@ -40,6 +40,7 @@ export function AuthGuestForm({
         <form onSubmit={onSubmit} className="space-y-4">
           {message && (
             <div
+              role={message.type === 'error' ? 'alert' : 'status'}
               className={`rounded-md p-3 text-sm ${
                 message.type === 'error'
                   ? 'bg-destructive/10 text-destructive'

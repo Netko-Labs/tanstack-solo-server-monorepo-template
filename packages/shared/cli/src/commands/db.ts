@@ -76,37 +76,6 @@ export async function dbGenerate(args: string[]) {
 }
 
 /**
- * Run seed script for an app
- */
-export async function dbSeed(args: string[]) {
-  const appName = parseAppArg(args)
-
-  if (!appName) {
-    console.error('❌ Please specify an app with --app <name>')
-    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
-    process.exit(1)
-  }
-
-  if (!validateApp(appName)) {
-    console.error(`❌ App "${appName}" not found`)
-    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
-    process.exit(1)
-  }
-
-  const appDir = getAppDir(appName)
-  const repoDir = getRepositoryDir(appName)
-  const envFile = path.join(appDir, '.env')
-
-  console.log(`🌱 Seeding database for ${appName}...`)
-
-  await run(['bun', 'run', `--env-file=${envFile}`, '--cwd', repoDir, 'db:seed'], {
-    cwd: getRootDir(),
-  })
-
-  console.log(`✅ Database seeding for ${appName} completed!`)
-}
-
-/**
  * Push schema changes directly (no migration file)
  */
 export async function dbPush(args: string[]) {

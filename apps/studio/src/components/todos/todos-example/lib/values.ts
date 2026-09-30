@@ -2,10 +2,14 @@ export const TODOS_PAGE_TITLE = 'Todos Example'
 export const TODOS_PAGE_DESCRIPTION =
   'Demonstrating tRPC + TanStack Query with queries and mutations over HTTP'
 
-export const SUBSCRIPTION_TITLE = 'Transport'
-export const SUBSCRIPTION_DESCRIPTION =
+export const TRANSPORT_TITLE = 'Transport'
+export const TRANSPORT_DESCRIPTION =
   'Queries and mutations batch over /api/trpc; the WebSocket is reserved for subscriptions'
-export const SUBSCRIPTION_BADGE = 'HTTP batch'
+export const TRANSPORT_BADGE = 'HTTP batch'
+export const TRANSPORT_WRITES = 'Writes accepted this session'
+
+export const GUEST_MESSAGE = 'Sign in to keep a todo list; every list is private to its owner.'
+export const GUEST_CTA = 'Sign in'
 
 export const CREATE_TODO_TITLE = 'Create New Todo'
 export const CREATE_TODO_DESCRIPTION = 'Add a new item to your todo list'

@@ -18,6 +18,7 @@ export default defineConfig({
     nitro({
       experimental: { websocket: true },
       handlers: [{ route: '/trpc-ws', handler: './src/server/trpc-ws.ts' }],
+      plugins: ['./src/server/plugins/shutdown.ts'],
     }),
     viteReact(),
   ],

@@ -1,8 +1,7 @@
 import { type QueryKey, useMutation, useMutationState, useQueryClient } from '@tanstack/react-query'
 import { trpcClient } from '@/integrations/trpc'
+import { TODO_ACTION_KEY } from '../constants'
 import type { TodoAction } from '../types'
-
-const TODO_ACTION_KEY = ['todo-action']
 
 const run = (action: TodoAction) => {
   switch (action.type) {
@@ -15,22 +14,27 @@ const run = (action: TodoAction) => {
   }
 }
 
-/** One command mutation for the three sibling writes; pending is read across all in-flight calls. */
-export function useTodoActions(listKey: QueryKey, onSettled: () => void) {
+/** One command mutation for the three sibling writes; pending is read per action and per todo. */
+export function useTodoActions(listKey: QueryKey, onSuccess: (action: TodoAction) => void) {
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationKey: TODO_ACTION_KEY,
     mutationFn: run,
-    onSuccess: () => {
+    onSuccess: (_, action) => {
       queryClient.invalidateQueries({ queryKey: listKey })
-      onSettled()
+      onSuccess(action)
     },
   })
   const inFlight = useMutationState({
     filters: { mutationKey: TODO_ACTION_KEY, status: 'pending' },
-    select: (entry) => (entry.state.variables as TodoAction | undefined)?.type,
+    select: (entry) => entry.state.variables as TodoAction | undefined,
   })
-  const isPending = (type: TodoAction['type']) => inFlight.includes(type)
+  const isPending = (type: TodoAction['type'], todoId?: string) =>
+    inFlight.some(
+      (action) =>
+        action?.type === type &&
+        (todoId === undefined || ('todoId' in action && action.todoId === todoId)),
+    )
 
-  return { dispatch: mutation.mutate, isPending }
+  return { dispatch: mutation.mutate, isPending, error: mutation.error?.message }
 }

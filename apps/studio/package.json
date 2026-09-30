@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "check-types": "tsgo --noEmit",
+    "test": "bun test",
     "dev": "bun run repo dev --app studio",
     "serve": "bun run repo serve --app studio",
     "build": "bun run repo build --app studio",

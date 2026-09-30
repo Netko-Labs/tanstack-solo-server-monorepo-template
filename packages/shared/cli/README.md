@@ -16,9 +16,6 @@ Or use the convenience scripts in the root package.json:
 
 ```bash
 bun run dev          # Start full dev environment
-bun run serve        # Start dev server only
-bun run build        # Production build
-bun run db:studio    # Open Drizzle Studio
 bun run status       # Show monorepo status
 ```
 
@@ -63,7 +60,6 @@ bun run status       # Show monorepo status
 | `test [--app <name>]` | Run unit tests |
 | `test --watch` | Run tests in watch mode |
 | `test --coverage` | Run tests with coverage |
-| `test:e2e --app <name>` | Run Playwright E2E tests |
 
 ### Utilities
 

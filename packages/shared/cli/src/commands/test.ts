@@ -1,5 +1,4 @@
-import { getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
-import { getPackageScope } from '../utils/scope'
+import { getAppPackageName, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
 import { getRootDir, run } from '../utils/shell'
 
 /**
@@ -19,8 +18,7 @@ export const test = async (args: string[]) => {
       console.log(`Available apps: ${getAvailableApps().join(', ')}`)
       process.exit(1)
     }
-    const scope = await getPackageScope()
-    cmd.push('--filter', `${scope}/${appName}...`)
+    cmd.push('--filter', `${getAppPackageName(appName)}...`)
   }
 
   // Pass additional flags to bun test

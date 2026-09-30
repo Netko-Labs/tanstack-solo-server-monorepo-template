@@ -18,6 +18,7 @@ function createAppQueryClient() {
   })
 }
 
+/** One client per browser; on the server a fresh one per router (per request). */
 function getQueryClient() {
   if (typeof window === 'undefined') {
     return createAppQueryClient()
@@ -29,6 +30,7 @@ function getQueryClient() {
   return clientQueryClient
 }
 
+/** Called once by `getRouter`; the shell must reuse the router's context, not call this again. */
 export function getContext() {
   const queryClient = getQueryClient()
 

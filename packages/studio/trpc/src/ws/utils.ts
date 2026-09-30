@@ -5,17 +5,25 @@ import type { MessageLike, PeerLike, TRPCWebSocketHooks, TRPCWebSocketHooksOptio
 
 const WEBSOCKET_OPEN = 1
 const WEBSOCKET_CLOSED = 3
+const POLICY_VIOLATION = 1008
+/** Live subscriptions one socket may hold; a slot frees on client stop or server `stopped`/error. */
+export const MAX_SUBSCRIPTIONS_PER_PEER = 16
 
 /** Adapts a crossws peer to the `ws`-shaped client tRPC's WebSocket adapter drives. */
 class PeerSocket extends EventEmitter {
   readyState = WEBSOCKET_OPEN
+  /** In-flight request id → method, so a response can be matched to what it answers. */
+  readonly requests = new Map<string, string>()
+  liveSubscriptions = 0
 
-  constructor(private readonly peer: PeerLike) {
+  constructor(readonly peer: PeerLike) {
     super()
   }
 
   send(data: string | Uint8Array): void {
-    if (this.readyState === WEBSOCKET_OPEN) this.peer.send(data)
+    if (this.readyState !== WEBSOCKET_OPEN) return
+    if (this.requests.size > 0 && typeof data === 'string') releaseFinished(this, data)
+    this.peer.send(data)
   }
 
   close(code?: number, reason?: string): void {
@@ -27,6 +35,13 @@ class PeerSocket extends EventEmitter {
     this.readyState = WEBSOCKET_CLOSED
     this.peer.terminate()
   }
+}
+
+const openSockets = new Set<PeerSocket>()
+
+/** Closes every live socket, e.g. on SIGTERM, so subscriptions end and presence leaves run. */
+export function closeAllPeers(code = 1001, reason = 'server shutting down'): void {
+  for (const socket of openSockets) socket.close(code, reason)
 }
 
 // Browsers send Origin in canonical form (lowercase host, default port dropped, no path);
@@ -48,6 +63,68 @@ function isTrustedOrigin(origin: string, trusted: readonly string[]): boolean {
 function toNodeRequest(request: Request) {
   const url = new URL(request.url)
   return { url: `${url.pathname}${url.search}`, headers: Object.fromEntries(request.headers) }
+}
+
+function parseFrame(text: string): unknown[] | undefined {
+  try {
+    const parsed: unknown = JSON.parse(text)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return undefined
+  }
+}
+
+function release(socket: PeerSocket, key: string): void {
+  if (socket.requests.get(key) === 'subscription') socket.liveSubscriptions -= 1
+  socket.requests.delete(key)
+}
+
+/**
+ * The server's last word on an id frees it: `stopped` or an error for a subscription, the
+ * single `data` result or an error for anything else. Matching on the recorded method keeps
+ * a query's error from freeing a subscription that reused its id.
+ */
+function releaseFinished(socket: PeerSocket, text: string): void {
+  for (const item of parseFrame(text) ?? []) {
+    if (typeof item !== 'object' || item === null) continue
+    const { id, result, error } = item as {
+      id?: unknown
+      result?: { type?: unknown }
+      error?: unknown
+    }
+    const key = String(id)
+    const method = socket.requests.get(key)
+    if (!method) continue
+    const terminal =
+      method === 'subscription' ? result?.type === 'stopped' : result?.type === 'data'
+    if (error !== undefined || terminal) release(socket, key)
+  }
+}
+
+/**
+ * Tracks in-flight request ids per socket from the wire messages so a peer cannot open an
+ * unbounded number of streams. Returns false when the frame must be refused. Only
+ * subscriptions count against the cap; a batch of queries or mutations is never refused.
+ * Reusing an id that is still in flight (other than to stop it) is refused outright: tRPC
+ * would answer with an error, and that error must never be mistaken for another request's.
+ */
+function trackSubscriptions(socket: PeerSocket, text: string): boolean {
+  const items = parseFrame(text)
+  if (!items) return true
+  for (const item of items) {
+    if (typeof item !== 'object' || item === null) continue
+    const { id, method } = item as { id?: unknown; method?: unknown }
+    if (typeof method !== 'string') continue
+    const key = String(id)
+    if (method === 'subscription.stop') {
+      if (socket.requests.get(key) === 'subscription') release(socket, key)
+      continue
+    }
+    if (socket.requests.has(key)) return false
+    socket.requests.set(key, method)
+    if (method === 'subscription') socket.liveSubscriptions += 1
+  }
+  return socket.liveSubscriptions <= MAX_SUBSCRIPTIONS_PER_PEER
 }
 
 /**
@@ -87,12 +164,20 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
     open(peer) {
       const socket = new PeerSocket(peer)
       sockets.set(peer.id, socket)
+      openSockets.add(socket)
       const req = toNodeRequest(peer.request)
       requestOf.set(req, peer.request)
       onConnection(socket as never, req as never)
     },
     message(peer, message: MessageLike) {
-      sockets.get(peer.id)?.emit('message', Buffer.from(message.text()), false)
+      const socket = sockets.get(peer.id)
+      if (!socket) return
+      const text = message.text()
+      if (!trackSubscriptions(socket, text)) {
+        socket.close(POLICY_VIOLATION, 'too many subscriptions')
+        return
+      }
+      socket.emit('message', Buffer.from(text), false)
     },
     close(peer) {
       const socket = sockets.get(peer.id)
@@ -100,6 +185,7 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       socket.readyState = WEBSOCKET_CLOSED
       socket.emit('close')
       sockets.delete(peer.id)
+      openSockets.delete(socket)
     },
     error(peer, error) {
       sockets.get(peer.id)?.emit('error', error)

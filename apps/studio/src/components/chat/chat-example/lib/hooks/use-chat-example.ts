@@ -1,30 +1,23 @@
-import type { FormEvent } from 'react'
-import { trpcClient } from '@/integrations/trpc'
-import { useAutoScroll } from './use-auto-scroll'
+import { ROOM_ID } from '../constants'
 import { useCurrentUser } from './use-current-user'
 import { useRoomStream } from './use-room-stream'
-
-const ROOM_ID = 'lobby'
+import { useSendMessage } from './use-send-message'
 
 export function useChatExample() {
   const { data: currentUser } = useCurrentUser()
-  const { messages, members, connectionStatus } = useRoomStream(ROOM_ID, currentUser?.id)
-  const messagesEndRef = useAutoScroll(messages.length)
-
-  const handleSendMessage = (e: FormEvent, content: string) => {
-    e.preventDefault()
-    if (!content.trim() || !currentUser) return
-    trpcClient.room.send.mutate({ roomId: ROOM_ID, content })
-  }
+  const room = useRoomStream(ROOM_ID, currentUser?.id)
+  const sender = useSendMessage(ROOM_ID)
 
   return {
     currentUser,
-    messages,
-    members,
-    isLoading: false,
-    connectionStatus,
-    messagesEndRef,
-    sendMutation: { isPending: false },
-    handleSendMessage,
+    messages: room.messages,
+    members: room.members,
+    connectionStatus: room.connectionStatus,
+    // Joined but no snapshot yet: the room is loading, not empty.
+    isLoading:
+      Boolean(currentUser) && !room.connectionId && room.connectionStatus !== 'disconnected',
+    send: sender.send,
+    isSending: sender.isPending,
+    sendError: sender.error,
   }
 }

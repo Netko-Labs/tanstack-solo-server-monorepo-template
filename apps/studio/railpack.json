@@ -20,6 +20,8 @@
       },
       { "step": "build", "include": ["apps/studio/.output"] }
     ],
-    "startCommand": "bun apps/studio/.output/server/index.mjs"
+    "aptPackages": ["curl"],
+    "variables": { "CI": "", "SERVER_SHUTDOWN_TIMEOUT": "10" },
+    "startCommand": "bun apps/studio/.output/migrate/migrate.js && bun apps/studio/.output/server/index.mjs"
   }
 }
