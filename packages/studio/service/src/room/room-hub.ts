@@ -23,11 +23,13 @@ export class RoomHub {
     const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
     let joined = false
     let closing = false
-    let inFlight: Promise<void> = Promise.resolve()
+    let inFlight: Promise<void> | undefined
     let signature = ''
 
+    // One heartbeat at a time: a slow one skips the next tick instead of overlapping it,
+    // so cleanup only ever has a single promise to wait for.
     const tick = setInterval(() => {
-      if (closing) return
+      if (closing || inFlight) return
       inFlight = this.bus
         .heartbeat(roomId, connectionId, member)
         .then(() => this.bus.members(roomId))
@@ -38,6 +40,9 @@ export class RoomHub {
           queue.push({ type: 'presence', members })
         })
         .catch((err) => logger.warn({ err: String(err), roomId }, 'heartbeat failed'))
+        .finally(() => {
+          inFlight = undefined
+        })
     }, HEARTBEAT_MS)
 
     try {
@@ -67,7 +72,7 @@ export class RoomHub {
       clearInterval(tick)
       unsubscribe()
       // A heartbeat still in flight would re-assert the record after the leave.
-      await inFlight.catch(() => {})
+      await inFlight
       if (joined) await this.bus.leave(roomId, connectionId)
     }
   }
