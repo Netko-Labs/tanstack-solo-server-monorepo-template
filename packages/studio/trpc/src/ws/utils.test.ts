@@ -65,7 +65,7 @@ describe('crossws ↔ tRPC bridge', () => {
     hooks.close(peer)
   })
 
-  test('subscription streams started → data → stopped, and PING answers PONG', async () => {
+  test('subscription: started → data → stopped; PING answers PONG; silence after close', async () => {
     const peer = fakePeer('http://app.test')
     hooks.open(peer)
     hooks.message(peer, {
@@ -77,8 +77,9 @@ describe('crossws ↔ tRPC bridge', () => {
     hooks.message(peer, { text: () => 'PING' })
     await until(() => peer.sent.at(-1) === 'PONG')
     hooks.close(peer)
+    const sentBeforeClose = peer.sent.length
     hooks.message(peer, { text: () => 'PING' })
     await Bun.sleep(20)
-    expect(peer.sent.at(-1)).toBe('PONG')
+    expect(peer.sent.length).toBe(sentBeforeClose)
   })
 })

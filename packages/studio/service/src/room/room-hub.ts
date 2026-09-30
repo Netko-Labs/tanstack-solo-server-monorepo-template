@@ -20,8 +20,8 @@ export class RoomHub {
   async *stream(roomId: string, member: Member, signal?: AbortSignal): AsyncGenerator<RoomEvent> {
     const connectionId = crypto.randomUUID()
     const queue = createAsyncQueue<RoomEvent>(signal)
-    const unsubscribe = this.bus.subscribe(roomId, (event) => queue.push(event))
-    await this.bus.join(roomId, connectionId, member)
+    const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
+    let joined = false
     let signature = ''
 
     const tick = setInterval(() => {
@@ -38,14 +38,24 @@ export class RoomHub {
     }, HEARTBEAT_MS)
 
     try {
+      await this.bus.join(roomId, connectionId, member)
+      joined = true
       const members = await this.bus.members(roomId)
       signature = presenceSignature(members)
       yield { type: 'sync', members, messages: await this.loadHistory() }
-      for await (const event of queue) yield event
+      // The snapshot already lists this member; the join queued before it is an echo.
+      let ownJoinPending = true
+      for await (const event of queue) {
+        if (ownJoinPending && event.type === 'join' && event.member.userId === member.userId) {
+          ownJoinPending = false
+          continue
+        }
+        yield event
+      }
     } finally {
       clearInterval(tick)
       unsubscribe()
-      await this.bus.leave(roomId, connectionId)
+      if (joined) await this.bus.leave(roomId, connectionId)
     }
   }
 

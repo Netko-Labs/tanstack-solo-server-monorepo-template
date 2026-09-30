@@ -24,7 +24,6 @@ describe.skipIf(!url)('RedisRoomBus across two instances', () => {
     const received = waitFor<RoomEvent>((resolve) => {
       b.subscribe(room, resolve)
     })
-    await Bun.sleep(100)
     await a.join(room, 'c1', member)
     expect(await received).toEqual({ type: 'join', member })
     expect((await b.members(room)).map((m) => m.userId)).toEqual(['u1'])

@@ -34,23 +34,22 @@ export class RedisRoomBus implements RoomBus {
     }
   }
 
-  subscribe(roomId: string, listener: RoomListener): () => void {
+  async subscribe(roomId: string, listener: RoomListener): Promise<() => void> {
     const channel = roomChannel(roomId)
     const onMessage = (raw: string) => {
       const event = parseEvent(raw)
       if (event) listener(event)
       else logger.warn({ roomId }, 'dropped malformed room event')
     }
-    this.subscriber
-      .subscribe(channel, onMessage)
-      .catch((err) => logger.warn({ err: String(err), roomId }, 'subscribe failed'))
+    await this.subscriber.subscribe(channel, onMessage)
     return () => {
       this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
     }
   }
 
+  // Write first, decide after: concurrent join/leave of the same user converge on the
+  // live connection count instead of racing on a read-then-write.
   async join(roomId: string, connectionId: string, member: Member): Promise<void> {
-    const wasPresent = await this.hasUser(roomId, member.userId)
     await this.commands.hset(membersKey(roomId), { [connectionId]: JSON.stringify(member) })
     await this.commands.set(
       aliveKey(roomId, connectionId),
@@ -58,7 +57,9 @@ export class RedisRoomBus implements RoomBus {
       'EX',
       PRESENCE_TTL_S,
     )
-    if (!wasPresent) await this.publish(roomId, { type: 'join', member })
+    if ((await this.liveConnections(roomId, member.userId)) === 1) {
+      await this.publish(roomId, { type: 'join', member })
+    }
   }
 
   async heartbeat(roomId: string, connectionId: string): Promise<void> {
@@ -76,7 +77,7 @@ export class RedisRoomBus implements RoomBus {
     await this.commands.del(aliveKey(roomId, connectionId))
     const parsed = raw ? MemberSchema.safeParse(JSON.parse(raw)) : undefined
     if (!parsed?.success) return false
-    const last = !(await this.hasUser(roomId, parsed.data.userId))
+    const last = (await this.liveConnections(roomId, parsed.data.userId)) === 0
     if (last) await this.publish(roomId, { type: 'leave', userId: parsed.data.userId })
     return last
   }
@@ -86,9 +87,9 @@ export class RedisRoomBus implements RoomBus {
     return aggregateMembers(await this.liveRecords(roomId, now), now)
   }
 
-  private async hasUser(roomId: string, userId: string): Promise<boolean> {
+  private async liveConnections(roomId: string, userId: string): Promise<number> {
     const records = await this.liveRecords(roomId, Date.now())
-    return records.some((record) => record.member.userId === userId)
+    return records.filter((record) => record.member.userId === userId).length
   }
 
   private async liveRecords(roomId: string, now: number): Promise<PresenceRecord[]> {

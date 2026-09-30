@@ -13,7 +13,8 @@ export type RoomListener = (event: RoomEvent) => void
  */
 export interface RoomBus {
   publish(roomId: string, event: RoomEvent): Promise<void>
-  subscribe(roomId: string, listener: RoomListener): () => void
+  /** Resolves once the subscription is live, so nothing published afterwards is missed. */
+  subscribe(roomId: string, listener: RoomListener): Promise<() => void>
   join(roomId: string, connectionId: string, member: Member): Promise<void>
   heartbeat(roomId: string, connectionId: string): Promise<void>
   /** Resolves true when this was the user's last connection in the room. */

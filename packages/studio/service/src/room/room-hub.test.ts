@@ -24,15 +24,14 @@ async function take(stream: AsyncGenerator<RoomEvent>, count: number): Promise<R
 }
 
 describe('RoomHub over LocalRoomBus', () => {
-  test('sync first, then the member sees its own join and chat fan-out', async () => {
+  test('sync first (own join is not echoed), then chat fan-out', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [message])
     const stream = hub.stream('lobby', member('a'))
-    const [sync, join] = await take(stream, 2)
+    const [sync] = await take(stream, 1)
     expect(sync?.type).toBe('sync')
     if (sync?.type !== 'sync') throw new Error('unreachable')
     expect(sync.members.map((m) => m.userId)).toEqual(['a'])
     expect(sync.messages).toEqual([message])
-    expect(join).toEqual({ type: 'join', member: member('a') })
 
     const next = take(stream, 1)
     await hub.chat('lobby', message)
@@ -43,7 +42,7 @@ describe('RoomHub over LocalRoomBus', () => {
   test('two members see each other; leaving fans out and clears presence', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const a = hub.stream('lobby', member('a'))
-    await take(a, 2)
+    await take(a, 1)
 
     const controller = new AbortController()
     const b = hub.stream('lobby', member('b'), controller.signal)
@@ -66,10 +65,10 @@ describe('RoomHub over LocalRoomBus', () => {
     const bus = new LocalRoomBus()
     const hub = new RoomHub(bus, async () => [])
     const seen: RoomEvent[] = []
-    bus.subscribe('lobby', (event) => seen.push(event))
+    await bus.subscribe('lobby', (event) => seen.push(event))
 
     const first = hub.stream('lobby', member('a'))
-    await take(first, 2)
+    await take(first, 1)
     const second = hub.stream('lobby', member('a'))
     await take(second, 1)
     expect(seen.filter((e) => e.type === 'join')).toHaveLength(1)
@@ -87,7 +86,7 @@ describe('RoomHub over LocalRoomBus', () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const controller = new AbortController()
     const stream = hub.stream('lobby', member('a'), controller.signal)
-    await take(stream, 2)
+    await take(stream, 1)
     controller.abort()
     const done = await stream.next()
     expect(done.done).toBe(true)
