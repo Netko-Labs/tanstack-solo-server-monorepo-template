@@ -12,7 +12,9 @@ export const MAX_SUBSCRIPTIONS_PER_PEER = 16
 /** Adapts a crossws peer to the `ws`-shaped client tRPC's WebSocket adapter drives. */
 class PeerSocket extends EventEmitter {
   readyState = WEBSOCKET_OPEN
-  readonly subscriptions = new Set<string>()
+  /** In-flight request id → method, so a response can be matched to what it answers. */
+  readonly requests = new Map<string, string>()
+  liveSubscriptions = 0
 
   constructor(readonly peer: PeerLike) {
     super()
@@ -20,7 +22,7 @@ class PeerSocket extends EventEmitter {
 
   send(data: string | Uint8Array): void {
     if (this.readyState !== WEBSOCKET_OPEN) return
-    if (this.subscriptions.size > 0 && typeof data === 'string') releaseFinished(this, data)
+    if (this.requests.size > 0 && typeof data === 'string') releaseFinished(this, data)
     this.peer.send(data)
   }
 
@@ -72,9 +74,17 @@ function parseFrame(text: string): unknown[] | undefined {
   }
 }
 
-/** A `stopped` result or an error is the server's last word on that id; free its slot. */
+function release(socket: PeerSocket, key: string): void {
+  if (socket.requests.get(key) === 'subscription') socket.liveSubscriptions -= 1
+  socket.requests.delete(key)
+}
+
+/**
+ * The server's last word on an id frees it: `stopped` or an error for a subscription, the
+ * single `data` result or an error for anything else. Matching on the recorded method keeps
+ * a query's error from freeing a subscription that reused its id.
+ */
 function releaseFinished(socket: PeerSocket, text: string): void {
-  if (!text.includes('"stopped"') && !text.includes('"error"')) return
   for (const item of parseFrame(text) ?? []) {
     if (typeof item !== 'object' || item === null) continue
     const { id, result, error } = item as {
@@ -82,17 +92,21 @@ function releaseFinished(socket: PeerSocket, text: string): void {
       result?: { type?: unknown }
       error?: unknown
     }
-    if (error !== undefined || result?.type === 'stopped') socket.subscriptions.delete(String(id))
+    const key = String(id)
+    const method = socket.requests.get(key)
+    if (!method) continue
+    const terminal =
+      method === 'subscription' ? result?.type === 'stopped' : result?.type === 'data'
+    if (error !== undefined || terminal) release(socket, key)
   }
 }
 
 /**
- * Tracks subscription ids per socket from the wire messages so a peer cannot open an
+ * Tracks in-flight request ids per socket from the wire messages so a peer cannot open an
  * unbounded number of streams. Returns false when the frame must be refused. Only
- * subscription starts count; a batch of queries or mutations is never refused here.
- * Any request that reuses a live subscription id (other than its stop) is refused outright:
- * tRPC would answer it with an error, and that error frame would otherwise untrack the
- * stream still running under the id.
+ * subscriptions count against the cap; a batch of queries or mutations is never refused.
+ * Reusing an id that is still in flight (other than to stop it) is refused outright: tRPC
+ * would answer with an error, and that error must never be mistaken for another request's.
  */
 function trackSubscriptions(socket: PeerSocket, text: string): boolean {
   const items = parseFrame(text)
@@ -100,12 +114,17 @@ function trackSubscriptions(socket: PeerSocket, text: string): boolean {
   for (const item of items) {
     if (typeof item !== 'object' || item === null) continue
     const { id, method } = item as { id?: unknown; method?: unknown }
+    if (typeof method !== 'string') continue
     const key = String(id)
-    if (method === 'subscription.stop') socket.subscriptions.delete(key)
-    else if (socket.subscriptions.has(key)) return false
-    else if (method === 'subscription') socket.subscriptions.add(key)
+    if (method === 'subscription.stop') {
+      if (socket.requests.get(key) === 'subscription') release(socket, key)
+      continue
+    }
+    if (socket.requests.has(key)) return false
+    socket.requests.set(key, method)
+    if (method === 'subscription') socket.liveSubscriptions += 1
   }
-  return socket.subscriptions.size <= MAX_SUBSCRIPTIONS_PER_PEER
+  return socket.liveSubscriptions <= MAX_SUBSCRIPTIONS_PER_PEER
 }
 
 /**

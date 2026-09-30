@@ -115,6 +115,7 @@ export class RedisRoomBus implements RoomBus {
   private readonly reconnectListeners = new Set<() => void>()
   private connectedOnce = false
   private restoreGeneration = 0
+  private readonly restoreChains = new Map<string, Promise<void>>()
 
   constructor(
     private readonly commands: RedisClient,
@@ -190,14 +191,24 @@ export class RedisRoomBus implements RoomBus {
     for (const [channel, set] of this.listeners) {
       for (const onMessage of set) {
         restores.push(
-          this.subscriber
-            .unsubscribe(channel, onMessage)
-            .catch(() => {})
-            .then(() => this.resubscribe(channel, onMessage, generation)),
+          this.chained(channel, () =>
+            this.subscriber
+              .unsubscribe(channel, onMessage)
+              .catch(() => {})
+              .then(() => this.resubscribe(channel, onMessage, generation)),
+          ),
         )
       }
     }
     await Promise.all(restores)
+  }
+
+  // Restores of one channel run strictly one after another, so a slow attempt or a retry
+  // from an older reconnect can never interleave with, or undo, a newer one.
+  private chained(channel: string, task: () => Promise<void>): Promise<void> {
+    const next = (this.restoreChains.get(channel) ?? Promise.resolve()).then(task, task)
+    this.restoreChains.set(channel, next)
+    return next
   }
 
   // Only the first attempt is awaited, so one bad channel neither blocks the others nor
@@ -212,12 +223,11 @@ export class RedisRoomBus implements RoomBus {
     generation: number,
     attempt = 1,
   ): Promise<void> {
-    const wanted = () =>
-      generation === this.restoreGeneration && this.listeners.get(channel)?.has(onMessage)
-    if (!wanted()) return
+    const registered = () => this.listeners.get(channel)?.has(onMessage) === true
+    if (!registered() || generation !== this.restoreGeneration) return
     try {
       await this.subscriber.subscribe(channel, onMessage)
-      if (!wanted()) {
+      if (!registered()) {
         this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
         return
       }
@@ -225,7 +235,7 @@ export class RedisRoomBus implements RoomBus {
     } catch (err) {
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
       void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() =>
-        this.resubscribe(channel, onMessage, generation, attempt + 1),
+        this.chained(channel, () => this.resubscribe(channel, onMessage, generation, attempt + 1)),
       )
     }
   }

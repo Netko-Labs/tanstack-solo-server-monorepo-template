@@ -131,18 +131,31 @@ describe('crossws ↔ tRPC bridge', () => {
     expect(peer.closed).toBe(true)
   })
 
-  test('subscription cap: any request reusing a live id closes the socket', () => {
-    for (const method of ['subscription', 'query']) {
+  test('subscription cap: any request reusing an in-flight id closes the socket', () => {
+    const frame = (method: string) =>
+      JSON.stringify({ id: 7, method, params: { path: method === 'query' ? 'hello' : 'ticks' } })
+    for (const [first, second] of [
+      ['subscription', 'subscription'],
+      ['subscription', 'query'],
+      ['query', 'subscription'],
+    ]) {
       const peer = fakePeer('http://app.test')
       hooks.open(peer)
-      hooks.message(peer, {
-        text: () => JSON.stringify({ id: 7, method: 'subscription', params: { path: 'ticks' } }),
-      })
+      hooks.message(peer, { text: () => frame(first) })
       expect(peer.closed).toBe(false)
-      hooks.message(peer, {
-        text: () => JSON.stringify({ id: 7, method, params: { path: 'hello' } }),
-      })
+      hooks.message(peer, { text: () => frame(second) })
       expect(peer.closed).toBe(true)
     }
+  })
+
+  test('subscription cap: a finished query frees its id for reuse', async () => {
+    const peer = fakePeer('http://app.test')
+    hooks.open(peer)
+    const query = JSON.stringify({ id: 9, method: 'query', params: { path: 'hello' } })
+    hooks.message(peer, { text: () => query })
+    await until(() => peer.sent.some((raw) => raw.includes('"hi"')))
+    hooks.message(peer, { text: () => query })
+    await until(() => peer.sent.filter((raw) => raw.includes('"hi"')).length === 2)
+    expect(peer.closed).toBe(false)
   })
 })
