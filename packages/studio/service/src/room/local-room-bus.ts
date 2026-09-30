@@ -46,11 +46,17 @@ export class LocalRoomBus implements RoomBus {
     return last
   }
 
-  async setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void> {
-    for (const record of this.liveRecords(roomId)) {
-      if (record.member.userId === userId) record.member = { ...record.member, status }
-    }
+  async setStatus(
+    roomId: string,
+    connectionId: string,
+    userId: string,
+    status: MemberStatus,
+  ): Promise<boolean> {
+    const record = this.presence.get(roomId)?.get(connectionId)
+    if (!record || record.member.userId !== userId) return false
+    record.member = { ...record.member, status }
     await this.publish(roomId, { type: 'presence', members: await this.members(roomId) })
+    return true
   }
 
   async members(roomId: string): Promise<Member[]> {

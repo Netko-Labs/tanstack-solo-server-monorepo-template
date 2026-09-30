@@ -12,6 +12,8 @@ export type Member = z.infer<typeof MemberSchema>
 export const RoomEventSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('sync'),
+    /** This stream's presence record; the client echoes it on `room.setStatus`. */
+    connectionId: z.string(),
     members: z.array(MemberSchema),
     messages: z.array(ChatMessageSchema),
   }),

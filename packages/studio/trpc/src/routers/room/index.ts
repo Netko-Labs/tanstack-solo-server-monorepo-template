@@ -24,10 +24,16 @@ export const roomRouter = router({
     }),
 
   setStatus: protectedProcedure
-    .input(z.object({ roomId: z.string().min(1), status: MemberSchema.shape.status }))
-    .mutation(async ({ ctx, input }) => {
-      await hub.setStatus(input.roomId, ctx.user.id, input.status)
-    }),
+    .input(
+      z.object({
+        roomId: z.string().min(1),
+        connectionId: z.string().uuid(),
+        status: MemberSchema.shape.status,
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      hub.setStatus(input.roomId, input.connectionId, ctx.user.id, input.status),
+    ),
 
   stream: protectedProcedure
     .input(z.object({ roomId: z.string().min(1) }))

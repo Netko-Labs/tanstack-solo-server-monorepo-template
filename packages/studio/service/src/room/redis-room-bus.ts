@@ -51,19 +51,15 @@ if current then next.status = cjson.decode(current).status end
 redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(next))
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
 `
-/** KEYS[1]=members hash · ARGV: userId, status → records updated */
+/** KEYS[1]=members hash · ARGV: connectionId, userId, status → 1 if that connection was updated */
 const SET_STATUS_LUA = `
-local n = 0
-local all = redis.call('HGETALL', KEYS[1])
-for i = 1, #all, 2 do
-  local m = cjson.decode(all[i + 1])
-  if m.userId == ARGV[1] then
-    m.status = ARGV[2]
-    redis.call('HSET', KEYS[1], all[i], cjson.encode(m))
-    n = n + 1
-  end
-end
-return n
+local raw = redis.call('HGET', KEYS[1], ARGV[1])
+if not raw then return 0 end
+local m = cjson.decode(raw)
+if m.userId ~= ARGV[2] then return 0 end
+m.status = ARGV[3]
+redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(m))
+return 1
 `
 /** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId → 1 if the stale record was dropped */
 const PRUNE_LUA = `
@@ -226,9 +222,18 @@ export class RedisRoomBus implements RoomBus {
     return Boolean(result[0]) && remaining === 0
   }
 
-  async setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void> {
-    await this.commands.eval(SET_STATUS_LUA, 1, membersKey(roomId), userId, status)
+  async setStatus(
+    roomId: string,
+    connectionId: string,
+    userId: string,
+    status: MemberStatus,
+  ): Promise<boolean> {
+    const updated = Number(
+      await this.commands.eval(SET_STATUS_LUA, 1, membersKey(roomId), connectionId, userId, status),
+    )
+    if (updated !== 1) return false
     await this.publish(roomId, { type: 'presence', members: await this.members(roomId) })
+    return true
   }
 
   async members(roomId: string): Promise<Member[]> {

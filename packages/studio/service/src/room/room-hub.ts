@@ -57,7 +57,7 @@ export class RoomHub {
     try {
       await this.bus.join(roomId, connectionId, member)
       joined = true
-      let sync = await this.snapshot(roomId)
+      let sync = await this.snapshot(roomId, connectionId)
       if (signal?.aborted) return
       signature = presenceSignature(sync.members)
       // Joins queued before a snapshot for users it already lists are echoes (a later rejoin
@@ -70,7 +70,7 @@ export class RoomHub {
       yield sync
       for await (const item of queue) {
         if (item.type === 'resync') {
-          sync = await this.snapshot(roomId)
+          sync = await this.snapshot(roomId, connectionId)
           signature = presenceSignature(sync.members)
           snapshotUsers = new Set(sync.members.map((m) => m.userId))
           for (const m of sync.messages) seenMessages.add(m.id)
@@ -100,14 +100,19 @@ export class RoomHub {
     return this.bus.publish(roomId, { type: 'chat', message })
   }
 
-  setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void> {
-    return this.bus.setStatus(roomId, userId, status)
+  setStatus(
+    roomId: string,
+    connectionId: string,
+    userId: string,
+    status: MemberStatus,
+  ): Promise<boolean> {
+    return this.bus.setStatus(roomId, connectionId, userId, status)
   }
 
-  private async snapshot(roomId: string): Promise<Sync> {
+  private async snapshot(roomId: string, connectionId: string): Promise<Sync> {
     const messages = await this.loadHistory()
     const members = await this.bus.members(roomId)
-    return { type: 'sync', members, messages }
+    return { type: 'sync', connectionId, members, messages }
   }
 
   members(roomId: string): Promise<Member[]> {

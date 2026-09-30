@@ -21,8 +21,16 @@ export interface RoomBus {
   heartbeat(roomId: string, connectionId: string, member: Member): Promise<void>
   /** Resolves true when this was the user's last connection in the room. */
   leave(roomId: string, connectionId: string): Promise<boolean>
-  /** Client-reported status for every connection of the user; fans out a presence snapshot. */
-  setStatus(roomId: string, userId: string, status: MemberStatus): Promise<void>
+  /**
+   * Client-reported status for one connection, refused unless it belongs to `userId`;
+   * fans out a presence snapshot when it changed something.
+   */
+  setStatus(
+    roomId: string,
+    connectionId: string,
+    userId: string,
+    status: MemberStatus,
+  ): Promise<boolean>
   members(roomId: string): Promise<Member[]>
   /** Fires after the transport recovered; events published meanwhile were lost. */
   onReconnect(listener: () => void): () => void

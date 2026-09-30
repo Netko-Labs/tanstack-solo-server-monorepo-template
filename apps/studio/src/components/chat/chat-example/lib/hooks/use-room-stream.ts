@@ -22,7 +22,11 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
           dispatch({ type: 'event', event })
           // Joined (first sync) while already hidden: the server default is active.
           if (event.type === 'sync' && document.visibilityState !== 'visible') {
-            trpcClient.room.setStatus.mutate({ roomId, status: 'idle' })
+            trpcClient.room.setStatus.mutate({
+              roomId,
+              connectionId: event.connectionId,
+              status: 'idle',
+            })
           }
         },
         onError: () => dispatch({ type: 'status', connectionStatus: 'disconnected' }),
@@ -35,9 +39,15 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
     return () => sub.unsubscribe()
   }, [roomId, userId, identity])
 
-  // Presence status is the client's call: a hidden tab is idle, a visible one active.
+  // Presence status is this tab's call for its own connection: hidden is idle, visible is
+  // active; the server aggregates across a user's tabs with active winning.
   useDocumentVisibility((visible) => {
-    trpcClient.room.setStatus.mutate({ roomId, status: visible ? 'active' : 'idle' })
+    if (!state.connectionId) return
+    trpcClient.room.setStatus.mutate({
+      roomId,
+      connectionId: state.connectionId,
+      status: visible ? 'active' : 'idle',
+    })
   }, Boolean(userId))
 
   // Never render the previous room/user's state during the switch, not even for a frame.

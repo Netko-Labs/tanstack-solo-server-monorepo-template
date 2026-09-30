@@ -155,19 +155,27 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
-  test('client-set status fans out as a presence snapshot', async () => {
+  test('status is per connection: a hidden tab does not idle a visible one', async () => {
     const bus = new LocalRoomBus()
     const hub = new RoomHub(bus, async () => [])
-    const stream = hub.stream('lobby', member('a'))
-    await take(stream, 1)
+    const hidden = hub.stream('lobby', member('a'))
+    const [syncHidden] = await take(hidden, 1)
+    const visible = hub.stream('lobby', member('a'))
+    await take(visible, 1)
+    if (syncHidden?.type !== 'sync') throw new Error('unreachable')
 
-    const next = take(stream, 1)
-    await hub.setStatus('lobby', 'a', 'idle')
+    expect(await hub.setStatus('lobby', syncHidden.connectionId, 'someone-else', 'idle')).toBe(
+      false,
+    )
+    const next = take(hidden, 1)
+    expect(await hub.setStatus('lobby', syncHidden.connectionId, 'a', 'idle')).toBe(true)
     const [presence] = await next
     if (presence?.type !== 'presence') throw new Error('unreachable')
-    expect(presence.members).toEqual([{ ...member('a'), status: 'idle' }])
+    expect(presence.members).toEqual([member('a')])
+
+    await visible.return(undefined)
     expect((await hub.members('lobby'))[0]?.status).toBe('idle')
-    await stream.return(undefined)
+    await hidden.return(undefined)
   })
 
   test('a transport reconnect pushes a fresh sync', async () => {
