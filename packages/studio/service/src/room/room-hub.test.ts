@@ -2,10 +2,11 @@ import { describe, expect, test } from 'bun:test'
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
 import { LocalRoomBus } from './local-room-bus'
 import { RoomHub } from './room-hub'
+import { parseEvent, serializeEvent } from './utils'
 
 const member = (userId: string): Member => ({ userId, name: userId, status: 'active' })
 const message: ChatMessage = {
-  id: 'm1',
+  id: crypto.randomUUID(),
   content: 'hi',
   authorId: 'a',
   authorName: 'a',
@@ -23,6 +24,15 @@ async function take(stream: AsyncGenerator<RoomEvent>, count: number): Promise<R
   return events
 }
 
+describe('room event wire format', () => {
+  test('round-trips events and ignores garbage', () => {
+    const event: RoomEvent = { type: 'chat', message }
+    expect(parseEvent(serializeEvent(event))).toEqual(event)
+    expect(parseEvent('not json')).toBeUndefined()
+    expect(parseEvent('{"json":{"type":"nope"}}')).toBeUndefined()
+  })
+})
+
 describe('RoomHub over LocalRoomBus', () => {
   test('sync first (own join is not echoed), then chat fan-out', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [message])
@@ -33,7 +43,7 @@ describe('RoomHub over LocalRoomBus', () => {
     expect(sync.members.map((m) => m.userId)).toEqual(['a'])
     expect(sync.messages).toEqual([message])
 
-    const live = { ...message, id: 'm2', content: 'live' }
+    const live = { ...message, id: crypto.randomUUID(), content: 'live' }
     const next = take(stream, 1)
     await hub.chat('lobby', live)
     expect(await next).toEqual([{ type: 'chat', message: live }])
@@ -94,7 +104,7 @@ describe('RoomHub over LocalRoomBus', () => {
     if (sync?.type !== 'sync') throw new Error('unreachable')
     expect(sync.messages).toEqual([message])
 
-    const later = { ...message, id: 'm2', content: 'after' }
+    const later = { ...message, id: crypto.randomUUID(), content: 'after' }
     const next = take(stream, 1)
     await hub.chat('lobby', later)
     expect(await next).toEqual([{ type: 'chat', message: later }])

@@ -11,8 +11,12 @@ export const aliveKey = (roomId: string, connectionId: string) =>
 export const serializeEvent = (event: RoomEvent): string => superjson.stringify(event)
 
 export function parseEvent(raw: string): RoomEvent | undefined {
-  const parsed = RoomEventSchema.safeParse(superjson.parse(raw))
-  return parsed.success ? parsed.data : undefined
+  try {
+    const parsed = RoomEventSchema.safeParse(superjson.parse(raw))
+    return parsed.success ? parsed.data : undefined
+  } catch {
+    return undefined
+  }
 }
 
 export const isExpired = (lastSeen: number, now: number): boolean =>

@@ -34,6 +34,11 @@ redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
 redis.call('SET', ARGV[6] .. ARGV[1], ARGV[3], 'EX', ARGV[4])
 return liveConnections(KEYS[1], ARGV[6], ARGV[5])
 `
+/** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId → 1 if the stale record was dropped */
+const PRUNE_LUA = `
+if redis.call('EXISTS', KEYS[2]) == 1 then return 0 end
+return redis.call('HDEL', KEYS[1], ARGV[1])
+`
 /** KEYS[1]=members hash · ARGV: connectionId, alivePrefix → [userId, remaining live count] */
 const LEAVE_LUA = `${COUNT_LIVE_LUA}
 local raw = redis.call('HGET', KEYS[1], ARGV[1])
@@ -125,12 +130,16 @@ export class RedisRoomBus implements RoomBus {
     return aggregateMembers(await this.liveRecords(roomId, now), now)
   }
 
-  // A missing alive key is re-read once before the record is dropped: a heartbeat may land
-  // between the two reads, and the heartbeat re-asserts the record anyway.
-  private async lastSeen(roomId: string, connectionId: string): Promise<number> {
-    const first = Number(await this.commands.get(aliveKey(roomId, connectionId)))
-    if (first) return first
-    return Number(await this.commands.get(aliveKey(roomId, connectionId)))
+  // Drop the record only if the alive key is still missing at that instant, so a heartbeat
+  // landing between the read and the delete wins.
+  private async prune(roomId: string, connectionId: string): Promise<void> {
+    await this.commands.eval(
+      PRUNE_LUA,
+      2,
+      membersKey(roomId),
+      aliveKey(roomId, connectionId),
+      connectionId,
+    )
   }
 
   private async liveRecords(roomId: string, now: number): Promise<PresenceRecord[]> {
@@ -138,9 +147,9 @@ export class RedisRoomBus implements RoomBus {
     const records = await Promise.all(
       Object.entries(raw).map(async ([connectionId, json]) => {
         const parsed = MemberSchema.safeParse(JSON.parse(json))
-        const lastSeen = await this.lastSeen(roomId, connectionId)
+        const lastSeen = Number(await this.commands.get(aliveKey(roomId, connectionId)))
         if (!parsed.success || !lastSeen || isExpired(lastSeen, now)) {
-          await this.commands.hdel(membersKey(roomId), connectionId)
+          await this.prune(roomId, connectionId)
           return undefined
         }
         return { member: parsed.data, lastSeen }
