@@ -18,7 +18,13 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
     const sub = trpcClient.room.stream.subscribe(
       { roomId },
       {
-        onData: (event) => dispatch({ type: 'event', event }),
+        onData: (event) => {
+          dispatch({ type: 'event', event })
+          // Joined (first sync) while already hidden: the server default is active.
+          if (event.type === 'sync' && document.visibilityState !== 'visible') {
+            trpcClient.room.setStatus.mutate({ roomId, status: 'idle' })
+          }
+        },
         onError: () => dispatch({ type: 'status', connectionStatus: 'disconnected' }),
         onConnectionStateChange: ({ state: link }) => {
           if (link === 'connecting') dispatch({ type: 'status', connectionStatus: 'connecting' })

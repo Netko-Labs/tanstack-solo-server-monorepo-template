@@ -136,7 +136,13 @@ export class RedisRoomBus implements RoomBus {
       this.listeners.set(channel, set)
     }
     set.add(onMessage)
-    await this.subscriber.subscribe(channel, onMessage)
+    try {
+      await this.subscriber.subscribe(channel, onMessage)
+    } catch (err) {
+      set.delete(onMessage)
+      if (set.size === 0) this.listeners.delete(channel)
+      throw err
+    }
     return () => {
       set.delete(onMessage)
       if (set.size === 0) this.listeners.delete(channel)

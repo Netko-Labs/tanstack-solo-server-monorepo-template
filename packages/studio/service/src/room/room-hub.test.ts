@@ -186,6 +186,26 @@ describe('RoomHub over LocalRoomBus', () => {
     await stream.return(undefined)
   })
 
+  test('a chat published while the resync snapshot loads arrives once, after the sync', async () => {
+    const bus = new ReconnectableBus()
+    const late = { ...message, id: crypto.randomUUID(), content: 'during resync' }
+    let loads = 0
+    const hub = new RoomHub(bus, async () => {
+      loads += 1
+      if (loads === 2) await bus.publish('lobby', { type: 'chat', message: late })
+      return [message]
+    })
+    const stream = hub.stream('lobby', member('a'))
+    await take(stream, 1)
+
+    const next = take(stream, 2)
+    bus.fireReconnect()
+    const [resync, chat] = await next
+    expect(resync?.type).toBe('sync')
+    expect(chat).toEqual({ type: 'chat', message: late })
+    await stream.return(undefined)
+  })
+
   test('abort ends the stream without a pending poll', async () => {
     const hub = new RoomHub(new LocalRoomBus(), async () => [])
     const controller = new AbortController()

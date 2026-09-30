@@ -8,6 +8,10 @@ import { RedisRoomBus } from './redis-room-bus'
 import type { MemberStatus, RoomBus } from './types'
 import { createAsyncQueue, presenceSignature } from './utils'
 
+type Sync = Extract<RoomEvent, { type: 'sync' }>
+/** Queue items: room events plus an internal marker asking the consumer to take a fresh snapshot. */
+type QueueItem = RoomEvent | { type: 'resync' }
+
 const logger = createLogger('room')
 
 /** Room lifecycle on top of a bus: join → sync → live events + heartbeat → leave. */
@@ -19,15 +23,13 @@ export class RoomHub {
 
   async *stream(roomId: string, member: Member, signal?: AbortSignal): AsyncGenerator<RoomEvent> {
     const connectionId = crypto.randomUUID()
-    const queue = createAsyncQueue<RoomEvent>(signal)
+    const queue = createAsyncQueue<QueueItem>(signal)
     const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
     // After a transport reconnect the client re-syncs from a fresh snapshot: events published
-    // during the outage are gone for good, so a diff cannot repair the view.
-    const offReconnect = this.bus.onReconnect(() => {
-      this.snapshot(roomId)
-        .then((sync) => queue.push(sync))
-        .catch((err) => logger.warn({ err: String(err), roomId }, 'resync failed'))
-    })
+    // during the outage are gone for good, so a diff cannot repair the view. The marker keeps
+    // queue order: the snapshot is taken when the consumer reaches it, so events queued after
+    // it are deduped against that snapshot instead of being wiped by it.
+    const offReconnect = this.bus.onReconnect(() => queue.push({ type: 'resync' }))
     let joined = false
     let closing = false
     let inFlight: Promise<void> | undefined
@@ -55,23 +57,32 @@ export class RoomHub {
     try {
       await this.bus.join(roomId, connectionId, member)
       joined = true
-      const sync = await this.snapshot(roomId)
+      let sync = await this.snapshot(roomId)
       if (signal?.aborted) return
       signature = presenceSignature(sync.members)
-      // Everything queued up to this point may already be in the snapshot (this member's own
-      // join, joins of listed users, chats in history); those copies are echoes. Anything that
-      // arrives while the consumer holds the sync event is real and passes.
-      const snapshotUsers = new Set(sync.members.map((m) => m.userId))
-      const snapshotMessages = new Set(sync.messages.map((m) => m.id))
+      // Everything queued up to a snapshot may already be in it (this member's own join, joins
+      // of listed users, chats in history); those copies are echoes. Anything that arrives
+      // while the consumer holds the sync event is real and passes.
+      let snapshotUsers = new Set(sync.members.map((m) => m.userId))
+      let snapshotMessages = new Set(sync.messages.map((m) => m.id))
       let backlog = queue.size()
       yield sync
-      for await (const event of queue) {
+      for await (const item of queue) {
+        if (item.type === 'resync') {
+          sync = await this.snapshot(roomId)
+          signature = presenceSignature(sync.members)
+          snapshotUsers = new Set(sync.members.map((m) => m.userId))
+          snapshotMessages = new Set(sync.messages.map((m) => m.id))
+          backlog = queue.size()
+          yield sync
+          continue
+        }
         if (backlog > 0) {
           backlog -= 1
-          if (event.type === 'join' && snapshotUsers.has(event.member.userId)) continue
-          if (event.type === 'chat' && snapshotMessages.has(event.message.id)) continue
+          if (item.type === 'join' && snapshotUsers.has(item.member.userId)) continue
+          if (item.type === 'chat' && snapshotMessages.has(item.message.id)) continue
         }
-        yield event
+        yield item
       }
     } finally {
       closing = true
@@ -92,7 +103,7 @@ export class RoomHub {
     return this.bus.setStatus(roomId, userId, status)
   }
 
-  private async snapshot(roomId: string): Promise<Extract<RoomEvent, { type: 'sync' }>> {
+  private async snapshot(roomId: string): Promise<Sync> {
     const messages = await this.loadHistory()
     const members = await this.bus.members(roomId)
     return { type: 'sync', members, messages }
