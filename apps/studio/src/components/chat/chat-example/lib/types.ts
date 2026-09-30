@@ -6,6 +6,8 @@ export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 export interface RoomState {
   /** `${roomId}:${userId}` the state belongs to; a different identity renders as empty. */
   identity: string
+  /** This tab's presence record, from the last sync; needed to report status. */
+  connectionId?: string
   messages: ChatMessage[]
   members: Member[]
   connectionStatus: ConnectionStatus

@@ -1,3 +1,4 @@
+import { MemberSchema } from '@temp-repo/studio-domain'
 import { createChatMessage, getChatMessages, hub } from '@temp-repo/studio-service'
 import { z } from 'zod'
 import { protectedProcedure, publicProcedure, router } from '../../init'
@@ -21,6 +22,18 @@ export const roomRouter = router({
       if (message) await hub.chat(input.roomId, message)
       return message
     }),
+
+  setStatus: protectedProcedure
+    .input(
+      z.object({
+        roomId: z.string().min(1),
+        connectionId: z.string().uuid(),
+        status: MemberSchema.shape.status,
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      hub.setStatus(input.roomId, input.connectionId, ctx.user.id, input.status),
+    ),
 
   stream: protectedProcedure
     .input(z.object({ roomId: z.string().min(1) }))

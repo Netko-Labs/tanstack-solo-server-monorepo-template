@@ -2,6 +2,7 @@ import { useEffect, useReducer } from 'react'
 import { trpcClient } from '@/integrations/trpc'
 import type { RoomState } from '../types'
 import { INITIAL_ROOM_STATE, roomIdentity, roomReducer } from '../utils'
+import { useStatusReporter } from './use-status-reporter'
 
 /** Subscribe = join, unsubscribe = leave. Resubscribes when the user or the room changes. */
 export function useRoomStream(roomId: string, userId: string | undefined) {
@@ -27,6 +28,10 @@ export function useRoomStream(roomId: string, userId: string | undefined) {
     )
     return () => sub.unsubscribe()
   }, [roomId, userId, identity])
+
+  // Presence status is this tab's call for its own connection; the server aggregates
+  // across a user's tabs with active winning.
+  useStatusReporter(roomId, state.identity === identity ? state.connectionId : undefined)
 
   // Never render the previous room/user's state during the switch, not even for a frame.
   if (state.identity !== identity) {

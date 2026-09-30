@@ -28,7 +28,7 @@ import { reset } from './commands/reset'
 import { status } from './commands/status'
 
 // Test commands
-import { test, testE2e } from './commands/test'
+import { test } from './commands/test'
 import { printHelp } from './utils/help'
 
 const args = process.argv.slice(2)
@@ -64,7 +64,6 @@ const commands: Record<string, (args: string[]) => Promise<void>> = {
 
   // Testing
   test: test,
-  'test:e2e': testE2e,
 
   // Project
   rename: renameProject,

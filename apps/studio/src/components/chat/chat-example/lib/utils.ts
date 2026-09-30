@@ -39,7 +39,12 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
       const live = { ...state, connectionStatus: 'connected' as const }
       switch (event.type) {
         case 'sync':
-          return { ...live, messages: event.messages, members: event.members }
+          return {
+            ...live,
+            connectionId: event.connectionId,
+            messages: event.messages,
+            members: event.members,
+          }
         case 'chat':
           return { ...live, messages: appendUniqueChatMessage(live.messages, event.message) }
         case 'presence':

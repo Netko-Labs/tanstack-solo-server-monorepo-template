@@ -2,7 +2,7 @@ import { createLogger } from '@temp-repo/logger'
 import { type Member, MemberSchema, type RoomEvent } from '@temp-repo/studio-domain'
 import type { RedisClient } from 'bun'
 import { PRESENCE_TTL_S } from './constants'
-import type { PresenceRecord, RoomBus, RoomListener } from './types'
+import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from './types'
 import {
   aggregateMembers,
   aliveKey,
@@ -40,10 +40,48 @@ local n = liveConnections(KEYS[1], ARGV[6], ARGV[5])
 if n == 1 then redis.call('PUBLISH', ARGV[7], ARGV[8]) end
 return n
 `
-/** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId, memberJson, now, ttl */
+/**
+ * KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId, memberJson, now, ttl.
+ * Writes fresh member details but keeps the stored status (the client owns it).
+ */
 const HEARTBEAT_LUA = `
-redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+local next = cjson.decode(ARGV[2])
+local current = redis.call('HGET', KEYS[1], ARGV[1])
+if current then next.status = cjson.decode(current).status end
+redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(next))
 redis.call('SET', KEYS[2], ARGV[3], 'EX', ARGV[4])
+`
+/**
+ * KEYS[1]=members hash · ARGV: connectionId, userId, status, alivePrefix, channel
+ * → 1 if that connection was updated. Builds the per-user presence snapshot and publishes it
+ * inside the script, so concurrent status changes cannot publish snapshots out of order.
+ */
+const SET_STATUS_LUA = `
+local raw = redis.call('HGET', KEYS[1], ARGV[1])
+if not raw then return 0 end
+local m = cjson.decode(raw)
+if m.userId ~= ARGV[2] then return 0 end
+m.status = ARGV[3]
+redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(m))
+local byUser = {}
+local order = {}
+local all = redis.call('HGETALL', KEYS[1])
+for i = 1, #all, 2 do
+  if redis.call('EXISTS', ARGV[4] .. all[i]) == 1 then
+    local rec = cjson.decode(all[i + 1])
+    local prev = byUser[rec.userId]
+    if not prev then
+      byUser[rec.userId] = rec
+      order[#order + 1] = rec.userId
+    elseif prev.status == 'idle' and rec.status == 'active' then
+      byUser[rec.userId] = rec
+    end
+  end
+end
+local encoded = {}
+for _, userId in ipairs(order) do encoded[#encoded + 1] = cjson.encode(byUser[userId]) end
+redis.call('PUBLISH', ARGV[5], '{"json":{"type":"presence","members":[' .. table.concat(encoded, ',') .. ']}}')
+return 1
 `
 /** KEYS[1]=members hash, KEYS[2]=alive key · ARGV: connectionId → 1 if the stale record was dropped */
 const PRUNE_LUA = `
@@ -71,10 +109,31 @@ return { userId, n }
  * connections expire on read.
  */
 export class RedisRoomBus implements RoomBus {
+  private readonly listeners = new Map<string, Set<(raw: string) => void>>()
+  private readonly reconnectListeners = new Set<() => void>()
+  private connectedOnce = false
+
   constructor(
     private readonly commands: RedisClient,
     private readonly subscriber: RedisClient,
-  ) {}
+  ) {
+    // Bun re-establishes the connection but not the SUBSCRIBEs; redo them and tell the
+    // hub, because anything published during the outage never reached this instance.
+    this.subscriber.onconnect = () => {
+      if (!this.connectedOnce) {
+        this.connectedOnce = true
+        return
+      }
+      logger.warn('subscriber reconnected; restoring subscriptions')
+      this.restoreSubscriptions()
+        .then(() => {
+          for (const listener of this.reconnectListeners) listener()
+        })
+        .catch((err) => logger.warn({ err: String(err) }, 'restoring subscriptions failed'))
+    }
+    this.subscriber.onclose = (err) => logger.warn({ err: String(err) }, 'subscriber closed')
+    this.commands.onclose = (err) => logger.warn({ err: String(err) }, 'commands closed')
+  }
 
   async publish(roomId: string, event: RoomEvent): Promise<void> {
     try {
@@ -91,9 +150,44 @@ export class RedisRoomBus implements RoomBus {
       if (event) listener(event)
       else logger.warn({ roomId }, 'dropped malformed room event')
     }
-    await this.subscriber.subscribe(channel, onMessage)
+    let set = this.listeners.get(channel)
+    if (!set) {
+      set = new Set()
+      this.listeners.set(channel, set)
+    }
+    set.add(onMessage)
+    try {
+      await this.subscriber.subscribe(channel, onMessage)
+    } catch (err) {
+      set.delete(onMessage)
+      if (set.size === 0) this.listeners.delete(channel)
+      throw err
+    }
     return () => {
+      set.delete(onMessage)
+      if (set.size === 0) this.listeners.delete(channel)
       this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+    }
+  }
+
+  onReconnect(listener: () => void): () => void {
+    this.reconnectListeners.add(listener)
+    return () => this.reconnectListeners.delete(listener)
+  }
+
+  close(): void {
+    this.subscriber.close()
+    this.commands.close()
+  }
+
+  // Bun keeps the local listener across the reconnect while the server-side SUBSCRIBE is
+  // gone; re-subscribing without dropping it first would deliver every message twice.
+  private async restoreSubscriptions(): Promise<void> {
+    for (const [channel, set] of this.listeners) {
+      for (const onMessage of set) {
+        await this.subscriber.unsubscribe(channel, onMessage).catch(() => {})
+        await this.subscriber.subscribe(channel, onMessage)
+      }
     }
   }
 
@@ -150,9 +244,29 @@ export class RedisRoomBus implements RoomBus {
     return Boolean(result[0]) && remaining === 0
   }
 
+  async setStatus(
+    roomId: string,
+    connectionId: string,
+    userId: string,
+    status: MemberStatus,
+  ): Promise<boolean> {
+    const updated = Number(
+      await this.commands.eval(
+        SET_STATUS_LUA,
+        1,
+        membersKey(roomId),
+        connectionId,
+        userId,
+        status,
+        aliveKey(roomId, ''),
+        roomChannel(roomId),
+      ),
+    )
+    return updated === 1
+  }
+
   async members(roomId: string): Promise<Member[]> {
-    const now = Date.now()
-    return aggregateMembers(await this.liveRecords(roomId, now), now)
+    return aggregateMembers(await this.liveRecords(roomId, Date.now()))
   }
 
   // Drop the record only if the alive key is still missing at that instant, so a heartbeat

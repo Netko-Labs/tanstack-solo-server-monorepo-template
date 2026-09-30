@@ -366,9 +366,14 @@ railpack plan --config-file apps/studio/railpack.json .
 ### Scaling past one instance
 Presence + chat fan out through a `RoomBus` (`packages/studio/service/src/room/`). With `CACHE_URL`
 set the Redis implementation is used: events go over a channel per room, presence lives in a hash
-plus a per-member TTL key refreshed by a 15 s heartbeat (idle after 30 s, gone after 45 s), so a
-crashed instance's users expire on their own. Without `CACHE_URL` the in-process bus is used, which
-is fine for one instance and for tests. Chat history is always Postgres.
+plus a per-connection TTL key refreshed by a 15 s heartbeat (gone after 45 s), status is set by the
+client from tab visibility, and a Redis restart is survived (subscriptions are restored and every
+stream re-syncs). Without `CACHE_URL` the in-process bus is used, which is fine for one instance and
+for tests. Chat history is always Postgres. Design and invariants: [`docs/room-bus.md`](docs/room-bus.md).
+
+### Upgrading an existing database
+Migration `0003` deletes existing `todo` rows (they had no owner) and drops the `jwks` table. Reset
+the database or backfill `todo.user_id` by hand before running it against real data.
 
 ### Sockets behind the proxy
 The tRPC adapter pings every 30 s so idle-timeouts never close a quiet tab, and the crossws upgrade
