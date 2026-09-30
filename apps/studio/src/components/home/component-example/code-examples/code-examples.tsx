@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from '@temp-repo/ui/components/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@temp-repo/ui/components/tabs'
-import { CodeBlock } from '../code-block/code-block'
+import { CodeBlock } from '../code-block'
 import { CODE_EXAMPLE_QUERY, CODE_EXAMPLE_SUBSCRIPTION, CODE_EXAMPLE_TRPC } from '../lib'
 
 export function CodeExamples() {

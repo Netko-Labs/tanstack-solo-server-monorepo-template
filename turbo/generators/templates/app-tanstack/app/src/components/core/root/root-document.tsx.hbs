@@ -1,6 +1,6 @@
-import { HeadContent, Scripts } from '@tanstack/react-router'
+import { HeadContent, Scripts, useRouter } from '@tanstack/react-router'
 import { lazy, Suspense } from 'react'
-import * as TanstackQuery from '@/integrations/tanstack-query/root-provider'
+import { Provider } from '@/integrations/tanstack-query'
 import { type RootDocumentProps, useIsHydrated } from './lib'
 
 // Dead-code eliminated in production builds: the devtools' Solid runtime throws when
@@ -11,11 +11,12 @@ const RootDevtools = import.meta.env.DEV
   : null
 
 export function RootDocument({ children }: RootDocumentProps) {
-  const rqContext = TanstackQuery.getContext()
+  // The same QueryClient the router (and its loaders) use; on the server that is per request.
+  const { queryClient } = useRouter().options.context
   const isHydrated = useIsHydrated()
 
   return (
-    <TanstackQuery.Provider {...rqContext}>
+    <Provider queryClient={queryClient}>
       <html lang="en">
         <head>
           <HeadContent />
@@ -30,6 +31,6 @@ export function RootDocument({ children }: RootDocumentProps) {
           <Scripts />
         </body>
       </html>
-    </TanstackQuery.Provider>
+    </Provider>
   )
 }

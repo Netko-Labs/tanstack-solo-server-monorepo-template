@@ -7,7 +7,7 @@ import {
 } from '@temp-repo/ui/components/card'
 import type { MessageListProps } from '../lib'
 import { MESSAGES_EMPTY, MESSAGES_LOADING, MESSAGES_TITLE } from '../lib'
-import { ChatMessageItem } from './chat-message-item/chat-message-item'
+import { ChatMessageItem } from './chat-message-item'
 import { useAutoScroll } from './lib'
 
 export function MessageList({ messages, isLoading, currentUserId }: MessageListProps) {

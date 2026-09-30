@@ -325,19 +325,29 @@ In Coolify:
 
 1. **Build Pack** → Railpack. **Base Directory** → `/` (shared workspace monorepo, not the app folder).
 2. **Environment Variables** → add `RAILPACK_CONFIG_FILE=apps/studio/railpack.json` with **Build Variable** enabled.
-3. **Pre-deployment command** → `bun apps/studio/.output/migrate/migrate.js`.
-4. **Healthcheck** → `/api/health` on port 3000. **Watch Paths** → `apps/studio/**`, `packages/studio/**`, `packages/configs/studio-config/**`, `packages/shared/**`, `patches/**`, `package.json`, `bun.lock`.
-5. Runtime variables: `AUTH_SECRET`, `BASE_URL`, `DATABASE_URL`, `CACHE_URL` (Redis; empty means the
-   room bus stays in-process, so set it before running more than one instance). Optional:
-   `TRUSTED_ORIGINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`.
+3. **No pre-deployment command.** Coolify runs that inside the *previous* container before the new image
+   exists, so it would apply last deploy's migrations. `railpack.json`'s `startCommand` migrates inside the
+   new container and only then serves; a failed migration fails the healthcheck and rolls back. Write
+   migrations expand/contract: the old container keeps serving during the rollout.
+4. **Healthcheck** → `/api/health` on port 3000 (503 when Postgres or Redis is unreachable). The
+   runtime image gets `curl` from `railpack.json`'s `deploy.aptPackages`; without it Coolify's probe can
+   never pass. **Watch Paths** → `apps/studio/**`, `packages/studio/**`, `packages/configs/studio-config/**`,
+   `packages/shared/**`, `patches/**`, `package.json`, `bun.lock`.
+5. Runtime variables, all required in production (the app refuses to boot otherwise): `BASE_URL`,
+   `DATABASE_URL`, `AUTH_SECRET` (32+ chars), `RESEND_API_KEY`. Recommended: `CACHE_URL` (Redis; without it
+   the room bus is in-process, so set it before running more than one instance). Optional:
+   `TRUSTED_ORIGINS`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, `LOG_LEVEL`.
+6. Graceful shutdown: `railpack.json` clears Railpack's `CI=true` (which disables the server's SIGTERM
+   handling) and sets `SERVER_SHUTDOWN_TIMEOUT=10`; keep Coolify's stop grace period above that. On
+   SIGTERM every socket closes with 1001, room leaves run, then Redis and Postgres clients close.
 
 What a deploy does:
 
 ```
 bun install --frozen-lockfile
-bun run repo build --app studio             # .output/ + .output/migrate/
-bun apps/studio/.output/migrate/migrate.js  # pre-deploy: drizzle migrations, bundled, no drizzle-kit
-bun apps/studio/.output/server/index.mjs    # start (HTTP + WebSocket on one port)
+bun run repo build --app studio                    # .output/ + .output/migrate/
+bun apps/studio/.output/migrate/migrate.js \
+  && bun apps/studio/.output/server/index.mjs      # start: migrate, then serve HTTP + WebSocket
 ```
 
 If Coolify's Railpack build ignores `RAILPACK_CONFIG_FILE`, the fallback is the **Build Command** / **Start Command** fields with the same two commands — the app still deploys, but without the pruned image.

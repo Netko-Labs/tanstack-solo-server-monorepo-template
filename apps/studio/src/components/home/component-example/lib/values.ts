@@ -43,25 +43,23 @@ export const TECH_STACK_ITEMS = [
   {
     title: 'Better Auth',
     description: 'Modern authentication',
-    body: 'Email/password, OAuth providers, passkeys, and magic links.',
+    body: 'Magic-link sign-in out of the box; OAuth providers switch on with env vars.',
   },
 ]
 
 export const CODE_EXAMPLE_TRPC = `
-// packages/studio/trpc/src/routers/chat/mutations.ts
-import { protectedProcedure, router } from '../../init'
-import { z } from 'zod'
-
-export const chatMutations = router({
-  sendMessage: protectedProcedure
-    .input(z.object({ content: z.string().min(1).max(2000) }))
-    .mutation(async ({ input, ctx }) => {
+// packages/studio/trpc/src/routers/room/index.ts
+export const roomRouter = router({
+  send: protectedProcedure
+    .input(z.object({ roomId: RoomIdSchema, content: z.string().min(1).max(2000) }))
+    .mutation(async ({ ctx, input }) => {
       const message = await createChatMessage({
+        roomId: input.roomId,
         content: input.content,
         authorId: ctx.user.id,
-        authorName: ctx.user.name,
+        authorName: displayName(ctx.user),
       })
-      if (message) chatEvents.emitMessage(message)
+      if (message) await hub.chat(input.roomId, message)
       return message
     }),
 })
