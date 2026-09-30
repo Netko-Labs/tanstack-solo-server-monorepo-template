@@ -29,9 +29,8 @@ export class LocalRoomBus implements RoomBus {
     }
   }
 
-  async heartbeat(roomId: string, connectionId: string): Promise<void> {
-    const record = this.presence.get(roomId)?.get(connectionId)
-    if (record) record.lastSeen = Date.now()
+  async heartbeat(roomId: string, connectionId: string, member: Member): Promise<void> {
+    this.roomOf(roomId).set(connectionId, { member, lastSeen: Date.now() })
   }
 
   async leave(roomId: string, connectionId: string): Promise<boolean> {

@@ -26,7 +26,7 @@ export class RoomHub {
 
     const tick = setInterval(() => {
       this.bus
-        .heartbeat(roomId, connectionId)
+        .heartbeat(roomId, connectionId, member)
         .then(() => this.bus.members(roomId))
         .then((members) => {
           const next = presenceSignature(members)

@@ -7,7 +7,6 @@ export interface PeerLike {
   send(data: string | Uint8Array): unknown
   close(code?: number, reason?: string): void
   terminate(): void
-  ping(data?: unknown): unknown
 }
 
 export interface MessageLike {

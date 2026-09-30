@@ -11,7 +11,7 @@ const router = t.router({
   }),
 })
 
-function fakePeer(origin?: string) {
+function fakePeer(origin?: string, onSend?: (peer: { id: string }, data: string) => void) {
   const sent: string[] = []
   const headers = new Headers({ host: 'app.test' })
   if (origin) headers.set('origin', origin)
@@ -22,6 +22,7 @@ function fakePeer(origin?: string) {
     closed: false,
     send(data: string | Uint8Array) {
       sent.push(String(data))
+      onSend?.(this, String(data))
     },
     close() {
       this.closed = true
@@ -29,7 +30,6 @@ function fakePeer(origin?: string) {
     terminate() {
       this.closed = true
     },
-    ping() {},
   }
 }
 
@@ -48,6 +48,26 @@ const until = async (check: () => boolean, ms = 1000) => {
 }
 
 describe('crossws ↔ tRPC bridge', () => {
+  test('keepalive: a peer that answers PING stays open, a silent peer is terminated', async () => {
+    const live = createTRPCWebSocketHooks({
+      router,
+      createContext: async () => ({}),
+      trustedOrigins: [],
+      keepAlive: { pingMs: 20, pongWaitMs: 20 },
+    })
+    const responsive = fakePeer(undefined, (peer, data) => {
+      if (data === 'PING') live.message(peer as never, { text: () => 'PONG' })
+    })
+    const silent = fakePeer()
+    live.open(responsive)
+    live.open(silent)
+    await Bun.sleep(120)
+    expect(responsive.closed).toBe(false)
+    expect(silent.closed).toBe(true)
+    live.close(responsive)
+    live.close(silent)
+  })
+
   test('upgrade: trusted origin passes, foreign origin is 403, no origin passes', () => {
     expect(hooks.upgrade(fakePeer('http://app.test').request)).toBeUndefined()
     expect(hooks.upgrade(fakePeer('https://evil.example').request)?.status).toBe(403)

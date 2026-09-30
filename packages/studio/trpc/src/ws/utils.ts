@@ -27,10 +27,6 @@ class PeerSocket extends EventEmitter {
     this.readyState = WEBSOCKET_CLOSED
     this.peer.terminate()
   }
-
-  ping(): void {
-    this.peer.ping()
-  }
 }
 
 const withoutTrailingSlash = (url: string) => (url.endsWith('/') ? url.slice(0, -1) : url)
@@ -63,6 +59,8 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       return opts.createContext({ req: request })
     },
     onError: ({ error, path }) => opts.onError?.({ error, path }),
+    // Protocol-level: the adapter sends a "PING" message and resets on any message back
+    // (wsLink answers "PONG"); no WebSocket ping frames are involved.
     keepAlive: opts.keepAlive ? { enabled: true, ...opts.keepAlive } : undefined,
     // getWSConnectionHandler never touches `wss`; only applyWSSHandler does.
     wss: undefined as unknown as WSSHandlerOptions<TRouter>['wss'],

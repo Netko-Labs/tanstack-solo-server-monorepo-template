@@ -16,7 +16,8 @@ export interface RoomBus {
   /** Resolves once the subscription is live, so nothing published afterwards is missed. */
   subscribe(roomId: string, listener: RoomListener): Promise<() => void>
   join(roomId: string, connectionId: string, member: Member): Promise<void>
-  heartbeat(roomId: string, connectionId: string): Promise<void>
+  /** Refreshes liveness and re-asserts the record, healing a cleanup that raced this connection. */
+  heartbeat(roomId: string, connectionId: string, member: Member): Promise<void>
   /** Resolves true when this was the user's last connection in the room. */
   leave(roomId: string, connectionId: string): Promise<boolean>
   members(roomId: string): Promise<Member[]>
