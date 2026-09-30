@@ -139,6 +139,19 @@ describe('RoomHub over LocalRoomBus', () => {
     expect(await hub.members('lobby')).toEqual([])
   })
 
+  test('an already-aborted signal ends the stream before it joins', async () => {
+    const bus = new LocalRoomBus()
+    const hub = new RoomHub(bus, async () => [])
+    const joins: string[] = []
+    await bus.subscribe('lobby', (event) => {
+      if (event.type === 'join') joins.push(event.member.userId)
+    })
+    const stream = hub.stream('lobby', member('a'), AbortSignal.abort())
+    expect((await stream.next()).done).toBe(true)
+    expect(joins).toEqual([])
+    expect(await hub.members('lobby')).toEqual([])
+  })
+
   test('abort while history loads yields no sync and leaves the room', async () => {
     const bus = new LocalRoomBus()
     const controller = new AbortController()

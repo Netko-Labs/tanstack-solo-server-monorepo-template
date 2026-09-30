@@ -36,7 +36,8 @@ export class RoomHub {
   ): AsyncGenerator<RoomEvent> {
     const connectionId = crypto.randomUUID()
     const controller = new AbortController()
-    signal?.addEventListener('abort', () => controller.abort(), { once: true })
+    if (signal?.aborted) controller.abort()
+    else signal?.addEventListener('abort', () => controller.abort(), { once: true })
     const queue = createAsyncQueue<QueueItem>(controller.signal)
     const unsubscribe = await this.bus.subscribe(roomId, (event) => queue.push(event))
     // Counted and timed only once subscribed: a failed subscribe throws before the
@@ -75,6 +76,7 @@ export class RoomHub {
     }, this.heartbeatMs)
 
     try {
+      if (controller.signal.aborted) return
       await this.bus.join(roomId, connectionId, member)
       joined = true
       let sync = await this.snapshot(roomId, connectionId)
