@@ -44,7 +44,7 @@ describe('RedisRoomBus reconnect', () => {
     expect(notified).toBe(1)
   })
 
-  test('a channel that fails to restore keeps retrying without holding back the resync', async () => {
+  test('a channel that fails to restore retries in the background, then resyncs again', async () => {
     const sub = fakeSubscriber()
     const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
     let notified = 0
@@ -63,6 +63,7 @@ describe('RedisRoomBus reconnect', () => {
 
     await Bun.sleep(300)
     expect(sub.calls.length).toBe(5)
+    expect(notified).toBe(2)
     expect(sub.calls.slice(2).filter((c) => c === 'room:lobby').length).toBeGreaterThanOrEqual(1)
     expect(sub.calls.slice(2).filter((c) => c === 'room:other').length).toBeGreaterThanOrEqual(1)
   })

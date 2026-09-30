@@ -201,6 +201,8 @@ export class RedisRoomBus implements RoomBus {
   // Only the first attempt is awaited, so one bad channel neither blocks the others nor
   // holds back the resync. Retries continue in the background with capped backoff for as
   // long as the listener is still wanted: a deaf instance is never an acceptable steady state.
+  // A late success resyncs again, because events published while the channel was down
+  // are gone for good.
   private async resubscribe(
     channel: string,
     onMessage: (raw: string) => void,
@@ -208,6 +210,7 @@ export class RedisRoomBus implements RoomBus {
   ): Promise<void> {
     try {
       await this.subscriber.subscribe(channel, onMessage)
+      if (attempt > 1) for (const listener of this.reconnectListeners) listener()
     } catch (err) {
       logger.warn({ err: String(err), channel, attempt }, 'restore failed; retrying')
       void Bun.sleep(Math.min(RESTORE_BACKOFF_MS * attempt, RESTORE_BACKOFF_MAX_MS)).then(() => {
