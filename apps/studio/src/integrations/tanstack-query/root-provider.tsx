@@ -1,6 +1,4 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
-import superjson from 'superjson'
 import { TRPCProvider, trpcClient } from '@/integrations/trpc'
 import { QUERY_STALE_TIME_MS, type QueryProviderProps } from './lib'
 
@@ -12,8 +10,6 @@ function createAppQueryClient() {
       queries: {
         staleTime: QUERY_STALE_TIME_MS,
       },
-      dehydrate: { serializeData: superjson.serialize },
-      hydrate: { deserializeData: superjson.deserialize },
     },
   })
 }
@@ -32,16 +28,7 @@ function getQueryClient() {
 
 /** Called once by `getRouter`; the shell must reuse the router's context, not call this again. */
 export function getContext() {
-  const queryClient = getQueryClient()
-
-  const serverHelpers = createTRPCOptionsProxy({
-    client: trpcClient,
-    queryClient: queryClient,
-  })
-  return {
-    queryClient,
-    trpc: serverHelpers,
-  }
+  return { queryClient: getQueryClient() }
 }
 
 export function Provider({ children, queryClient }: QueryProviderProps) {

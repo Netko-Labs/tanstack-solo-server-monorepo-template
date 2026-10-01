@@ -11,7 +11,7 @@ const RootDevtools = import.meta.env.DEV
   : null
 
 export function RootDocument({ children }: RootDocumentProps) {
-  // The same QueryClient the router (and its loaders) use; on the server that is per request.
+  // The router's QueryClient; on the server that is one per request.
   const { queryClient } = useRouter().options.context
   const isHydrated = useIsHydrated()
 
