@@ -1,3 +1,4 @@
+import { MAX_TRPC_BATCH_SIZE } from '@temp-repo/studio-domain'
 import type { AppRouter } from '@temp-repo/studio-trpc'
 import {
   createTRPCClient,
@@ -42,7 +43,11 @@ export function bindRealtimeSocket(userId: string | undefined): void {
  * `/trpc-ws`. SSR never subscribes, so the server build stays HTTP-only.
  */
 function createLinks() {
-  const http = httpBatchLink<AppRouter>({ url: TRPC_HTTP_URL, transformer: superjson })
+  const http = httpBatchLink<AppRouter>({
+    url: TRPC_HTTP_URL,
+    transformer: superjson,
+    maxItems: MAX_TRPC_BATCH_SIZE,
+  })
   if (!wsClient) return [loggerLinkInstance, http]
   return [
     loggerLinkInstance,

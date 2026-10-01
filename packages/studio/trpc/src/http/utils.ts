@@ -1,7 +1,8 @@
+import { MAX_TRPC_BATCH_SIZE } from '@temp-repo/studio-domain'
 import type { AnyRouter } from '@trpc/server'
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
 import { isTrustedOrigin } from '../shared/origin'
-import { MAX_TRPC_BATCH_SIZE, MAX_TRPC_BODY_BYTES } from './constants'
+import { MAX_TRPC_BODY_BYTES } from './constants'
 import type { TRPCHttpHandlerOptions } from './types'
 
 const isJson = (request: Request) =>

@@ -380,12 +380,13 @@ upgrades; CORS does not apply to WebSockets).
 
 ### Security boundary
 Built servers send HSTS, `nosniff`, a strict referrer policy and `frame-ancestors 'none'` on every
-route (`routeRules` in `vite.config.ts`). `/api/trpc` takes JSON POSTs only (415 otherwise),
-refuses a browser `Origin` outside `BASE_URL` + `TRUSTED_ORIGINS` (403), caps bodies at 1 MiB (413)
-and batches at 20; `/trpc-ws` closes a frame over 1 MiB with 1009. Outside dev an error reaches the
-client as its code only. Known gaps: a `script-src` CSP needs a nonce from Start; better-auth rate
-limits live in memory, per instance (set `TRUSTED_PROXIES` behind a CDN so they key on the client
-IP); `room.send` has no per-user throttle.
+route (`routeRules` in `vite.config.ts`). `/api/trpc` takes JSON POSTs only (415 otherwise), refuses
+a browser `Origin` outside `BASE_URL` + `TRUSTED_ORIGINS` (403), caps bodies at 1 MiB (413) and
+batches at 20 (`MAX_TRPC_BATCH_SIZE` in domain, which the client link splits at); `/trpc-ws` closes
+a frame over 1 MiB with 1009. Outside dev an error reaches the client as its code only. Known gaps:
+a `script-src` CSP needs a nonce from Start; better-auth rate limits live in memory, per instance
+(set `TRUSTED_PROXIES` behind a CDN so they key on the client IP); `room.send` has no per-user
+throttle.
 
 ## 📝 License
 

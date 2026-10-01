@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import { MAX_TRPC_BATCH_SIZE } from '@temp-repo/studio-domain'
 import { initTRPC } from '@trpc/server'
-import { MAX_TRPC_BATCH_SIZE, MAX_TRPC_BODY_BYTES } from './constants'
+import { MAX_TRPC_BODY_BYTES } from './constants'
 import { createTRPCHttpHandler } from './utils'
 
 const t = initTRPC.create()
