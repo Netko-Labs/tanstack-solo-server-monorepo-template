@@ -1,7 +1,7 @@
 export const SIGN_IN_FORM_TITLE = 'Authentication'
 export const SIGN_IN_FORM_BADGE = 'Guest'
 export const SIGN_IN_FORM_DESCRIPTION =
-  'Sign in with a magic link to access protected features like sending chat messages'
+  'Sign in with a magic link to open the todos list and join the live chat room'
 export const SIGN_IN_EMAIL_LABEL = 'Email'
 export const SIGN_IN_EMAIL_PLACEHOLDER = 'you@example.com'
 export const SIGN_IN_SEND_LINK = 'Send Magic Link'

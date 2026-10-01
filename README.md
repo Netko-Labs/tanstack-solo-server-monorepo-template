@@ -42,6 +42,7 @@ Do these in order: renaming after `.env` exists leaves the old database name in 
 9. Deploy: one Coolify application per app ([Deploy](#-deploy-coolify--railpack)).
 10. Observability: create a code-whiskers project and set four env vars
     ([`docs/observability.md`](docs/observability.md)).
+11. Copy `docs/templates/tech-spec.md` to `docs/tech-spec.md` and fill §0 (Foundation).
 
 CI runs on Blacksmith runners (`blacksmith-4vcpu-ubuntu-2404`); outside an org with the Blacksmith
 app installed, replace that label with `ubuntu-latest` in `.github/workflows/ci.yml`.
@@ -61,6 +62,8 @@ bun run dev                                  # docker up, db:generate, db:migrat
 The server listens on http://localhost:3000 (WebSocket at `ws://localhost:3000/trpc-ws`). `/todos`
 is the signed-in CRUD example, `/chat` the presence + live chat room. Every command, with what it
 does, is in `CLAUDE.md` → Commands and [`packages/shared/cli/README.md`](packages/shared/cli/README.md).
+If every dev route answers 500 with `[crossws] Using Node.js adapter in an incompatible environment`,
+see `CLAUDE.md` → Nitro patch (`bun run repo check:nitro-patch --app studio`).
 
 ## 🏗️ Project structure
 
@@ -72,9 +75,10 @@ apps/studio/src/
   server/             trpc-ws.ts (/trpc-ws) and plugins/{observability,shutdown}.ts
   shared/             app logic modules (dom-events, redirect-path, trpc-error, format-date)
 packages/
-  studio/domain/      db/ tables, entities/ (drizzle-zod), schemas/, values/, shared/
+  studio/domain/      db/ tables, entities/ (drizzle-zod), schemas/, values/, factory/, shared/
   studio/repository/  db client, Tx, migrations, seed; cache client
-  studio/service/     queries/ mutations/ values/ by entity; auth, email/, room/ integrations
+  studio/service/     queries/ mutations/ values/ by entity; auth, email/, room/ integrations;
+                      logger/ (better-auth logger), shared/ (ServiceError)
   studio/trpc/        routers/{auth,room,todos}, init.ts, http/, ws/, shared/
   configs/studio-config/  env read once, production checks
   shared/             cli, logger, ui, observability, resend-client, typescript-config
