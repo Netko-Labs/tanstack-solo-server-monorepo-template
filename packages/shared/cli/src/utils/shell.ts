@@ -1,6 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { $ } from 'bun'
+import type { RunOptions } from './types'
 
 /**
  * ✧･ﾟ: *✧･ﾟ:* SHELL UTILITIES *:･ﾟ✧*:･ﾟ✧
@@ -44,10 +45,7 @@ export function loadEnvFile(envFilePath: string): Record<string, string> {
 /**
  * Run a shell command with output streaming to console
  */
-export async function run(
-  command: string[],
-  options?: { cwd?: string; env?: Record<string, string> },
-) {
+export async function run(command: string[], options?: RunOptions) {
   const proc = Bun.spawn(command, {
     cwd: options?.cwd,
     env: { ...process.env, ...options?.env },
@@ -65,7 +63,7 @@ export async function run(
 /**
  * Run a shell command and return output
  */
-export async function runQuiet(command: string[], options?: { cwd?: string }) {
+export async function runQuiet(command: string[], options?: Pick<RunOptions, 'cwd'>) {
   const result = await $`${command}`.cwd(options?.cwd ?? process.cwd()).quiet()
   return result.text()
 }

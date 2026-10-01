@@ -1,5 +1,6 @@
 import { createLogger } from '@temp-repo/logger'
 import { renderMagicLinkEmail } from './magic-link-email'
+import type { MagicLinkEmailInput } from './types'
 
 const logger = createLogger('email')
 
@@ -7,13 +8,7 @@ const logger = createLogger('email')
  * Deliver a magic-link email via Resend. Without `RESEND_API_KEY` the link is logged
  * instead, which is a sign-in credential in plain text: allowed in development only.
  */
-export async function sendMagicLinkEmail({
-  email,
-  url,
-}: {
-  email: string
-  url: string
-}): Promise<void> {
+export async function sendMagicLinkEmail({ email, url }: MagicLinkEmailInput): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.EMAIL_FROM ?? 'Studio <onboarding@resend.dev>'
 

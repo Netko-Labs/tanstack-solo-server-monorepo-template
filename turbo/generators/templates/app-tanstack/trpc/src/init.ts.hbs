@@ -2,6 +2,7 @@ import { createLogger } from '@temp-repo/logger'
 import type { Context } from '@temp-repo/{{ name }}-domain'
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
+import type { CreateContextOptions } from './types'
 
 const logger = createLogger('trpc')
 
@@ -27,7 +28,7 @@ export const router = t.router
 export const mergeRouters = t.mergeRouters
 
 //* Context
-export const createContext = async (_opts: { req: Request }): Promise<Context> => {
+export const createContext = async (_opts: CreateContextOptions): Promise<Context> => {
   // Add your auth logic here to extract user from request
   // Example with cookies/tokens:
   // const token = _opts.req.headers.get('authorization')?.split(' ')[1]

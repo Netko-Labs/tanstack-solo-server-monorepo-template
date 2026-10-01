@@ -3,6 +3,7 @@ import type { Context } from '@temp-repo/studio-domain'
 import { auth, ServiceError } from '@temp-repo/studio-service'
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
+import type { CreateContextOptions } from './types'
 
 const logger = createLogger('trpc')
 
@@ -36,8 +37,7 @@ function rootCause(error: Error): Error & { code?: unknown } {
 export const router = t.router
 export const mergeRouters = t.mergeRouters
 
-//* Context — shared by the HTTP (fetch) adapter and the WebSocket upgrade request
-export const createContext = async ({ req }: { req: Request }): Promise<Context> => {
+export const createContext = async ({ req }: CreateContextOptions): Promise<Context> => {
   const authResponse = await auth.api.getSession({
     headers: req.headers,
   })

@@ -1,7 +1,14 @@
 import { EventEmitter } from 'node:events'
 import type { AnyRouter } from '@trpc/server'
 import { getWSConnectionHandler, type WSSHandlerOptions } from '@trpc/server/adapters/ws'
-import type { MessageLike, PeerLike, TRPCWebSocketHooks, TRPCWebSocketHooksOptions } from './types'
+import type {
+  MessageLike,
+  PeerLike,
+  TRPCWebSocketHooks,
+  TRPCWebSocketHooksOptions,
+  WireRequestFrame,
+  WireResponseFrame,
+} from './types'
 
 const WEBSOCKET_OPEN = 1
 const WEBSOCKET_CLOSED = 3
@@ -87,11 +94,7 @@ function release(socket: PeerSocket, key: string): void {
 function releaseFinished(socket: PeerSocket, text: string): void {
   for (const item of parseFrame(text) ?? []) {
     if (typeof item !== 'object' || item === null) continue
-    const { id, result, error } = item as {
-      id?: unknown
-      result?: { type?: unknown }
-      error?: unknown
-    }
+    const { id, result, error } = item as WireResponseFrame
     const key = String(id)
     const method = socket.requests.get(key)
     if (!method) continue
@@ -113,7 +116,7 @@ function trackSubscriptions(socket: PeerSocket, text: string): boolean {
   if (!items) return true
   for (const item of items) {
     if (typeof item !== 'object' || item === null) continue
-    const { id, method } = item as { id?: unknown; method?: unknown }
+    const { id, method } = item as WireRequestFrame
     if (typeof method !== 'string') continue
     const key = String(id)
     if (method === 'subscription.stop') {

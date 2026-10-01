@@ -33,3 +33,16 @@ export interface TRPCWebSocketHooks {
   close(peer: PeerLike): void
   error(peer: PeerLike, error: Error): void
 }
+
+/** A client frame as the bridge reads it; fields stay `unknown` until checked. */
+export interface WireRequestFrame {
+  id?: unknown
+  method?: unknown
+}
+
+/** A server frame as the bridge reads it; fields stay `unknown` until checked. */
+export interface WireResponseFrame {
+  id?: unknown
+  result?: { type?: unknown }
+  error?: unknown
+}
