@@ -40,7 +40,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - **Email**: `service/email` is an integration; `send-email.ts` dispatches to `resend/` (over `@temp-repo/resend-client`, built once from `studioEnvConfig.email`) or `console/`, which throws unless `NODE_ENV === 'development'`. Service never reads email env itself.
 - **Client**: `src/integrations/trpc/client.ts` builds a `splitLink` — subscriptions over a lazy `wsLink` to the same origin, everything else over `httpBatchLink`. SSR gets HTTP-only links. Components go through the `useTRPC()` options proxy (`queryOptions`/`mutationOptions`); the raw `trpcClient` is only for imperative calls (the room subscription, the status reporter).
 - **Composition root**: `apps/*/src/server/**` and `routes/api/**` may import `service` and `repository` for lifecycle (shutdown) and health. UI code never does.
-- **Nitro patch**: `patches/nitro@*.patch` (applied by `bun install` via `patchedDependencies`) makes Nitro's Vite dev worker install the crossws Bun plugin. Without it `vite dev` under Bun answers upgrades with 426. Re-check it when bumping `nitro`.
+- **Nitro patch**: `patches/nitro@*.patch` (applied by `bun install` via `patchedDependencies`) makes Nitro's Vite dev worker install the crossws Bun plugin. Without it the dev worker loads crossws's Node adapter and every route answers 500 with `[crossws] Using Node.js adapter in an incompatible environment`. The key is the exact nitro version, and a mismatch is dropped silently: `serve` refuses to start and CI fails via `bun run repo check:nitro-patch --app studio`. Upstream: nitrojs/nitro#3939.
 
 ## Scaffolding
 

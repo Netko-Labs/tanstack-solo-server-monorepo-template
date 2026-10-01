@@ -8,8 +8,7 @@ Failure modes and the rule that prevents them. Short, current, one entry per cor
   `patches/nitro@<version>.patch` and its `patchedDependencies` key drops the patch: `bun install`
   exits 0 with no warning, then every request answers 500 with
   `[crossws] Using Node.js adapter in an incompatible environment`. Found 2026-10-01 in the freeze
-  audit. Check: `grep -c isNodeRuntime node_modules/nitro/dist/runtime/internal/vite/dev-entry.mjs`
-  is not 0 after `bun install`.
+  audit. Check: `bun run repo check:nitro-patch --app studio` (`serve` and CI run it).
 - **turbo writes its block back into `AGENTS.md`.** Deleting the file or the managed block does not
   stick; turbo re-adds it before repository commands when it detects an agent. Keep house content
   outside the block. Found 2026-10-01 in the freeze audit.

@@ -5,6 +5,7 @@ import {
   requireEnvFile,
   validateApp,
 } from '../utils/apps'
+import { assertNitroPatchApplied } from '../utils/nitro'
 import { killProcessOnPort, loadEnvFile, run } from '../utils/shell'
 import { dbGenerate, dbMigrate } from './db'
 import { dockerUp } from './docker'
@@ -49,6 +50,7 @@ export async function serve(args: string[]) {
   }
 
   const appDir = getAppDir(appName)
+  assertNitroPatchApplied(appDir)
   const appEnv = loadEnvFile(requireEnvFile(appName))
 
   const port = Number(appEnv.PORT || process.env.PORT || 3000)
@@ -62,4 +64,17 @@ export async function serve(args: string[]) {
     cwd: appDir,
     env: appEnv,
   })
+}
+
+export async function checkNitroPatch(args: string[]) {
+  const appName = parseAppArg(args)
+
+  if (!appName || !validateApp(appName)) {
+    console.error('❌ Please specify an app with --app <name>')
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  assertNitroPatchApplied(getAppDir(appName))
+  console.log(`✅ nitro dev patch applied for ${appName}`)
 }

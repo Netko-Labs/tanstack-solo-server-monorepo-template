@@ -306,7 +306,7 @@ export const todosRouter = mergeRouters(todosQueries, todosMutations)
 - **Client** (`trpcClient`): `splitLink` sends subscriptions over `wsLink` and everything else over `httpBatchLink`. SSR builds HTTP-only links.
 - **Server**: `apps/studio/src/server/trpc-ws.ts` is a Nitro handler (`defineWebSocketHandler`) mounted at `/trpc-ws` from `vite.config.ts`. `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler`, so the wire protocol is stock tRPC.
 - **Auth**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch and WebSocket paths. The upgrade hook enforces an origin allow-list.
-- **Dev under Bun**: `patches/nitro@*.patch` (via `bun patch`) lets Nitro's Vite dev worker install the crossws Bun plugin; without it `vite dev` answers upgrades with 426.
+- **Dev under Bun**: `patches/nitro@*.patch` (via `bun patch`) lets Nitro's Vite dev worker install the crossws Bun plugin; without it the dev worker loads crossws's Node adapter and every route answers 500 (`[crossws] Using Node.js adapter in an incompatible environment`). A nitro bump must rename the patch and its `patchedDependencies` key; `bun run repo check:nitro-patch --app studio` (run by `serve` and CI) catches a patch that stopped applying.
 
 ## 📦 Dependencies
 

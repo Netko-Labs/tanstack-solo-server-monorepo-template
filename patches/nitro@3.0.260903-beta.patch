@@ -1,3 +1,7 @@
+Nitro dev worker under Bun: use the runtime crossws adapter, not the Node one.
+Upstream: https://github.com/nitrojs/nitro/issues/3939 (fix: https://github.com/nitrojs/nitro/pull/4597).
+Drop this patch once the installed nitro includes that fix.
+
 diff --git a/dist/runtime/internal/vite/dev-entry.mjs b/dist/runtime/internal/vite/dev-entry.mjs
 index cb1176ee093ecfc362080044279eae86abd82f9a..f04ea1bf3ee4d0887b2c6a569ad033a4c634b8f1 100644
 --- a/dist/runtime/internal/vite/dev-entry.mjs

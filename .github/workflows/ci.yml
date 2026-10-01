@@ -38,6 +38,7 @@ jobs:
             .turbo
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
+      - run: bun run repo check:nitro-patch --app studio
       - run: cp apps/studio/sample.env apps/studio/.env
       - run: bun run repo db:generate --app studio
       - name: no schema change without its committed migration

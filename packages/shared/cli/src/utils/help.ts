@@ -8,6 +8,7 @@ Development
   dev --app <name>           Start full dev environment (docker + db + server)
   serve --app <name>         Start dev server only
   build --app <name>         Build for production
+  check:nitro-patch --app <name>  Fail unless the nitro dev patch reached node_modules
 
 Docker
   docker:up --app <name>     Start Docker containers

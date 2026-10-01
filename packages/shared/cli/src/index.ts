@@ -3,7 +3,7 @@
 import { build } from './commands/build'
 import { clean } from './commands/clean'
 import { dbGenerate, dbMigrate, dbPush, dbSeed, dbStudio } from './commands/db'
-import { dev, serve } from './commands/dev'
+import { checkNitroPatch, dev, serve } from './commands/dev'
 import { dockerDown, dockerUp } from './commands/docker'
 import { generateApp, generateLib } from './commands/generate'
 import { info } from './commands/info'
@@ -21,6 +21,7 @@ const commands: Record<string, (args: string[]) => Promise<void>> = {
   dev: dev,
   serve: serve,
   build: build,
+  'check:nitro-patch': checkNitroPatch,
 
   'docker:up': dockerUp,
   'docker:down': dockerDown,

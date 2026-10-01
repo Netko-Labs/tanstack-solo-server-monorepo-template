@@ -28,6 +28,7 @@ bun run status       # Show monorepo status
 | `dev --app <name>` | Start full dev environment (docker + db + server) |
 | `serve --app <name>` | Start dev server only |
 | `build --app <name>` | Build for production |
+| `check:nitro-patch --app <name>` | Fail unless `patches/nitro@*.patch` reached the installed nitro (`serve` runs it first) |
 
 ### Docker
 
