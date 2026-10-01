@@ -336,7 +336,8 @@ In Coolify:
 5. Runtime variables, all required in production (the app refuses to boot otherwise): `BASE_URL`,
    `DATABASE_URL`, `AUTH_SECRET` (32+ chars), `RESEND_API_KEY`. Recommended: `CACHE_URL` (Redis; without it
    the room bus is in-process, so set it before running more than one instance). Optional:
-   `TRUSTED_ORIGINS`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, `LOG_LEVEL`.
+   `TRUSTED_ORIGINS`, `TRUSTED_PROXIES`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`,
+   `LOG_LEVEL`.
 6. Graceful shutdown: `railpack.json` clears Railpack's `CI=true` (which disables the server's SIGTERM
    handling) and sets `SERVER_SHUTDOWN_TIMEOUT=10`; keep Coolify's stop grace period above that. On
    SIGTERM every socket closes with 1001, room leaves run, then Redis and Postgres clients close.
@@ -376,6 +377,15 @@ the database or backfill `todo.user_id` by hand before running it against real d
 The tRPC adapter pings every 30 s so idle-timeouts never close a quiet tab, and the crossws upgrade
 hook rejects browser origins outside `BASE_URL` + `TRUSTED_ORIGINS` (cookies ride cross-site
 upgrades; CORS does not apply to WebSockets).
+
+### Security boundary
+Built servers send HSTS, `nosniff`, a strict referrer policy and `frame-ancestors 'none'` on every
+route (`routeRules` in `vite.config.ts`). `/api/trpc` takes JSON POSTs only (415 otherwise),
+refuses a browser `Origin` outside `BASE_URL` + `TRUSTED_ORIGINS` (403), caps bodies at 1 MiB (413)
+and batches at 20; `/trpc-ws` closes a frame over 1 MiB with 1009. Outside dev an error reaches the
+client as its code only. Known gaps: a `script-src` CSP needs a nonce from Start; better-auth rate
+limits live in memory, per instance (set `TRUSTED_PROXIES` behind a CDN so they key on the client
+IP); `room.send` has no per-user throttle.
 
 ## 📝 License
 
