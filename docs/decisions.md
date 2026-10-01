@@ -161,8 +161,9 @@ revisit.
 - **Context:** migrations 0000–0004 carried destructive steps (0003 deletes unowned todos, 0004
   drops `passkey`) that a clone has no reason to inherit.
 - **Decision:** squash them into one baseline before the freeze.
-- **Consequence:** a database already migrated from this template needs its
-  `__drizzle_migrations` rows reset once.
+- **Consequence:** the baseline's journal `when` is pinned to the old 0004's, so drizzle skips it
+  on a database that already applied 0004; only one stopped earlier needs its
+  `__drizzle_migrations` rows reset (or the missing steps applied by hand) once.
 - **Considered and not used:** keeping the history with upgrade notes and a baseline-on-clone step.
 - **Revisit when:** never for the template; clones own their history from the baseline.
 
