@@ -1,8 +1,8 @@
 export type TrpcProbes = {
   protectedQuery: string
   publicQuery: string
-  guardedStream: string
-  streamInput: unknown
+  guardedStream?: string
+  streamInput?: unknown
 }
 
 export type HealthBody = { checks?: { database?: string; cache?: string } }

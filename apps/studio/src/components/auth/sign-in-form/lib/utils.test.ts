@@ -25,6 +25,13 @@ describe('sign-in form copy', () => {
     expect(initialSignInForm(undefined).message).toBeNull()
   })
 
+  test('URL-controlled codes never reach the prototype', () => {
+    for (const key of ['__proto__', 'constructor', 'toString']) {
+      expect(initialSignInForm(key).message?.text).toBe(SIGN_IN_LINK_ERROR)
+      expect(signInErrorMessage({ code: key, status: 400 })).toBe(SIGN_IN_ERROR)
+    }
+  })
+
   test('the error callback keeps the redirect', () => {
     expect(signInErrorCallbackUrl('/todos?x=1')).toBe('/sign-in?redirect=%2Ftodos%3Fx%3D1')
     expect(signInErrorCallbackUrl(undefined)).toBe('/sign-in')

@@ -8,7 +8,8 @@ import {
 } from './values'
 
 export function signInErrorMessage({ code, status }: SignInAuthError): string {
-  const copy = code ? SIGN_IN_ERROR_COPY[code] : undefined
+  const copy =
+    code && Object.hasOwn(SIGN_IN_ERROR_COPY, code) ? SIGN_IN_ERROR_COPY[code] : undefined
   return copy ?? (status === 429 ? SIGN_IN_RATE_LIMITED : SIGN_IN_ERROR)
 }
 
@@ -18,8 +19,10 @@ export function signInErrorCallbackUrl(redirect: string | undefined): string {
 }
 
 export function initialSignInForm(linkError: string | undefined): SignInFormState {
-  const message = linkError
-    ? { type: 'error' as const, text: SIGN_IN_LINK_ERROR_COPY[linkError] ?? SIGN_IN_LINK_ERROR }
-    : null
+  const copy =
+    linkError && Object.hasOwn(SIGN_IN_LINK_ERROR_COPY, linkError)
+      ? SIGN_IN_LINK_ERROR_COPY[linkError]
+      : undefined
+  const message = linkError ? { type: 'error' as const, text: copy ?? SIGN_IN_LINK_ERROR } : null
   return { email: '', isSending: false, message }
 }
