@@ -2,7 +2,7 @@ import { createLogger } from '@temp-repo/logger'
 import { studioEnvConfig } from '@temp-repo/studio-config'
 import type { Context } from '@temp-repo/studio-domain'
 import { auth, ServiceError } from '@temp-repo/studio-service'
-import { initTRPC, TRPCError } from '@trpc/server'
+import { initTRPC, type TRPC_ERROR_CODE_KEY, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 import { formatErrorShape } from './shared/error-shape'
 import type { CreateContextOptions } from './types'
@@ -36,26 +36,22 @@ export const createContext = async ({ req }: CreateContextOptions): Promise<Cont
   }
 }
 
+// UNAUTHORIZED is a signed-out tab polling, not a fault; the root cause of a 5xx is logged by
+// the error formatter, so every failure here is a timing line.
+const completionLevel = (code: TRPC_ERROR_CODE_KEY) => (code === 'UNAUTHORIZED' ? 'info' : 'warn')
+
 const loggingMiddleware = t.middleware(async ({ path, type, next }) => {
   const startTime = Date.now()
-
   logger.debug({ path, type }, '→ incoming')
-
-  try {
-    const result = await next()
-    const duration = Date.now() - startTime
-
-    logger.debug({ path, type, duration, ok: result.ok }, '← completed')
-
-    return result
-  } catch (error) {
-    const duration = Date.now() - startTime
-
-    // Detailed logging happens in errorFormatter; this is the timing line.
-    logger.debug({ path, type, duration }, '✗ failed')
-
-    throw error
+  const result = await next()
+  const duration = Date.now() - startTime
+  if (result.ok) {
+    logger.info({ path, type, duration, ok: true }, '← completed')
+  } else {
+    const { code } = result.error
+    logger[completionLevel(code)]({ path, type, duration, ok: false, code }, '← completed')
   }
+  return result
 })
 
 const serviceErrorMiddleware = t.middleware(async ({ next }) => {

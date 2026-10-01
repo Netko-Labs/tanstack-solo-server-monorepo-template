@@ -43,13 +43,21 @@ export function createTRPCHttpHandler<TRouter extends AnyRouter>(
   return async (request) => {
     const origin = request.headers.get('origin')
     if (origin && !isTrustedOrigin(origin, opts.trustedOrigins)) {
+      opts.logger?.warn({ origin }, 'http origin refused')
       return new Response('forbidden origin', { status: 403 })
     }
     if (request.method === 'POST' && !isJson(request)) {
+      opts.logger?.warn(
+        { contentType: request.headers.get('content-type') },
+        'http media type refused',
+      )
       return new Response('unsupported media type', { status: 415 })
     }
     const req = await capBody(request)
-    if (!req) return new Response('payload too large', { status: 413 })
+    if (!req) {
+      opts.logger?.warn({ limit: MAX_TRPC_BODY_BYTES }, 'http body too large')
+      return new Response('payload too large', { status: 413 })
+    }
     return fetchRequestHandler({
       req,
       router: opts.router,

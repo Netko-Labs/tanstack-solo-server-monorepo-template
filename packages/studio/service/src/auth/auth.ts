@@ -5,6 +5,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { lastLoginMethod, magicLink } from 'better-auth/plugins'
 import { sendMagicLinkEmail } from '../email'
+import { betterAuthLogger } from '../logger'
 
 const { trustedProxies } = studioEnvConfig.app
 
@@ -25,6 +26,7 @@ export const auth = betterAuth({
     cookiePrefix: 'studio',
     ipAddress: trustedProxies.length > 0 ? { trustedProxies } : undefined,
   },
+  logger: betterAuthLogger,
   rateLimit: {
     enabled: !studioEnvConfig.app.dev,
   },

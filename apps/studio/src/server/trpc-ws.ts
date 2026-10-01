@@ -1,3 +1,4 @@
+import { createLogger } from '@temp-repo/logger'
 import { studioEnvConfig } from '@temp-repo/studio-config'
 import { appRouter, createContext, createTRPCWebSocketHooks } from '@temp-repo/studio-trpc'
 import { defineWebSocketHandler } from 'nitro/h3'
@@ -12,5 +13,6 @@ export default defineWebSocketHandler(
     createContext,
     trustedOrigins: [studioEnvConfig.app.baseUrl, ...studioEnvConfig.auth.trustedOrigins],
     keepAlive: { pingMs: WS_PING_MS, pongWaitMs: WS_PONG_WAIT_MS },
+    logger: createLogger('trpc-ws'),
   }),
 )

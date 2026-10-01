@@ -1,4 +1,4 @@
-import pino from 'pino'
+import pino, { type DestinationStream, type Level } from 'pino'
 import pretty from 'pino-pretty'
 
 const ANSI = {
@@ -133,9 +133,20 @@ function createKawaiiPrettyStream() {
   })
 }
 
+// Entries default to 'info'; 'trace' lets the logger's own level decide, so dev keeps debug lines.
+const streams = pino.multistream([
+  { level: 'trace', stream: isDevelopment ? createKawaiiPrettyStream() : pino.destination(1) },
+])
+
 /** Development: pretty and debug level. Production: plain JSON at info level for log shippers. */
-export const logger = isDevelopment
-  ? pino({ level: process.env.LOG_LEVEL || 'debug' }, createKawaiiPrettyStream())
-  : pino({ level: process.env.LOG_LEVEL || 'info' })
+export const logger = pino(
+  { level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info') },
+  streams,
+)
 
 export const createLogger = (namespace: string) => logger.child({ namespace: `[${namespace}]` })
+
+/** Tees every record at `level` and above into another sink (e.g. an OTLP exporter). */
+export function addLogStream(stream: DestinationStream, level: Level = 'info'): void {
+  streams.add({ level, stream })
+}

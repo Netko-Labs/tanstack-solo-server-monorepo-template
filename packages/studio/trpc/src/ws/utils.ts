@@ -3,6 +3,7 @@ import type { AnyRouter } from '@trpc/server'
 import { getWSConnectionHandler, type WSSHandlerOptions } from '@trpc/server/adapters/ws'
 import { isTrustedOrigin } from '../shared/origin'
 import type {
+  CloseDetails,
   MessageLike,
   PeerLike,
   TRPCWebSocketHooks,
@@ -22,6 +23,7 @@ export const MAX_SUBSCRIPTIONS_PER_PEER = 16
 /** Adapts a crossws peer to the `ws`-shaped client tRPC's WebSocket adapter drives. */
 class PeerSocket extends EventEmitter {
   readyState = WEBSOCKET_OPEN
+  readonly openedAt = Date.now()
   /** In-flight request id → method, so a response can be matched to what it answers. */
   readonly requests = new Map<string, string>()
   liveSubscriptions = 0
@@ -58,6 +60,13 @@ export function closeAllPeers(code = 1001, reason = 'server shutting down'): voi
 function toNodeRequest(request: Request) {
   const url = new URL(request.url)
   return { url: `${url.pathname}${url.search}`, headers: Object.fromEntries(request.headers) }
+}
+
+function userIdOf(ctx: unknown): string | undefined {
+  if (typeof ctx !== 'object' || ctx === null || !('user' in ctx)) return undefined
+  const { user } = ctx
+  if (typeof user !== 'object' || user === null || !('id' in user)) return undefined
+  return typeof user.id === 'string' ? user.id : undefined
 }
 
 function parseFrame(text: string): unknown[] | undefined {
@@ -122,16 +131,19 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
   opts: TRPCWebSocketHooksOptions<TRouter>,
 ): TRPCWebSocketHooks {
   const sockets = new Map<string, PeerSocket>()
-  const requestOf = new WeakMap<object, Request>()
+  const peerOf = new WeakMap<object, PeerLike>()
 
   const onConnection = getWSConnectionHandler({
     router: opts.router,
-    createContext: ({ req }) => {
-      const request = requestOf.get(req)
-      if (!request) throw new Error('trpc-ws: upgrade request missing for peer')
-      return opts.createContext({ req: request })
+    createContext: async ({ req }) => {
+      const peer = peerOf.get(req)
+      if (!peer) throw new Error('trpc-ws: upgrade request missing for peer')
+      const ctx = await opts.createContext({ req: peer.request })
+      opts.logger?.info({ peer: peer.id, user: userIdOf(ctx) }, 'socket open')
+      return ctx
     },
-    onError: ({ error, path }) => opts.onError?.({ error, path }),
+    onError: ({ error, path, type, ctx, input }) =>
+      opts.onError?.({ error, path, type, ctx, input }),
     // Protocol-level: the adapter sends a "PING" message and resets on any message back
     // (wsLink answers "PONG"); no WebSocket ping frames are involved.
     keepAlive: opts.keepAlive ? { enabled: true, ...opts.keepAlive } : undefined,
@@ -146,6 +158,7 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
     upgrade(request) {
       const origin = request.headers.get('origin')
       if (!origin || isTrustedOrigin(origin, opts.trustedOrigins)) return undefined
+      opts.logger?.warn({ origin }, 'socket origin refused')
       return new Response('forbidden origin', { status: 403 })
     },
     open(peer) {
@@ -153,7 +166,7 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       sockets.set(peer.id, socket)
       openSockets.add(socket)
       const req = toNodeRequest(peer.request)
-      requestOf.set(req, peer.request)
+      peerOf.set(req, peer)
       onConnection(socket as never, req as never)
     },
     message(peer, message: MessageLike) {
@@ -170,9 +183,18 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       }
       socket.emit('message', Buffer.from(text), false)
     },
-    close(peer) {
+    close(peer, details: CloseDetails = {}) {
       const socket = sockets.get(peer.id)
       if (!socket) return
+      opts.logger?.info(
+        {
+          peer: peer.id,
+          code: details.code,
+          reason: details.reason || undefined,
+          lifetime: Date.now() - socket.openedAt,
+        },
+        'socket closed',
+      )
       socket.readyState = WEBSOCKET_CLOSED
       socket.emit('close')
       sockets.delete(peer.id)

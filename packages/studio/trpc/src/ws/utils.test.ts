@@ -169,4 +169,60 @@ describe('crossws ↔ tRPC bridge', () => {
     expect(peer.closeCode).toBe(1009)
     hooks.close(peer)
   })
+
+  test('logs a refused origin, socket open with the user, and close with its lifetime', async () => {
+    const lines: { level: string; fields: Record<string, unknown>; message: string }[] = []
+    const record = (level: string) => (fields: object, message: string) =>
+      lines.push({ level, fields: fields as Record<string, unknown>, message })
+    const logged = createTRPCWebSocketHooks({
+      router,
+      createContext: async () => ({ user: { id: 'u1', email: 'u1@example.com' } }),
+      trustedOrigins: ['http://app.test'],
+      logger: { info: record('info'), warn: record('warn') },
+    })
+    logged.upgrade(fakePeer('https://evil.example').request)
+    expect(lines[0]).toEqual({
+      level: 'warn',
+      fields: { origin: 'https://evil.example' },
+      message: 'socket origin refused',
+    })
+    const peer = fakePeer('http://app.test')
+    logged.open(peer)
+    await until(() => lines.length === 2)
+    expect(lines[1]).toEqual({
+      level: 'info',
+      fields: { peer: peer.id, user: 'u1' },
+      message: 'socket open',
+    })
+    logged.close(peer, { code: 1000, reason: '' })
+    expect(lines[2]?.message).toBe('socket closed')
+    expect(lines[2]?.fields).toMatchObject({ peer: peer.id, code: 1000 })
+    expect(typeof lines[2]?.fields.lifetime).toBe('number')
+  })
+
+  test('onError reports a failing subscription with its type and the peer context', async () => {
+    const ctx = { user: { id: 'u2' } }
+    const tc = initTRPC.context<typeof ctx>().create()
+    const failing = tc.router({
+      boom: tc.procedure.subscription(async function* () {
+        yield 1
+        throw new Error('iterator failed')
+      }),
+    })
+    const events: { type: string; path?: string; ctx?: unknown }[] = []
+    const reporting = createTRPCWebSocketHooks({
+      router: failing,
+      createContext: async () => ctx,
+      trustedOrigins: [],
+      onError: ({ type, path, ctx }) => events.push({ type, path, ctx }),
+    })
+    const peer = fakePeer()
+    reporting.open(peer)
+    reporting.message(peer, {
+      text: () => JSON.stringify({ id: 1, method: 'subscription', params: { path: 'boom' } }),
+    })
+    await until(() => events.length === 1)
+    expect(events[0]).toEqual({ type: 'subscription', path: 'boom', ctx })
+    reporting.close(peer)
+  })
 })

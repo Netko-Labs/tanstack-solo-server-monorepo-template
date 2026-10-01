@@ -1,5 +1,6 @@
 export * from './auth'
 export * from './email'
+export * from './logger'
 export * from './mutations'
 export * from './queries'
 export * from './room'
