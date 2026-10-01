@@ -7,7 +7,8 @@ import {
   parseAppArg,
   validateApp,
 } from '../utils/apps'
-import { getRootDir, loadEnvFile, run } from '../utils/shell'
+import { getRootDir, loadEnvFile, run, runQuiet } from '../utils/shell'
+import type { TurboDryRun } from '../utils/types'
 
 const DEFAULT_ENV_APP = 'studio'
 const GATED_SUITE_VARS = ['DATABASE_URL', 'CACHE_URL']
@@ -26,7 +27,11 @@ export const test = async (args: string[]) => {
       console.log(`Available apps: ${getAvailableApps().join(', ')}`)
       process.exit(1)
     }
-    cmd.push('--filter', `${getAppPackageName(appName)}...`)
+    const filter = `${getAppPackageName(appName)}...`
+    cmd.push('--filter', filter)
+    if ((await countTestTasks(filter, rootDir)) === 0) {
+      console.warn(`⚠️  no workspace under ${appName} has a test script: nothing will run`)
+    }
   }
 
   const extraFlags: string[] = []
@@ -67,6 +72,15 @@ export const testSmoke = async (args: string[]) => {
   )
 
   await run(['bun', 'tests/smoke.ts', '--app', appName], { cwd: getRootDir(), env })
+}
+
+async function countTestTasks(filter: string, cwd: string): Promise<number> {
+  const plan: TurboDryRun = JSON.parse(
+    await runQuiet(['turbo', 'run', 'test', '--filter', filter, '--dry=json'], { cwd }),
+  )
+  return (plan.tasks ?? []).filter(
+    (task) => task.taskId.endsWith('#test') && task.command !== '<NONEXISTENT>',
+  ).length
 }
 
 /** The app's .env under the shell's own env, which wins: CI sets its service URLs there. */
