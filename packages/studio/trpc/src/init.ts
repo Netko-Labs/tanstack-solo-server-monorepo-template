@@ -55,18 +55,15 @@ export const createContext = async ({ req }: CreateContextOptions): Promise<Cont
   }
 }
 
-//* Logging Middleware
 const loggingMiddleware = t.middleware(async ({ path, type, next }) => {
   const startTime = Date.now()
 
-  // Log incoming procedure call
   logger.debug({ path, type }, '→ incoming')
 
   try {
     const result = await next()
     const duration = Date.now() - startTime
 
-    // Log successful procedure completion
     logger.debug({ path, type, duration, ok: result.ok }, '← completed')
 
     return result
@@ -93,7 +90,6 @@ const serviceErrorMiddleware = t.middleware(async ({ next }) => {
   return result
 })
 
-//* Procedures
 const baseProcedure = t.procedure.use(loggingMiddleware).use(serviceErrorMiddleware)
 
 export const publicProcedure = baseProcedure

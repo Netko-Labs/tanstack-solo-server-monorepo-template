@@ -12,12 +12,6 @@ import { getPackageScope } from '../utils/scope'
 import { getRootDir, loadEnvFile, run } from '../utils/shell'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* DATABASE COMMANDS *:･ﾟ✧*:･ﾟ✧
- *
- * Drizzle database commands per app (◕‿◕✿)
- */
-
-/**
  * Run Drizzle migrations for an app
  */
 export async function dbMigrate(args: string[]) {

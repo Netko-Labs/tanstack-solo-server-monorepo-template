@@ -9,7 +9,6 @@ const logger = createLogger('trpc')
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter: ({ shape, error }) => {
-    // Log all tRPC errors with context
     logger.error(
       {
         code: shape.code,
@@ -27,7 +26,6 @@ const t = initTRPC.context<Context>().create({
 export const router = t.router
 export const mergeRouters = t.mergeRouters
 
-//* Context
 export const createContext = async (_opts: CreateContextOptions): Promise<Context> => {
   // Add your auth logic here to extract user from request
   // Example with cookies/tokens:
@@ -40,7 +38,6 @@ export const createContext = async (_opts: CreateContextOptions): Promise<Contex
   }
 }
 
-//* Procedures
 export const publicProcedure = t.procedure
 export const protectedProcedure = t.procedure.use(async ({ next, ctx }) => {
   const { user, session } = ctx

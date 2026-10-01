@@ -10,12 +10,6 @@ import {
 import { getRootDir, loadEnvFile, run } from '../utils/shell'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* BUILD COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Build an app for production (◕‿◕✿)
- */
-
-/**
  * Build an app for production. Vite apps run `vite build`; headless server apps
  * bundle their entry with `bun build`.
  */

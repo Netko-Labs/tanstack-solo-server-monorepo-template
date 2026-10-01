@@ -46,10 +46,8 @@ export class RoomHub {
     const deadline = until
       ? setTimeout(() => controller.abort(), Math.max(0, until.getTime() - Date.now()))
       : undefined
-    // After a transport reconnect the client re-syncs from a fresh snapshot: events published
-    // during the outage are gone for good, so a diff cannot repair the view. The marker keeps
-    // queue order: the snapshot is taken when the consumer reaches it, so events queued after
-    // it are deduped against that snapshot instead of being wiped by it.
+    // Events lost in an outage need a fresh snapshot; the marker keeps queue order so later
+    // events are deduped against it (docs/room-bus.md, snapshot boundary).
     const offReconnect = this.bus.onReconnect(() => queue.push({ type: 'resync' }))
     let joined = false
     let closing = false
@@ -82,10 +80,8 @@ export class RoomHub {
       let sync = await this.snapshot(roomId, connectionId)
       if (controller.signal.aborted) return
       signature = presenceSignature(sync.members)
-      // Joins queued before a snapshot for users it already lists are echoes (a later rejoin
-      // is real, so this is backlog-scoped). Chat ids are immutable, so any chat already in a
-      // snapshot is suppressed for the stream's lifetime: its notification may trail the
-      // history read by more than the backlog window.
+      // Backlog joins of listed users are echoes; a chat already in a snapshot is suppressed for
+      // the stream's lifetime, since its notification may trail the history read.
       let snapshotUsers = new Set(sync.members.map((m) => m.userId))
       const seenMessages = new Set(sync.messages.map((m) => m.id))
       let backlog = queue.size()
@@ -153,11 +149,8 @@ export class RoomHub {
   }
 }
 
-// The bus (connections + subscriptions + presence) is one per process, not per module
-// graph: dev evaluates the HTTP route (Vite `ssr` env) and the WebSocket handler (`nitro`
-// env) separately. The hub is stateless, so every module evaluation builds a fresh one on
-// the shared bus and HMR edits to this file take effect without a restart; edits to the
-// bus files still need one.
+// One bus per process, not per module graph: dev evaluates the HTTP route and the WebSocket
+// handler separately (docs/room-bus.md, dev gotcha). The stateless hub is rebuilt each time.
 const BUS_KEY = Symbol.for('studio.room-bus')
 const globalBus = globalThis as typeof globalThis & Record<symbol, RoomBus | undefined>
 globalBus[BUS_KEY] ??= createRoomBus()

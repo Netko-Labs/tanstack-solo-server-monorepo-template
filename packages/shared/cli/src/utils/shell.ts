@@ -4,12 +4,6 @@ import { $ } from 'bun'
 import type { RunOptions } from './types'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* SHELL UTILITIES *:･ﾟ✧*:･ﾟ✧
- *
- * Bun shell helpers for running commands (◕‿◕✿)
- */
-
-/**
  * Load environment variables from a .env file
  */
 export function loadEnvFile(envFilePath: string): Record<string, string> {

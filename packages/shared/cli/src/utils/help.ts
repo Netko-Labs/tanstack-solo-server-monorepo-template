@@ -1,9 +1,3 @@
-/**
- * ✧･ﾟ: *✧･ﾟ:* HELP UTILITIES *:･ﾟ✧*:･ﾟ✧
- *
- * CLI help output (◕‿◕✿)
- */
-
 export const printHelp = () => {
   console.log(`
 Monorepo CLI

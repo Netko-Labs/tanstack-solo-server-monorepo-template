@@ -3,12 +3,6 @@ import { join } from 'node:path'
 import { getAppDir, getAvailableApps } from '../utils/apps'
 import { findProcessesOnPort, loadEnvFile, runQuiet } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* STATUS COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Show monorepo status (◕‿◕✿)
- */
-
 export const status = async () => {
   console.log('Monorepo Status\n')
 

@@ -1,11 +1,5 @@
 import { z } from 'zod'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* CONTEXT SCHEMAS *:･ﾟ✧*:･ﾟ✧
- *
- * Request context types for tRPC procedures (◕‿◕✿)
- */
-
 export const UserSchema = z.object({
   id: z.string(),
   email: z.string().email().optional(),

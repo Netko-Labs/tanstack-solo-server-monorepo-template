@@ -1,4 +1,3 @@
-// conventions: >300 lines — vendored shadcn/base-ui primitive kept whole for upstream diffs; split when next touched
 'use client'
 
 import { cn } from '@temp-repo/ui/lib/utils'

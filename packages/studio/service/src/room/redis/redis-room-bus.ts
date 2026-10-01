@@ -102,9 +102,8 @@ export class RedisRoomBus implements RoomBus {
     this.commands.close()
   }
 
-  // Bun keeps the local listener across the reconnect while the server-side SUBSCRIBE is
-  // gone; re-subscribing without dropping it first would deliver every message twice.
-  // One failed channel must not stop the rest, and listeners always get the resync.
+  // Bun keeps the local listener while the server-side SUBSCRIBE is gone: drop it first, or
+  // every message arrives twice.
   private async restoreSubscriptions(): Promise<void> {
     const generation = ++this.restoreGeneration
     const restores: Promise<void>[] = []
@@ -134,12 +133,8 @@ export class RedisRoomBus implements RoomBus {
     return next
   }
 
-  // Only the first attempt is awaited, so one bad channel neither blocks the others nor
-  // holds back the resync. Retries continue in the background with capped backoff for as
-  // long as the listener is still wanted: a deaf instance is never an acceptable steady state.
-  // A late success resyncs again, because events published while the channel was down
-  // are gone for good. A newer restore supersedes pending retries, so a callback is
-  // never subscribed twice; a listener dropped meanwhile is never restored.
+  // Only the first attempt is awaited; retries back off in the background while the listener
+  // is wanted. Retry rules: docs/room-bus.md (Redis outage).
   private async resubscribe(
     channel: string,
     onMessage: (raw: string) => void,

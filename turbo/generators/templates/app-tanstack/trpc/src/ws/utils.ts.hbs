@@ -87,9 +87,8 @@ function release(socket: PeerSocket, key: string): void {
 }
 
 /**
- * The server's last word on an id frees it: `stopped` or an error for a subscription, the
- * single `data` result or an error for anything else. Matching on the recorded method keeps
- * a query's error from freeing a subscription that reused its id.
+ * The server's last word on an id frees it; matching the recorded method keeps a query's error
+ * from freeing a subscription that reused its id.
  */
 function releaseFinished(socket: PeerSocket, text: string): void {
   for (const item of parseFrame(text) ?? []) {
@@ -105,11 +104,8 @@ function releaseFinished(socket: PeerSocket, text: string): void {
 }
 
 /**
- * Tracks in-flight request ids per socket from the wire messages so a peer cannot open an
- * unbounded number of streams. Returns false when the frame must be refused. Only
- * subscriptions count against the cap; a batch of queries or mutations is never refused.
- * Reusing an id that is still in flight (other than to stop it) is refused outright: tRPC
- * would answer with an error, and that error must never be mistaken for another request's.
+ * False when the frame must be refused: past the subscription cap, or reusing an in-flight id
+ * (tRPC's error for it would be mistaken for the original request's).
  */
 function trackSubscriptions(socket: PeerSocket, text: string): boolean {
   const items = parseFrame(text)

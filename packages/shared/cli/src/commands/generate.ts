@@ -1,12 +1,6 @@
 import { getRootDir, run } from '../utils/shell'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* GENERATE COMMANDS *:･ﾟ✧*:･ﾟ✧
- *
- * Wrappers for turbo generators (◕‿◕✿)
- */
-
-/**
  * Generate a new app using turbo gen
  */
 export async function generateApp() {

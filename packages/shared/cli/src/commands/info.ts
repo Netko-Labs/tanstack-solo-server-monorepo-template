@@ -3,12 +3,6 @@ import { join } from 'node:path'
 import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
 import { loadEnvFile } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* INFO COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Show detailed info about an app (◕‿◕✿)
- */
-
 export const info = async (args: string[]) => {
   const appName = parseAppArg(args)
 

@@ -10,12 +10,6 @@ import { dbGenerate, dbMigrate } from './db'
 import { dockerUp } from './docker'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* DEV COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Run development server for an app (◕‿◕✿)
- */
-
-/**
  * Run full development setup for an app:
  * 1. Start Docker containers
  * 2. Generate DB schema

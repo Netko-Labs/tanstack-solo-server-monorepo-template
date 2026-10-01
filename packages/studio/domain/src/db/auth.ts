@@ -1,10 +1,6 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
-/**
- * =^._.^= User Table =^._.^=
- * Where our precious hoomans are stored
- */
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -18,10 +14,6 @@ export const user = pgTable('user', {
     .notNull(),
 })
 
-/**
- * ≽^•⩊•^≼ Session Table ≽^•⩊•^≼
- * Keeping track of who's logged in like a cat watching its territory
- */
 export const session = pgTable(
   'session',
   {
@@ -41,10 +33,6 @@ export const session = pgTable(
   (table) => [index('session_userId_idx').on(table.userId)],
 )
 
-/**
- * (=^･ω･^=) Account Table (=^･ω･^=)
- * OAuth providers and credentials, because one login is never enough
- */
 export const account = pgTable(
   'account',
   {
@@ -69,10 +57,6 @@ export const account = pgTable(
   (table) => [index('account_userId_idx').on(table.userId)],
 )
 
-/**
- * /ᐠ. ᴗ.ᐟ\ Verification Table /ᐠ. ᴗ.ᐟ\
- * For email verification tokens and other proof-of-existence stuff
- */
 export const verification = pgTable(
   'verification',
   {
@@ -89,15 +73,6 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)],
 )
 
-/**
- * ^._.^ JWKS Table ^._.^
- * JSON Web Key Sets - the cryptographic fur keeping your tokens warm
- */
-
-/**
- * ฅ^•ﻌ•^ฅ Relations Zone ฅ^•ﻌ•^ฅ
- * Where tables become friends (or enemies with cascade delete)
- */
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),

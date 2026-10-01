@@ -3,12 +3,6 @@ import * as path from 'node:path'
 import { getRootDir } from './shell'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* APP UTILITIES *:･ﾟ✧*:･ﾟ✧
- *
- * Helpers for discovering and validating apps (◕‿◕✿)
- */
-
-/**
  * Get list of available apps in the monorepo
  */
 export function getAvailableApps(): string[] {

@@ -303,6 +303,8 @@ These rules apply to frontend UI code (apps and shared UI packages). They extend
   the hook — see **State & Wiring**.
 - Presentation stays in the component; data fetching, subscriptions, derived state, and pure helpers
   move to hooks, `lib/`, a `shared/` module, or a store.
+- Vendored UI primitives (shadcn CLI output, e.g. `packages/shared/ui/src/components/**`) are
+  exempt from the line and hook budgets and the `window` rule. Regenerate them rather than edit them.
 
 ## 5. State & Wiring
 

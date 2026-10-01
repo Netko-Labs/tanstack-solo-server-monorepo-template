@@ -3,12 +3,6 @@ import * as path from 'node:path'
 import { glob } from 'glob'
 import { getRootDir } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* RENAME PROJECT COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Renames the project scope from @temp-repo to a new name (◕‿◕✿)
- */
-
 const CURRENT_SCOPE = '@temp-repo'
 // Bare name also appears in compose project names, POSTGRES_DB and sample.env URLs.
 const CURRENT_NAME = CURRENT_SCOPE.slice(1)

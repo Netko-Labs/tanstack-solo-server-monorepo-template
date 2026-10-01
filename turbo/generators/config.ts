@@ -3,16 +3,6 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { PlopTypes } from '@turbo/gen'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* TURBO GENERATORS *:･ﾟ✧*:･ﾟ✧
- *
- * Custom generators for scaffolding new apps and shared libraries (◕‿◕✿)
- *
- * Available generators:
- * - `turbo gen app` - Create a new app with domain, service, repository, trpc, and config packages
- * - `turbo gen lib` - Create a shared library or an external-service client
- */
-
 const NAME_PATTERN = /^[a-z][a-z0-9-]*$/
 const RESERVED_APP_NAMES = ['shared', 'configs', 'clients']
 const APP_LAYERS = ['domain', 'service', 'repository', 'trpc']

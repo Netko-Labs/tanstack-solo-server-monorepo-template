@@ -1,14 +1,6 @@
 import { createMiddleware, createStart } from '@tanstack/react-start'
 import { logger } from '@temp-repo/logger'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* REQUEST LOGGER MIDDLEWARE *:･ﾟ✧*:･ﾟ✧
- *
- * Logs all incoming requests and outgoing responses with kawaii energy!
- * Because even server logs deserve to be cute (◕‿◕✿)
- *
- * Note: tRPC routes (/api/trpc) are excluded as they have their own logging middleware
- */
 const requestLoggerMiddleware = createMiddleware().server(async ({ next, request }) => {
   const url = new URL(request.url)
   const path = url.pathname
@@ -30,14 +22,12 @@ const requestLoggerMiddleware = createMiddleware().server(async ({ next, request
     const duration = Date.now() - startTime
     const status = nextResponse.response.status
 
-    // Log successful response ヨシ!
     logger.info({ method, path, status, duration }, '← completed')
 
     return nextResponse
   } catch (error) {
     const duration = Date.now() - startTime
 
-    // Log error with appropriate drama ダメ!
     logger.error(
       {
         method,
@@ -52,10 +42,6 @@ const requestLoggerMiddleware = createMiddleware().server(async ({ next, request
   }
 })
 
-/**
- * TanStack Start instance with global middleware
- * All requests flow through our kawaii logger! ψ(｀∇´)ψ
- */
 export const startInstance = createStart(() => ({
   requestMiddleware: [requestLoggerMiddleware],
 }))

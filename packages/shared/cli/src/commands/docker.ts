@@ -2,12 +2,6 @@ import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/
 import { run } from '../utils/shell'
 
 /**
- * ✧･ﾟ: *✧･ﾟ:* DOCKER COMMANDS *:･ﾟ✧*:･ﾟ✧
- *
- * Docker Compose commands with profile support (◕‿◕✿)
- */
-
-/**
  * Start Docker containers for an app using profiles
  */
 export async function dockerUp(args: string[]) {
