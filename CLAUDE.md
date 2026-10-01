@@ -13,6 +13,9 @@ Layering**, **Component Authoring**, **State & Wiring**, **Code Style**, **Workf
 principles, task management, and the commit convention), and **Testing**. The sections below stay in
 this file because they describe this repo's specific topology, scaffolding, and commands.
 
+Settled decisions, with what was considered and not used, live in `docs/decisions.md`. Read it
+before proposing a change in an area it covers.
+
 ## Repository Overview
 
 - Runtime and package manager: `bun@1.4.0` (`packageManager` in package.json; CI installs that version)
