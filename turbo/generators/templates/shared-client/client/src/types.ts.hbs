@@ -1,0 +1,9 @@
+export interface {{ pascalCase name }}ClientConfig {
+  baseUrl: string
+  apiKey: string
+  timeoutMs?: number
+}
+
+export interface {{ pascalCase name }}Client {
+  ping: () => Promise<void>
+}

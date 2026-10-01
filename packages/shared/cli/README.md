@@ -51,7 +51,7 @@ bun run status       # Show monorepo status
 | Command | Description |
 |---------|-------------|
 | `generate:app` | Create a new app |
-| `generate:lib` | Create a shared library |
+| `generate:lib` | Create a shared library (`library` kind) or an external-service client (`client` kind) |
 
 ### Testing
 

@@ -1,0 +1,4 @@
+export { {{ pascalCase name }}ApiError } from './errors'
+export type { {{ pascalCase name }}Client, {{ pascalCase name }}ClientConfig } from './types'
+export { {{ constantCase name }}_API_VERSION, {{ constantCase name }}_TIMEOUT_MS } from './values'
+export { create{{ pascalCase name }}Client } from './{{ name }}-client'

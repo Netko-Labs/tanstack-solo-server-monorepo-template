@@ -51,13 +51,20 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      # one name on each side of "logger", so generated imports sort both ways
       - run: bunx turbo gen app --args smoke
+      - run: bunx turbo gen app --args admin
+      - run: bunx turbo gen lib --args client acme "Acme API"
       - run: bun install
       # build first: it regenerates the route tree the typecheck reads; the app's own script
       # proves `bun run repo` resolves inside apps/*
       - run: bun run build
         working-directory: apps/smoke
+      - run: bun run build
+        working-directory: apps/admin
       - run: bun run check-types
+      - run: bun run fmt-lint
+      - run: bun run test
 
   commitlint:
     if: github.event_name == 'pull_request'

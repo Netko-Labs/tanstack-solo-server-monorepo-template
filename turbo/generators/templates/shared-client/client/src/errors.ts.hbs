@@ -1,0 +1,9 @@
+export class {{ pascalCase name }}ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly detail: string,
+  ) {
+    super(`{{ name }} request failed (${status}): ${detail}`)
+    this.name = '{{ pascalCase name }}ApiError'
+  }
+}

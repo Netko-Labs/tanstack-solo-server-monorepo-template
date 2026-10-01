@@ -28,7 +28,7 @@ Database
 
 Generators
   generate:app               Create a new app
-  generate:lib               Create a shared library
+  generate:lib               Create a shared library or an external-service client
 
 Testing
   test [--app <name>]        Run unit tests

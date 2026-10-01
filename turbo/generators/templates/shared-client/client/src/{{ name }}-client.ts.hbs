@@ -1,0 +1,23 @@
+import { {{ pascalCase name }}ApiError } from './errors'
+import type { {{ pascalCase name }}Client, {{ pascalCase name }}ClientConfig } from './types'
+import { {{ constantCase name }}_API_VERSION, {{ constantCase name }}_TIMEOUT_MS } from './values'
+
+export function create{{ pascalCase name }}Client(config: {{ pascalCase name }}ClientConfig): {{ pascalCase name }}Client {
+  const baseUrl = config.baseUrl.replace(/\/+$/, '')
+  const timeoutMs = config.timeoutMs ?? {{ constantCase name }}_TIMEOUT_MS
+
+  const request = async (path: string, init: RequestInit = {}): Promise<Response> => {
+    const url = [baseUrl, {{ constantCase name }}_API_VERSION, path.replace(/^\/+/, '')].join('/')
+    const headers = new Headers(init.headers)
+    headers.set('authorization', `Bearer ${config.apiKey}`)
+    const res = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(timeoutMs) })
+    if (!res.ok) throw new {{ pascalCase name }}ApiError(res.status, await res.text())
+    return res
+  }
+
+  return {
+    ping: async () => {
+      await request('ping')
+    },
+  }
+}

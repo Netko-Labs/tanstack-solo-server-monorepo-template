@@ -45,7 +45,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - **`bun run gen:app`** — Turbo generator in `turbo/generators/config.ts`. Prompts for a name, then creates the app under `apps/{name}` plus layered packages (`domain`, `repository`, `service`, `trpc`) and `packages/configs/{name}-config`.
 - **App template** — `turbo/generators/templates/app-tanstack/`. TanStack Start + tRPC over HTTP and WebSocket: `components/core/root/` shell (devtools behind a DEV-only lazy import), `src/server/trpc-ws.ts`, `integrations/trpc/` split client, `trpc/src/ws/` bridge, TanStack Query provider, `@temp-repo/ui`, Nitro + rolldown-vite.
 - **Reference app** — treat `apps/studio` as the living example when extending a generated app. Root `CLAUDE.md` applies to all apps unless an app adds a local override.
-- **`bun run gen:lib`** — shared library under `packages/shared/{name}`.
+- **`bun run gen:lib`** — two kinds: `library` → `packages/shared/{name}` (re-export-only barrel, `utils.ts` + test); `client` → `packages/shared/{name}-client`, a transport-only external-service client (`templates/shared-client/`). Both generators finish by running `biome check --write` over what they created.
 
 ## Commands
 
