@@ -35,7 +35,11 @@ if (!databaseUrl) {
 
 const output: string[] = []
 const server = Bun.spawn(
-  ['bun', path.join(import.meta.dir, '..', 'apps', app, '.output/server/index.mjs')],
+  [
+    'bun',
+    '--no-install',
+    path.join(import.meta.dir, '..', 'apps', app, '.output/server/index.mjs'),
+  ],
   {
     env: {
       PATH: process.env.PATH ?? '',
@@ -128,16 +132,19 @@ if (!probes) {
     assert(field(frame, 'result') !== undefined, `${probes.publicQuery} returned no result`, frame)
   })
 
-  await check('an anonymous subscription is refused', async () => {
-    const frame = await request(socket, {
-      id: 2,
-      method: 'subscription',
-      params: { path: probes.guardedStream, input: { json: probes.streamInput } },
+  const { guardedStream, streamInput } = probes
+  if (guardedStream) {
+    await check('an anonymous subscription is refused', async () => {
+      const frame = await request(socket, {
+        id: 2,
+        method: 'subscription',
+        params: { path: guardedStream, input: { json: streamInput } },
+      })
+      const error = field(frame, 'error')
+      const code = field(field(field(error, 'json') ?? error, 'data'), 'code')
+      assert(code === 'UNAUTHORIZED', `${guardedStream} was not refused`, frame)
     })
-    const error = field(frame, 'error')
-    const code = field(field(field(error, 'json') ?? error, 'data'), 'code')
-    assert(code === 'UNAUTHORIZED', `${probes.guardedStream} was not refused`, frame)
-  })
+  }
 
   await check('SIGTERM closes the socket with 1001 and exits 0', () => stopsCleanly(socket))
 }

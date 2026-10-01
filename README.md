@@ -187,9 +187,13 @@ What a deploy does:
 ```
 bun install --frozen-lockfile
 bun run repo build --app studio                    # .output/ + .output/migrate/
-bun apps/studio/.output/migrate/migrate.js \
-  && bun apps/studio/.output/server/index.mjs      # start: migrate, then serve HTTP + WebSocket
+bun --no-install apps/studio/.output/migrate/migrate.js \
+  && bun --no-install apps/studio/.output/server/index.mjs   # start: migrate, then serve HTTP + WebSocket
 ```
+
+`--no-install` matters: the runtime image has no `node_modules`, and without it Bun auto-installs
+any package a dependency probes for at runtime (with `SENTRY_DSN` set, Sentry's module hooks ask npm
+for `hono` on every cold boot).
 
 If Coolify's Railpack build ignores `RAILPACK_CONFIG_FILE`, the fallback is the **Build Command** /
 **Start Command** fields with the same two commands — the app still deploys, but without the pruned
