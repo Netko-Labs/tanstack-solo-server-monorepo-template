@@ -2,10 +2,7 @@ import { isTRPCClientError } from '@trpc/client'
 import type { ErrorCopy } from './types'
 import { GENERIC_ERROR_COPY, TRPC_ERROR_COPY } from './values'
 
-/**
- * A failed call in words: the feature's copy for a service error code (sent as the message),
- * then copy for the tRPC code, then the generic line. Raw server text never reaches the user.
- */
+// The message carries a service error code, never user-facing text; it is only a lookup key.
 export function toUserMessage(error: unknown, featureCopy: ErrorCopy = {}): string | null {
   if (!error) return null
   if (!isTRPCClientError(error)) return GENERIC_ERROR_COPY

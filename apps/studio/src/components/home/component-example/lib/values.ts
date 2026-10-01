@@ -63,7 +63,7 @@ export const TECH_STACK_ITEMS = [
 ]
 
 export const CODE_EXAMPLE_TRPC = `
-// packages/studio/trpc/src/routers/room/mutations.ts
+// packages/studio/trpc/src/routers/room/mutations.ts (trimmed)
 import { ChatMessageSchema, ChatMessageSendInputSchema } from '@temp-repo/studio-domain'
 import { sendChatMessage } from '@temp-repo/studio-service'
 import { protectedProcedure, router } from '../../init'
@@ -78,8 +78,8 @@ export const roomMutations = router({
 
 export const CODE_EXAMPLE_QUERY = `
 // apps/studio/src/components/todos/todos-example/lib/hooks/use-toggle-todo.ts
-import type { Todo } from '@temp-repo/studio-domain'
 import { useMutation, useMutationState } from '@tanstack/react-query'
+import type { Todo } from '@temp-repo/studio-domain'
 import { useTRPC } from '@/integrations/trpc'
 import { todoErrorMessage, todoIdOf } from '../utils'
 import { useInvalidateTodos } from './use-invalidate-todos'
@@ -87,7 +87,9 @@ import { useInvalidateTodos } from './use-invalidate-todos'
 export function useToggleTodo() {
   const trpc = useTRPC()
   const invalidateTodos = useInvalidateTodos()
+  // Settled, not success: a not_found means the row is already gone, so refresh either way.
   const mutation = useMutation(trpc.todos.update.mutationOptions({ onSettled: invalidateTodos }))
+  // Read from the cache, not mutation.variables: two rows toggled at once both stay busy.
   const busyIds = useMutationState({
     filters: { mutationKey: trpc.todos.update.mutationKey(), status: 'pending' },
     select: (entry) => todoIdOf(entry.state.variables),

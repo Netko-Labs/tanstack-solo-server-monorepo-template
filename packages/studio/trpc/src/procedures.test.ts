@@ -18,6 +18,10 @@ const callPath = (caller: unknown, path: string) =>
   ) => Promise<unknown>
 
 describe('procedure auth', () => {
+  test('the sweep sees guarded procedures', () => {
+    expect(guarded.length).toBeGreaterThan(0)
+  })
+
   test('anonymous callers are refused everywhere except the explicit public list', async () => {
     const anonymous = appRouter.createCaller({ user: null, session: null })
     for (const path of guarded) {

@@ -22,5 +22,7 @@ export const SIGN_IN_ERROR_COPY: Record<string, string> = {
 
 /** The `?error=` better-auth appends when a magic link fails to verify. */
 export const SIGN_IN_LINK_ERROR_COPY: Record<string, string> = {
-  INVALID_TOKEN: 'That sign-in link expired or was already used. Send yourself a new one.',
+  EXPIRED_TOKEN: 'That sign-in link expired. Send yourself a new one.',
+  ATTEMPTS_EXCEEDED: 'That sign-in link was already used. Send yourself a new one.',
+  INVALID_TOKEN: 'That sign-in link is not valid. Send yourself a new one.',
 }

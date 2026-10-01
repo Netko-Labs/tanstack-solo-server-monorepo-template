@@ -12,7 +12,6 @@ export function toTodoCreateInput({ title, description }: TodoDraft): TodoCreate
   return { title: title.trim(), description: description.trim() || null }
 }
 
-/** One line for the first rejected field; the form shows a single message, not a list. */
 export function todoIssueMessage(issues: ReadonlyArray<TodoIssue>): string | null {
   const [first] = issues
   if (!first) return null
