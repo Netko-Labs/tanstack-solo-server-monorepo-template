@@ -9,8 +9,8 @@ const UNOBSERVED_PATHS = new Set(['/api/health', MONITOR_PATH])
 
 const isControlFlow = (error: unknown) => isRedirect(error) || isNotFound(error)
 
-// Server routes and SSR. Start serializes server-function throws before they reach this
-// middleware, so those are caught by the function middleware instead.
+// Server routes and throws that escape SSR. SSR loader and render errors become match state and
+// are reported by the browser's route boundary; server-function throws by the function middleware.
 const requestMiddleware = createMiddleware().server(async ({ next, request }) => {
   const url = new URL(request.url)
   const path = url.pathname

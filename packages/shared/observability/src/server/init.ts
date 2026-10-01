@@ -9,9 +9,10 @@ import * as Sentry from '@sentry/node'
 import type { OtlpConfig, ServerTelemetryConfig } from '../types'
 import { DROPPED_INTEGRATIONS, FLUSH_TIMEOUT_MS } from './constants'
 import { AttributeLogProcessor, AttributeSpanProcessor } from './processors'
+import type { TelemetryProviders } from './types'
 import { markVendorFrames, otlpUrl } from './utils'
 
-const providers: { tracer?: NodeTracerProvider; logger?: LoggerProvider } = {}
+const providers: TelemetryProviders = {}
 
 function initSentry(dsn: string, { release, environment }: ServerTelemetryConfig): void {
   Sentry.init({

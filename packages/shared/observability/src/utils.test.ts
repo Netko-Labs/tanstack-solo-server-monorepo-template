@@ -21,6 +21,7 @@ describe('isValidDsn', () => {
     expect(isValidDsn('http://pub@127.0.0.1:4795/7')).toBe(true)
     expect(isValidDsn('https://whiskers.example.com/42')).toBe(false)
     expect(isValidDsn('https://pub@whiskers.example.com/42/')).toBe(false)
+    expect(isValidDsn('https://pub@whiskers.example.com/my-project')).toBe(false)
     expect(isValidDsn('ftp://pub@whiskers.example.com/42')).toBe(false)
     expect(isValidDsn('pub@whiskers')).toBe(false)
   })

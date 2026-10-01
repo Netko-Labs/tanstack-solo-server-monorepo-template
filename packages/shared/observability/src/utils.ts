@@ -13,7 +13,7 @@ export function isValidDsn(dsn: string): boolean {
   try {
     const url = new URL(dsn)
     const isHttp = url.protocol === 'https:' || url.protocol === 'http:'
-    return isHttp && url.username !== '' && /\/[^/]+$/.test(url.pathname)
+    return isHttp && url.username !== '' && /\/\d+$/.test(url.pathname)
   } catch {
     return false
   }

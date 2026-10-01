@@ -32,6 +32,13 @@ test('production rejects telemetry that is set but cannot work; unset is fine', 
   expect(() =>
     assertProductionEnv({
       ...PRODUCTION_ENV,
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'https://w/otlp',
+      OTEL_EXPORTER_OTLP_HEADERS: 'garbage',
+    }),
+  ).toThrow('OTEL_EXPORTER_OTLP_HEADERS')
+  expect(() =>
+    assertProductionEnv({
+      ...PRODUCTION_ENV,
       SENTRY_DSN: 'https://pub@w.example.com/1',
       OTEL_EXPORTER_OTLP_ENDPOINT: 'https://w.example.com/otlp',
       OTEL_EXPORTER_OTLP_HEADERS: 'x-codewhiskers-key=pub',

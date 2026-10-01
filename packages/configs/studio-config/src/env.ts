@@ -19,9 +19,10 @@ function assertTelemetryEnv(env: NodeJS.ProcessEnv): void {
     const dsn = env[name]
     if (dsn && !isValidDsn(dsn)) throw new Error(`${name} must look like https://<key>@<host>/<id>`)
   }
-  if (env.OTEL_EXPORTER_OTLP_ENDPOINT && !env.OTEL_EXPORTER_OTLP_HEADERS) {
+  const otlpHeaders = parseOtlpHeaders(env.OTEL_EXPORTER_OTLP_HEADERS)
+  if (env.OTEL_EXPORTER_OTLP_ENDPOINT && Object.keys(otlpHeaders).length === 0) {
     throw new Error(
-      'OTEL_EXPORTER_OTLP_ENDPOINT needs OTEL_EXPORTER_OTLP_HEADERS (the project key)',
+      'OTEL_EXPORTER_OTLP_ENDPOINT needs OTEL_EXPORTER_OTLP_HEADERS as k=v (the project key)',
     )
   }
 }
