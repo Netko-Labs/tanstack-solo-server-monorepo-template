@@ -1,3 +1,3 @@
 export { addLogStream, createLogger, logger } from './logger'
-export type { RootCause } from './types'
-export { rootCause } from './utils'
+export type { RootCause, TraceIds } from './types'
+export { activeTraceIds, rootCause } from './utils'

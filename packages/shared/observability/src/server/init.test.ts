@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 import { trace } from '@opentelemetry/api'
+import { activeTraceIds } from '@temp-repo/logger'
 import { initServerTelemetry, shutdownTelemetry } from './init'
 import { createOtlpLogStream } from './log-stream'
 import { reportError } from './report-error'
@@ -26,13 +27,22 @@ afterAll(() => sink.stop(true))
 
 const BASE = { serviceName: 'studio', release: 'r1', environment: 'staging' }
 const logLine = (msg: string) =>
-  JSON.stringify({ level: 30, time: Date.now(), pid: 1, hostname: 'h', namespace: '[t]', msg })
+  JSON.stringify({
+    level: 30,
+    time: Date.now(),
+    pid: 1,
+    hostname: 'h',
+    namespace: '[t]',
+    msg,
+    ...activeTraceIds(),
+  })
 
 async function exercise(): Promise<string> {
   const stream = createOtlpLogStream()
   let traceId = ''
   await withSpan('trpc.query probe', { 'trpc.path': 'probe' }, async () => {
     traceId = trace.getActiveSpan()?.spanContext().traceId ?? ''
+    expect(activeTraceIds().trace_id).toBe(traceId || undefined)
     await Bun.sleep(5)
     stream.write(logLine('inside the span'))
     const fault = new Error('boom')
@@ -87,6 +97,8 @@ describe('server telemetry', () => {
     const keys = record.attributes.map((attribute: { key: string }) => attribute.key)
     expect(keys).toEqual(expect.arrayContaining(['namespace', 'release', 'deployment.environment']))
     expect(keys).not.toContain('pid')
+    expect(keys).not.toContain('trace_id')
+    expect(keys).not.toContain('span_id')
 
     const [traces] = hits.filter((hit) => hit.path === '/otlp/v1/traces')
     expect(traces?.contentType).toStartWith('application/json')

@@ -14,13 +14,15 @@ export const DROPPED_INTEGRATIONS: ReadonlySet<string> = new Set(['ProcessSessio
 /** Nitro bundles dependencies into `_libs/`, which code-whiskers would count as app frames. */
 export const VENDOR_FRAME_MARKERS = ['/_libs/', '/node_modules/']
 
-/** Pino fields that duplicate the OTLP record's own timestamp and severity. */
+/** Pino fields that duplicate the OTLP record's own timestamp, severity and trace context. */
 export const DROPPED_LOG_KEYS: ReadonlySet<string> = new Set([
   'level',
   'msg',
   'time',
   'pid',
   'hostname',
+  'trace_id',
+  'span_id',
 ])
 
 export const SEVERITY_BY_PINO_LEVEL: Readonly<Record<number, readonly [SeverityNumber, string]>> = {

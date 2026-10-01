@@ -1,6 +1,7 @@
 import pino, { type DestinationStream, type Level } from 'pino'
 import pretty from 'pino-pretty'
 import type { GlobalLogStreams } from './types'
+import { activeTraceIds } from './utils'
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -146,7 +147,7 @@ const streams = globalStreams[STREAMS_KEY]
 
 /** Development: pretty and debug level. Production: plain JSON at info level for log shippers. */
 export const logger = pino(
-  { level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info') },
+  { level: process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'), mixin: activeTraceIds },
   streams,
 )
 
