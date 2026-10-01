@@ -3,7 +3,6 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
-import tsConfigPaths from 'vite-tsconfig-paths'
 
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
@@ -19,10 +18,17 @@ export default defineConfig(({ command }) => ({
   server: {
     port: Number(process.env.PORT ?? 3000),
   },
+  resolve: { tsconfigPaths: true },
+  build: {
+    rolldownOptions: {
+      // Every React library ships 'use client'; the warning is noise for an SSR bundle.
+      onLog(level, log, handler) {
+        if (log.code === 'MODULE_LEVEL_DIRECTIVE') return
+        handler(level, log)
+      },
+    },
+  },
   plugins: [
-    tsConfigPaths({
-      projects: ['./tsconfig.json'],
-    }),
     tailwindcss(),
     tanstackStart(),
     nitro({

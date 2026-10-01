@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check-types": "tsgo --noEmit",
+    "check-types": "tsc --noEmit",
     "test": "bun test --pass-with-no-tests",
     "dev": "bun run repo dev --app {{ name }}",
     "serve": "bun run repo serve --app {{ name }}",
@@ -39,8 +39,7 @@
     "@trpc/client": "^11.19.0",
     "@trpc/server": "^11.19.0",
     "superjson": "^2.2.6",
-    "tailwindcss": "^4.3.3",
-    "vite-tsconfig-paths": "^6.1.1"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

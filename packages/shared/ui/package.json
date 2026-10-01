@@ -38,6 +38,6 @@
     "./hooks/*": "./src/hooks/*.ts"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit"
+    "check-types": "tsc --noEmit"
   }
 }

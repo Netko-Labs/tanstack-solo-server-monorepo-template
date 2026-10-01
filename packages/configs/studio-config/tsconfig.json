@@ -1,8 +1,3 @@
 {
-  "extends": "@temp-repo/typescript-config/bun.json",
-  "compilerOptions": {
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
-  }
+  "extends": "@temp-repo/typescript-config/bun.json"
 }
