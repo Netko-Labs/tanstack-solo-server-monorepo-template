@@ -39,8 +39,8 @@ The generic layering pattern and per-layer folder structure (`domain → reposit
 ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend Layering** in
 `@docs/conventions.md`. This section records only the concrete studio-stack specifics:
 
-- **Auth**: better-auth at `/api/auth` (`routes/api/auth/$.ts`, `service/src/auth/auth.ts`): magic link always; GitHub, Google and Discord each turn on when both their env values are set. Account linking never trusts a provider's unverified email (`service/src/auth/auth.test.ts`).
-- **Router**: `appRouter` is `{ auth, room, todos }` (`trpc/src/index.ts`). `auth.me` is the only public procedure: `PUBLIC` in `trpc/src/procedures.test.ts`, which calls every other path anonymous and expired.
+- **Auth**: better-auth at `/api/auth` (`routes/api/auth/$.ts`, `service/src/auth/auth.ts`): magic link always; GitHub, Google and Discord each turn on when both their env values are set. Account linking never trusts a provider's unverified email (`service/src/auth/_tests/auth.test.ts`).
+- **Router**: `appRouter` is `{ auth, room, todos }` (`trpc/src/index.ts`). `auth.me` is the only public procedure: `PUBLIC` in `trpc/src/_tests/procedures.test.ts`, which calls every other path anonymous and expired.
 - **Repository** exports only `db`, `closeDb`, `sql`, `Tx`, `createCacheClient` and `CACHE_URL` (`repository/src/index.ts`). Every query and mutation, trivial reads included, is a service operation that calls drizzle itself.
 - **Contracts**: `packages/studio/trpc` does not depend on zod. Every query and mutation declares `.input()` (when it takes one) and `.output()` from domain; subscriptions declare `.input()` only. `procedures.test.ts` fails a query or mutation without an output parser.
 - **Domain shapes**: entities are drizzle-zod output only (`createInsertSchema`/`createSelectSchema`, `domain/src/entities/`); hand-written inputs and results live in `domain/src/schemas/{entity}.ts`; client-visible limits and error codes in `domain/src/values/{entity}.ts` (`TODO_ERROR_CODES`).
@@ -72,7 +72,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
   `db:migrate`, then the dev server on localhost:3000, WebSocket at `/trpc-ws`; with no
   `RESEND_API_KEY` the magic link is logged to this console)
 - Web production build: `bun run repo build --app studio`
-- Smoke the built server: `bun run repo test:smoke --app studio` (after the build; `tests/smoke.ts`
+- Smoke the built server: `bun run repo test:smoke --app studio` (after the build; `_tests/smoke.ts`
   boots `.output` in production mode on :4790 against `DATABASE_URL`/`CACHE_URL` and probes health,
   SSR, tRPC over HTTP and the socket, the origin check and the SIGTERM drain)
 - Dev server only (no docker/migrations): `bun run repo serve --app studio`

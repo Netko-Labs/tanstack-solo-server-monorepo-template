@@ -83,7 +83,7 @@ packages/
   configs/studio-config/  env read once, production checks
   shared/             cli, logger, ui, observability, resend-client, typescript-config
 turbo/generators/     gen:app and gen:lib templates
-tests/                smoke test of the built server
+_tests/               built-server smoke; unit tests sit in a _tests/ beside each subject
 ```
 
 ## 🧩 Where the layers live (the todos example)
@@ -99,7 +99,7 @@ Read these files in order to see one feature cross every layer. The rules behind
 | domain | `packages/studio/domain/src/values/todos.ts` | limits and `TODO_ERROR_CODES`, shared with the client |
 | service | `packages/studio/service/src/queries/todos/get-todos.ts` | a read that calls drizzle, scoped to the owner |
 | service | `packages/studio/service/src/mutations/todos/update-todo.ts` | a write that throws `TodoError('not_found')` |
-| service | `packages/studio/service/src/mutations/todos/ownership.test.ts` | the ownership where-clause, against Postgres |
+| service | `packages/studio/service/src/mutations/todos/_tests/ownership.test.ts` | the ownership where-clause, against Postgres |
 | trpc | `packages/studio/trpc/src/routers/todos/mutations.ts` | `.input()`/`.output()` from domain, no zod import |
 | trpc | `packages/studio/trpc/src/init.ts` | procedures, logging/span middleware, service-error mapping |
 | app | `apps/studio/src/routes/_authed/route.tsx` | the gate: `getSession` server fn, redirect, session in context |
@@ -120,13 +120,13 @@ deploy).
 **Todos**
 - domain: `db/todos.ts`, `entities/todos.ts`, `schemas/todos.ts`, `values/todos.ts` and their
   barrel lines.
-- service: `queries/todos/`, `mutations/todos/` (with `TodoError` and `ownership.test.ts`) and
+- service: `queries/todos/`, `mutations/todos/` (with `TodoError` and `_tests/ownership.test.ts`) and
   their barrel lines.
-- trpc: `routers/todos/` and the `todos` key in `src/index.ts`; `procedures.test.ts` and
-  `shared/error-shape/utils.test.ts` throw `TodoError`, so switch them to `ServiceError`.
+- trpc: `routers/todos/` and the `todos` key in `src/index.ts`; `_tests/procedures.test.ts` and
+  `shared/error-shape/_tests/utils.test.ts` throw `TodoError`, so switch them to `ServiceError`.
 - app: `routes/_authed/todos.tsx` (keep `_authed/route.tsx` as the gate for your own pages),
   `components/todos/`, the Todos entry in the home `FEATURE_CARDS` and its code tab.
-- `tests/values.ts`: point `protectedQuery` at one of your protected queries.
+- `_tests/values.ts`: point `protectedQuery` at one of your protected queries.
 
 **Chat (realtime)**
 - domain: `db/chat.ts`, `entities/chat.ts`, `schemas/chat.ts`, `schemas/room.ts` (and its test),
@@ -139,14 +139,14 @@ deploy).
 - `server/plugins/shutdown.ts`: drop `hub.drain`/`hub.bus.close()`. The hub and its shutdown wiring
   are realtime infra: keep or remove them as a unit. The `/trpc-ws` bridge (`trpc/src/ws/`) stays for
   any future subscription.
-- `tests/values.ts`: drop `guardedStream`/`streamInput` or point them at your own subscription.
+- `_tests/values.ts`: drop `guardedStream`/`streamInput` or point them at your own subscription.
 - `docs/room-bus.md`, and the room entries in `docs/decisions.md` if they no longer apply.
 
 **Home demo**
 - `components/home/` and `routes/index.tsx`'s component. Sign-in does not depend on it
   (`components/auth/` owns the form).
 
-Keep `PUBLIC` in `packages/studio/trpc/src/procedures.test.ts` equal to the procedures you mean to
+Keep `PUBLIC` in `packages/studio/trpc/src/_tests/procedures.test.ts` equal to the procedures you mean to
 expose without a session; the test calls every other path anonymous and with an expired session.
 
 ## 🚀 Deploy (Coolify + Railpack)

@@ -90,7 +90,7 @@ require-hooks never see them. Libraries that call the OpenTelemetry API themselv
 Point the env at a local code-whiskers. Its Sentry ingest creates an unknown project id on first
 use in dev; OTLP does not, so `/otlp` answers 401 until the project exists (send one error event
 with that key first). The package tests run the real SDKs against an in-process sink:
-`bun test` in `packages/shared/observability` (`server/init.test.ts`, `server/tunnel.test.ts`).
+`bun test` in `packages/shared/observability` (`server/_tests/init.test.ts`, `server/_tests/tunnel.test.ts`).
 Tests never receive telemetry env (`turbo.json` does not pass it).
 
 ## Troubleshooting

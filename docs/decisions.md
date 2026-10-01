@@ -12,6 +12,22 @@ revisit.
 | Hydrate a tRPC query cache during SSR (`unstable_localLink` + `@tanstack/react-router-ssr-query`)? | No. Route data goes through server functions (see *Route data through server functions*). | The first page whose loader must prime the same data a tRPC query then owns. |
 | Portless dev hosts (`{app}.{project}.localhost`, generator-registered, HMR behind the proxy)? | Fixed `PORT` per app from its `.env`. | Before a second app or a second project from this template runs side by side. |
 
+## Tests live in a `_tests/` folder beside their subject
+
+2026-10-01 · freeze pass · Juan's call
+
+- **Context:** tests sat as `{file}.test.ts` siblings, mixing test files into module folders next
+  to the code they ship.
+- **Decision:** a test of `{dir}/{file}.ts` lives at `{dir}/_tests/{file}.test.ts`, at the same
+  level as the component, service op, domain model or utils it covers. Test-only helpers and fakes
+  move into that `_tests/`. The repo-level smoke harness is `_tests/` at the root. Generator
+  templates follow the same layout.
+- **Consequence:** subject imports go one level up (`../utils`). `_tests/` is never a module: no
+  barrel, nothing imports from it. `docs/conventions.md` §8 states the rule; §2 is unchanged.
+- **Considered and not used:** colocated `{file}.test.ts` siblings (the previous layout); a
+  top-level `tests/` per package (far from the subject, mirrors the tree by hand).
+- **Revisit when:** Juan reopens it.
+
 ## The `lib/` convention is fixed
 
 2026-10-01 · freeze pass

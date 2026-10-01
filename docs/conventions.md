@@ -454,8 +454,17 @@ enforces exactly these types, and the PR template does not repeat them.
 
 ## 8. Testing
 
-- Tests are colocated: `{file}.test.ts` next to the file under test, run with `bun test`. Every
-  package's `test` script is `bun test --pass-with-no-tests`.
+- A test of `{dir}/{file}.ts` lives at `{dir}/_tests/{file}.test.ts`: a `_tests/` folder at the
+  same level as its subject (component, service op, domain model, utils), importing it from `../`.
+  Test-only helpers and fakes sit in the same `_tests/`. `_tests/` is not a module: no barrel,
+  nothing imports from it. Run with `bun test`; every package's `test` script is
+  `bun test --pass-with-no-tests`.
+
+  ```
+  lib/utils.ts
+  lib/_tests/utils.test.ts
+  mutations/todos/_tests/ownership.test.ts
+  ```
 - One recipe per layer:
   - **domain** — parse and reject cases for a schema.
   - **repository / service** — against real Postgres or Redis, gated with
