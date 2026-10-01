@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@temp-repo/logger": "workspace:*",
+    "@temp-repo/resend-client": "workspace:*",
     "@temp-repo/studio-config": "workspace:*",
     "@temp-repo/studio-domain": "workspace:*",
     "@temp-repo/studio-repository": "workspace:*",

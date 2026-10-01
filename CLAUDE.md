@@ -23,7 +23,7 @@ before proposing a change in an area it covers.
 - One app, `apps/studio` — TanStack Start (React 19, Tailwind, Base UI, Tabler Icons) on Nitro/Bun. The same process serves SSR, better-auth (`/api/auth`), tRPC over HTTP (`/api/trpc`) **and** tRPC over a native **WebSocket** (`/trpc-ws`, crossws via Nitro `experimental.websocket`).
 - Packages: `packages/studio/{domain,repository,service,trpc}` + `packages/configs/studio-config`.
 - One PostgreSQL database (auth tables + todos + chat).
-- Shared tooling and UI live under `packages/shared/*` (`cli`, `logger`, `ui`, `typescript-config`).
+- Shared tooling and UI live under `packages/shared/*` (`cli`, `logger`, `ui`, `typescript-config`, `resend-client`).
 
 When extending the template with additional apps, colocate app-specific packages under `packages/{app-name}/*` and config under `packages/configs/{app-name}-config`. Keep cross-cutting concerns in `packages/shared/*`.
 
@@ -36,6 +36,8 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - better-auth is mounted at `/api/auth` (magic link; optional OAuth providers via env). The tRPC `appRouter` is `{ auth, room, todos }`. `drizzle-zod` entities live in `domain` (`createInsertSchema()`/`createUpdateSchema()`/`createSelectSchema()`); `domain/schemas/room.ts` holds `Member` + the `RoomEvent` union; `service/room` is an integration: `room-hub.ts` (the `RoomHub`) runs over a `RoomBus` that `create-room-bus.ts` picks from `local/` (in-process) or `redis/` (Redis pub/sub when `CACHE_URL` is set); invariants in `docs/room-bus.md`; the bus is a `globalThis` singleton, so bus-file edits need a dev restart; hub edits hot-reload. `trpc/routers/room` exposes `send`/`setStatus` (mutations) and `stream` (async-generator subscription).
 - **WebSocket transport**: `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler` (stock wire protocol, so `wsLink` works unchanged). `apps/studio/src/server/trpc-ws.ts` wraps it in `defineWebSocketHandler` and `vite.config.ts` mounts it at `/trpc-ws` via the nitro plugin `handlers` option. Never add a second WebSocket entry; extend the router instead.
 - **Auth on the socket**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch adapter and the WebSocket bridge. No JWT hop, no `connectionParams`.
+- **HTTP edge**: `routes/api/trpc/$.ts` goes through `createTRPCHttpHandler` (`trpc/src/http/`): JSON-only POSTs, the WebSocket's `isTrustedOrigin` (`trpc/src/shared/origin/`), body and batch caps. Outside dev `formatErrorShape` lets only a service error's code through as a message.
+- **Email**: `service/email` is an integration; `send-email.ts` dispatches to `resend/` (over `@temp-repo/resend-client`, built once from `studioEnvConfig.email`) or `console/`, which throws unless `NODE_ENV === 'development'`. Service never reads email env itself.
 - **Client**: `src/integrations/trpc/client.ts` builds a `splitLink` — subscriptions over a lazy `wsLink` to the same origin, everything else over `httpBatchLink`. SSR gets HTTP-only links.
 - **Composition root**: `apps/*/src/server/**` and `routes/api/**` may import `service` and `repository` for lifecycle (shutdown) and health. UI code never does.
 - **Nitro patch**: `patches/nitro@*.patch` (applied by `bun install` via `patchedDependencies`) makes Nitro's Vite dev worker install the crossws Bun plugin. Without it `vite dev` under Bun answers upgrades with 426. Re-check it when bumping `nitro`.

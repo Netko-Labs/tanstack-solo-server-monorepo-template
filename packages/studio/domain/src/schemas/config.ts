@@ -25,6 +25,10 @@ export const StudioConfigSchema = z.object({
   db: z.object({
     url: z.string(),
   }),
+  email: z.object({
+    from: z.string().min(1),
+    resend: z.object({ apiKey: z.string().min(1) }).optional(),
+  }),
   auth: z.object({
     secret: z.string().optional(),
     emailAndPassword: z.object({

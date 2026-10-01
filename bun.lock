@@ -88,6 +88,15 @@
         "typescript": "^7.0.2",
       },
     },
+    "packages/shared/resend-client": {
+      "name": "@temp-repo/resend-client",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@temp-repo/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.2",
+        "typescript": "^7.0.2",
+      },
+    },
     "packages/shared/typescript-config": {
       "name": "@temp-repo/typescript-config",
       "version": "0.0.0",
@@ -152,6 +161,7 @@
       "name": "@temp-repo/studio-service",
       "dependencies": {
         "@temp-repo/logger": "workspace:*",
+        "@temp-repo/resend-client": "workspace:*",
         "@temp-repo/studio-config": "workspace:*",
         "@temp-repo/studio-domain": "workspace:*",
         "@temp-repo/studio-repository": "workspace:*",
@@ -648,6 +658,8 @@
     "@temp-repo/cli": ["@temp-repo/cli@workspace:packages/shared/cli"],
 
     "@temp-repo/logger": ["@temp-repo/logger@workspace:packages/shared/logger"],
+
+    "@temp-repo/resend-client": ["@temp-repo/resend-client@workspace:packages/shared/resend-client"],
 
     "@temp-repo/studio-config": ["@temp-repo/studio-config@workspace:packages/configs/studio-config"],
 

@@ -30,7 +30,6 @@
   "workspaces": [
     "apps/*",
     "packages/shared/*",
-    "packages/clients/*",
     "packages/configs/*",
     "packages/studio/*"
   ],

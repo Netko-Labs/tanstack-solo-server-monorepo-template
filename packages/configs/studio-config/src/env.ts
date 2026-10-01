@@ -39,6 +39,10 @@ const studioConfig: StudioConfig = {
   db: {
     url: process.env.DATABASE_URL ?? '',
   },
+  email: {
+    from: process.env.EMAIL_FROM || 'Studio <onboarding@resend.dev>',
+    resend: process.env.RESEND_API_KEY ? { apiKey: process.env.RESEND_API_KEY } : undefined,
+  },
   auth: {
     secret: process.env.AUTH_SECRET,
     emailAndPassword: {
