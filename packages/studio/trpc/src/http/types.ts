@@ -5,12 +5,14 @@ export interface HttpContextOptions {
   req: Request
 }
 
+/**
+ * Requests without an Origin pass the origin check. The logger records refusals only; tRPC
+ * calls are logged by the procedure middleware.
+ */
 export interface TRPCHttpHandlerOptions<TRouter extends AnyRouter> {
   router: TRouter
   endpoint: string
   createContext: (opts: HttpContextOptions) => Promise<inferRouterContext<TRouter>>
-  /** Origins allowed to call with the session cookie; requests without an Origin pass. */
   trustedOrigins: readonly string[]
-  /** Refusals only; tRPC calls are logged by the procedure middleware. */
   logger?: EdgeLogger
 }

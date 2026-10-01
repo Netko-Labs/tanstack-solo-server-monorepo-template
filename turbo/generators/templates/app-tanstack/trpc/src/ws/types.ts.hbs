@@ -18,14 +18,16 @@ export interface WSContextOptions {
   req: Request
 }
 
+/**
+ * Origins are checked because browsers send cookies on cross-site upgrades. The logger records
+ * socket open/close and origin refusals, never frame contents.
+ */
 export interface TRPCWebSocketHooksOptions<TRouter extends AnyRouter> {
   router: TRouter
   createContext: (opts: WSContextOptions) => Promise<inferRouterContext<TRouter>>
-  /** Origins allowed to open the socket; browsers send cookies on cross-site upgrades. */
   trustedOrigins: readonly string[]
   keepAlive?: { pingMs: number; pongWaitMs: number }
   onError?: (event: WSErrorEvent<TRouter>) => void
-  /** Socket open/close and origin refusals; never frame contents. */
   logger?: EdgeLogger
 }
 

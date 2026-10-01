@@ -22,7 +22,8 @@ describe.skipIf(!hasDb)('oauth account linking', () => {
 
   test('a provider profile with an unverified email is not linked to an existing user', async () => {
     for (const providerId of ['github', 'google', 'discord']) {
-      const result = await handleOAuthUserInfo({ context: await auth.$context } as never, {
+      const endpoint = { context: await auth.$context } as Parameters<typeof handleOAuthUserInfo>[0]
+      const result = await handleOAuthUserInfo(endpoint, {
         userInfo: { id: `${providerId}-${id}`, name: id, email, emailVerified: false },
         account: { providerId, accountId: `${providerId}-${id}` },
       })
