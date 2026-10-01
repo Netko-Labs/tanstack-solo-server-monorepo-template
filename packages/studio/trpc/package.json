@@ -14,8 +14,7 @@
     "@temp-repo/logger": "workspace:*",
     "@temp-repo/typescript-config": "workspace:*",
     "@trpc/server": "^11.19.0",
-    "superjson": "^2.2.6",
-    "zod": "^4.6.5"
+    "superjson": "^2.2.6"
   },
   "scripts": {
     "check-types": "tsgo --noEmit",

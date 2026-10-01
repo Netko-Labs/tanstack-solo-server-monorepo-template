@@ -1,6 +1,6 @@
 import { createLogger } from '@temp-repo/logger'
 import type { Context } from '@temp-repo/studio-domain'
-import { auth } from '@temp-repo/studio-service'
+import { auth, ServiceError } from '@temp-repo/studio-service'
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 
@@ -80,11 +80,24 @@ const loggingMiddleware = t.middleware(async ({ path, type, next }) => {
   }
 })
 
-//* Procedures
-const loggedProcedure = t.procedure.use(loggingMiddleware)
+const serviceErrorMiddleware = t.middleware(async ({ next }) => {
+  const result = await next()
+  if (!result.ok && result.error.cause instanceof ServiceError) {
+    const { cause } = result.error
+    throw new TRPCError({
+      code: cause.code === 'not_found' ? 'NOT_FOUND' : 'PRECONDITION_FAILED',
+      message: cause.code,
+      cause,
+    })
+  }
+  return result
+})
 
-export const publicProcedure = loggedProcedure
-export const protectedProcedure = loggedProcedure.use(async ({ next, ctx }) => {
+//* Procedures
+const baseProcedure = t.procedure.use(loggingMiddleware).use(serviceErrorMiddleware)
+
+export const publicProcedure = baseProcedure
+export const protectedProcedure = baseProcedure.use(async ({ next, ctx }) => {
   const { user, session } = ctx
   // A WebSocket keeps the context it opened with, so expiry must be checked per call.
   if (!session || !user || session.expiresAt.getTime() <= Date.now()) {

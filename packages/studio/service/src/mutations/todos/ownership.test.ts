@@ -5,6 +5,7 @@ import { inArray } from 'drizzle-orm'
 import { getTodo, getTodos } from '../../queries/todos'
 import { createTodo } from './create-todo'
 import { deleteTodo } from './delete-todo'
+import { TodoError } from './todo-error'
 import { updateTodo } from './update-todo'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
@@ -32,11 +33,13 @@ describe.skipIf(!hasDb)('todo ownership', () => {
   test('another user cannot read, change or delete a todo', async () => {
     const todo = await createTodo(ids.a, { title: 'mine', description: null })
     if (!todo) throw new Error('unreachable')
-    expect(await getTodo(ids.b, todo.id)).toBeUndefined()
-    expect(await updateTodo(ids.b, { todoId: todo.id, completed: true })).toBeUndefined()
-    expect(await deleteTodo(ids.b, todo.id)).toBeUndefined()
+    expect(await getTodo(ids.b, todo.id)).toBeNull()
+    const update = updateTodo(ids.b, { todoId: todo.id, completed: true })
+    await expect(update).rejects.toBeInstanceOf(TodoError)
+    await expect(update).rejects.toMatchObject({ code: 'not_found' })
+    await expect(deleteTodo(ids.b, todo.id)).rejects.toMatchObject({ code: 'not_found' })
     expect((await getTodos(ids.b)).map((t) => t.id)).not.toContain(todo.id)
     expect((await getTodo(ids.a, todo.id))?.completed).toBe(false)
-    expect((await deleteTodo(ids.a, todo.id))?.id).toBe(todo.id)
+    expect((await deleteTodo(ids.a, todo.id)).id).toBe(todo.id)
   })
 })
