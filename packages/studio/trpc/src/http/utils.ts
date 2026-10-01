@@ -1,0 +1,61 @@
+import type { AnyRouter } from '@trpc/server'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
+import { isTrustedOrigin } from '../shared/origin'
+import { MAX_TRPC_BATCH_SIZE, MAX_TRPC_BODY_BYTES } from './constants'
+import type { TRPCHttpHandlerOptions } from './types'
+
+const isJson = (request: Request) =>
+  request.headers.get('content-type')?.toLowerCase().startsWith('application/json') ?? false
+
+/** Buffers a body sent without a Content-Length; null once it passes the cap. */
+async function readCapped(body: ReadableStream<Uint8Array>): Promise<Buffer<ArrayBuffer> | null> {
+  const reader = body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return Buffer.concat(chunks)
+    size += value.byteLength
+    if (size > MAX_TRPC_BODY_BYTES) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+}
+
+async function capBody(request: Request): Promise<Request | null> {
+  const declared = request.headers.get('content-length')
+  if (declared !== null) return Number(declared) > MAX_TRPC_BODY_BYTES ? null : request
+  if (!request.body) return request
+  const body = await readCapped(request.body)
+  if (!body) return null
+  return new Request(request.url, { method: request.method, headers: request.headers, body })
+}
+
+/**
+ * The cookie-authed HTTP edge: CORS-simple bodies (form posts) and foreign origins are refused
+ * before tRPC parses anything, bodies and batches are bounded.
+ */
+export function createTRPCHttpHandler<TRouter extends AnyRouter>(
+  opts: TRPCHttpHandlerOptions<TRouter>,
+): (request: Request) => Promise<Response> {
+  return async (request) => {
+    const origin = request.headers.get('origin')
+    if (origin && !isTrustedOrigin(origin, opts.trustedOrigins)) {
+      return new Response('forbidden origin', { status: 403 })
+    }
+    if (request.method === 'POST' && !isJson(request)) {
+      return new Response('unsupported media type', { status: 415 })
+    }
+    const req = await capBody(request)
+    if (!req) return new Response('payload too large', { status: 413 })
+    return fetchRequestHandler({
+      req,
+      router: opts.router,
+      endpoint: opts.endpoint,
+      createContext: ({ req }) => opts.createContext({ req }),
+      maxBatchSize: MAX_TRPC_BATCH_SIZE,
+    })
+  }
+}

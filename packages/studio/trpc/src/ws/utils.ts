@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { AnyRouter } from '@trpc/server'
 import { getWSConnectionHandler, type WSSHandlerOptions } from '@trpc/server/adapters/ws'
+import { isTrustedOrigin } from '../shared/origin'
 import type {
   MessageLike,
   PeerLike,
@@ -13,6 +14,8 @@ import type {
 const WEBSOCKET_OPEN = 1
 const WEBSOCKET_CLOSED = 3
 const POLICY_VIOLATION = 1008
+const MESSAGE_TOO_BIG = 1009
+export const MAX_WS_MESSAGE_BYTES = 1024 * 1024
 /** Live subscriptions one socket may hold; a slot frees on client stop or server `stopped`/error. */
 export const MAX_SUBSCRIPTIONS_PER_PEER = 16
 
@@ -49,21 +52,6 @@ const openSockets = new Set<PeerSocket>()
 /** Closes every live socket, e.g. on SIGTERM, so subscriptions end and presence leaves run. */
 export function closeAllPeers(code = 1001, reason = 'server shutting down'): void {
   for (const socket of openSockets) socket.close(code, reason)
-}
-
-// Browsers send Origin in canonical form (lowercase host, default port dropped, no path);
-// compare configured entries the same way.
-function canonicalOrigin(value: string): string | undefined {
-  try {
-    return new URL(value).origin
-  } catch {
-    return undefined
-  }
-}
-
-function isTrustedOrigin(origin: string, trusted: readonly string[]): boolean {
-  const target = canonicalOrigin(origin)
-  return target !== undefined && trusted.some((entry) => canonicalOrigin(entry) === target)
 }
 
 // tRPC's adapter reads `req.url` + `req.headers.host` (connectionParams live in the query).
@@ -172,6 +160,10 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       const socket = sockets.get(peer.id)
       if (!socket) return
       const text = message.text()
+      if (Buffer.byteLength(text) > MAX_WS_MESSAGE_BYTES) {
+        socket.close(MESSAGE_TOO_BIG, 'message too big')
+        return
+      }
       if (!trackSubscriptions(socket, text)) {
         socket.close(POLICY_VIOLATION, 'too many subscriptions')
         return

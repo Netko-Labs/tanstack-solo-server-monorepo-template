@@ -1,9 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { appRouter, createContext } from '@temp-repo/studio-trpc'
-import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
+import { studioEnvConfig } from '@temp-repo/studio-config'
+import { appRouter, createContext, createTRPCHttpHandler } from '@temp-repo/studio-trpc'
 
-const handle = (request: Request) =>
-  fetchRequestHandler({ req: request, router: appRouter, endpoint: '/api/trpc', createContext })
+const handle = createTRPCHttpHandler({
+  router: appRouter,
+  endpoint: '/api/trpc',
+  createContext,
+  trustedOrigins: [studioEnvConfig.app.baseUrl, ...studioEnvConfig.auth.trustedOrigins],
+})
 
 export const Route = createFileRoute('/api/trpc/$')({
   server: {

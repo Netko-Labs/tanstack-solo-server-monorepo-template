@@ -1,0 +1,1 @@
+export { isTrustedOrigin } from './utils'

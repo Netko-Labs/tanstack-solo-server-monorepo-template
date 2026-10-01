@@ -11,5 +11,6 @@ export const appRouter = router({
 
 export type AppRouter = typeof appRouter
 
+export { createTRPCHttpHandler } from './http'
 export { createContext, mergeRouters, protectedProcedure, publicProcedure, router } from './init'
 export { closeAllPeers, createTRPCWebSocketHooks } from './ws'

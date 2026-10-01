@@ -1,38 +1,19 @@
 import { createLogger } from '@temp-repo/logger'
+import { studioEnvConfig } from '@temp-repo/studio-config'
 import type { Context } from '@temp-repo/studio-domain'
 import { auth, ServiceError } from '@temp-repo/studio-service'
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
+import { formatErrorShape } from './shared/error-shape'
 import type { CreateContextOptions } from './types'
 
 const logger = createLogger('trpc')
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter: ({ shape, error }) => {
-    // Client errors (auth, validation) are expected traffic; only server faults are errors.
-    // Drizzle wraps the pg error in a message that embeds the SQL params, so log the root.
-    const root = rootCause(error)
-    const level = error.code === 'INTERNAL_SERVER_ERROR' ? 'error' : 'debug'
-    logger[level](
-      {
-        code: error.code,
-        path: shape.data?.path,
-        httpStatus: shape.data?.httpStatus,
-        err: root.message,
-        errCode: 'code' in root ? String(root.code) : undefined,
-      },
-      `tRPC ${error.code}`,
-    )
-    return shape
-  },
+  isDev: studioEnvConfig.app.dev,
+  errorFormatter: (opts) => formatErrorShape(opts, studioEnvConfig.app.dev),
 })
-
-function rootCause(error: Error): Error & { code?: unknown } {
-  let current: Error = error
-  while (current.cause instanceof Error) current = current.cause
-  return current
-}
 
 export const router = t.router
 export const mergeRouters = t.mergeRouters

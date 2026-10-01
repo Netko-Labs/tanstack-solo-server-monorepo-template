@@ -1,0 +1,47 @@
+import { describe, expect, test } from 'bun:test'
+import { TodoError } from '@temp-repo/studio-service'
+import { initTRPC } from '@trpc/server'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
+import { formatErrorShape } from './utils'
+
+const LEAK = 'Failed query: insert into "user" ("email") values ($1)\nparams: victim@example.com'
+
+function call(exposeMessages: boolean, path: string) {
+  const t = initTRPC.create({
+    isDev: exposeMessages,
+    errorFormatter: (opts) => formatErrorShape(opts, exposeMessages),
+  })
+  const router = t.router({
+    leak: t.procedure.query(() => {
+      throw new Error(LEAK, { cause: Object.assign(new Error('duplicate key'), { code: '23505' }) })
+    }),
+    missing: t.procedure.query(() => {
+      throw new TodoError('not_found')
+    }),
+  })
+  return fetchRequestHandler({
+    req: new Request(`http://app.test/api/trpc/${path}`),
+    router,
+    endpoint: '/api/trpc',
+  }).then(async (res) => ({ status: res.status, body: await res.text() }))
+}
+
+describe('error shape', () => {
+  test('outside dev an internal error leaves as its code, with no SQL, params or stack', async () => {
+    const { status, body } = await call(false, 'leak')
+    expect(status).toBe(500)
+    expect(JSON.parse(body).error.message).toBe('INTERNAL_SERVER_ERROR')
+    expect(body).not.toContain('params')
+    expect(body).not.toContain('stack')
+  })
+
+  test('outside dev a service error still crosses as its code', async () => {
+    const { body } = await call(false, 'missing')
+    expect(JSON.parse(body).error.message).toBe('not_found')
+  })
+
+  test('in dev the raw message stays for debugging', async () => {
+    const { body } = await call(true, 'leak')
+    expect(JSON.parse(body).error.message).toBe(LEAK)
+  })
+})

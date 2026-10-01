@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { initTRPC } from '@trpc/server'
-import { createTRPCWebSocketHooks, MAX_SUBSCRIPTIONS_PER_PEER } from './utils'
+import { createTRPCWebSocketHooks, MAX_SUBSCRIPTIONS_PER_PEER, MAX_WS_MESSAGE_BYTES } from './utils'
 
 const t = initTRPC.create()
 const router = t.router({
@@ -20,12 +20,14 @@ function fakePeer(origin?: string, onSend?: (peer: { id: string }, data: string)
     request: new Request('http://app.test/trpc-ws', { headers }),
     sent,
     closed: false,
+    closeCode: undefined as number | undefined,
     send(data: string | Uint8Array) {
       sent.push(String(data))
       onSend?.(this, String(data))
     },
-    close() {
+    close(code?: number) {
       this.closed = true
+      this.closeCode = code
     },
     terminate() {
       this.closed = true
@@ -158,5 +160,13 @@ describe('crossws ↔ tRPC bridge', () => {
     hooks.message(peer, { text: () => query })
     await until(() => peer.sent.filter((raw) => raw.includes('"hi"')).length === 2)
     expect(peer.closed).toBe(false)
+  })
+
+  test('a message over the size cap closes the socket with 1009', () => {
+    const peer = fakePeer('http://app.test')
+    hooks.open(peer)
+    hooks.message(peer, { text: () => 'é'.repeat(MAX_WS_MESSAGE_BYTES / 2 + 1) })
+    expect(peer.closeCode).toBe(1009)
+    hooks.close(peer)
   })
 })
