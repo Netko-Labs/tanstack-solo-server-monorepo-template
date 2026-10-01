@@ -9,9 +9,9 @@ Portable code-style and folder-structure rules live in a reusable file imported 
 @docs/conventions.md
 
 That file covers **Vocabulary**, **Modules & Scope** (the `lib/` + `shared/` model), **Backend
-Layering**, **Component Authoring**, **State & Wiring**, **Code Style**, and **Workflow** (working
-principles, task management, and the commit convention). The sections below stay in this file because
-they describe this repo's specific topology, scaffolding, and commands.
+Layering**, **Component Authoring**, **State & Wiring**, **Code Style**, **Workflow** (working
+principles, task management, and the commit convention), and **Testing**. The sections below stay in
+this file because they describe this repo's specific topology, scaffolding, and commands.
 
 ## Repository Overview
 
@@ -34,6 +34,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - **WebSocket transport**: `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler` (stock wire protocol, so `wsLink` works unchanged). `apps/studio/src/server/trpc-ws.ts` wraps it in `defineWebSocketHandler` and `vite.config.ts` mounts it at `/trpc-ws` via the nitro plugin `handlers` option. Never add a second WebSocket entry; extend the router instead.
 - **Auth on the socket**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch adapter and the WebSocket bridge. No JWT hop, no `connectionParams`.
 - **Client**: `src/integrations/trpc/client.ts` builds a `splitLink` — subscriptions over a lazy `wsLink` to the same origin, everything else over `httpBatchLink`. SSR gets HTTP-only links.
+- **Composition root**: `apps/*/src/server/**` and `routes/api/**` may import `service` and `repository` for lifecycle (shutdown) and health. UI code never does.
 - **Nitro patch**: `patches/nitro@*.patch` (applied by `bun install` via `patchedDependencies`) makes Nitro's Vite dev worker install the crossws Bun plugin. Without it `vite dev` under Bun answers upgrades with 426. Re-check it when bumping `nitro`.
 
 ## Scaffolding
@@ -52,7 +53,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Repo typecheck: `bun run check-types`
 - Repo lint and formatting check: `bun run fmt-lint`
 - Repo lint and formatting fix: `bun run fmt-lint:fix`
-- Repo tests: `bun run test` (bun test via turbo; the Redis bus contract test runs only when `CACHE_URL` is set)
+- Repo tests: `bun run test` (bun test via turbo). Two suites skip without their env: the Redis bus contract tests need `CACHE_URL`; the todo ownership test needs `DATABASE_URL` with migrations applied
 - Generate app: `bun run gen:app`
 - Generate library: `bun run gen:lib`
 - Studio DB generate: `bun run repo db:generate --app studio`
