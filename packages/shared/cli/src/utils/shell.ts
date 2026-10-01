@@ -3,9 +3,6 @@ import * as path from 'node:path'
 import { $ } from 'bun'
 import type { RunOptions } from './types'
 
-/**
- * Load environment variables from a .env file
- */
 export function loadEnvFile(envFilePath: string): Record<string, string> {
   if (!fs.existsSync(envFilePath)) {
     return {}
@@ -16,13 +13,11 @@ export function loadEnvFile(envFilePath: string): Record<string, string> {
 
   for (const line of content.split('\n')) {
     const trimmed = line.trim()
-    // Skip empty lines and comments
     if (!trimmed || trimmed.startsWith('#')) continue
 
     const [key, ...valueParts] = trimmed.split('=')
     if (key) {
       let value = valueParts.join('=')
-      // Remove surrounding quotes if present
       if (
         (value.startsWith('"') && value.endsWith('"')) ||
         (value.startsWith("'") && value.endsWith("'"))
@@ -36,9 +31,6 @@ export function loadEnvFile(envFilePath: string): Record<string, string> {
   return env
 }
 
-/**
- * Run a shell command with output streaming to console
- */
 export async function run(command: string[], options?: RunOptions) {
   const proc = Bun.spawn(command, {
     cwd: options?.cwd,
@@ -54,17 +46,11 @@ export async function run(command: string[], options?: RunOptions) {
   }
 }
 
-/**
- * Run a shell command and return output
- */
 export async function runQuiet(command: string[], options?: Pick<RunOptions, 'cwd'>) {
   const result = await $`${command}`.cwd(options?.cwd ?? process.cwd()).quiet()
   return result.text()
 }
 
-/**
- * Find process ID running on a specific port
- */
 export async function findProcessesOnPort(port: number): Promise<string[]> {
   try {
     // Listeners only: a plain `-ti :port` also lists clients (an open browser tab).
@@ -79,9 +65,7 @@ export async function findProcessesOnPort(port: number): Promise<string[]> {
   }
 }
 
-/**
- * Ask a process to stop; SIGTERM lets a dev server run its shutdown hooks.
- */
+/** SIGTERM by default so a dev server runs its shutdown hooks. */
 export async function killProcess(pid: string, signal = 'TERM'): Promise<boolean> {
   try {
     await $`kill -${signal} ${pid}`.quiet()
@@ -129,12 +113,8 @@ export async function killProcessOnPort(port: number): Promise<boolean> {
   return false
 }
 
-/**
- * Get the root directory of the monorepo
- */
 export function getRootDir(): string {
-  // This file is at packages/shared/cli/src/utils/shell.ts
-  // Go up: utils -> src -> cli -> shared -> packages -> root (5 levels)
+  // Five levels up from packages/shared/cli/src/utils/.
   const thisDir = new URL('.', import.meta.url).pathname
   return path.resolve(thisDir, '..', '..', '..', '..', '..')
 }

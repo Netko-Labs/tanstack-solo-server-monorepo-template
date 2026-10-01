@@ -9,13 +9,6 @@ import { killProcessOnPort, loadEnvFile, run } from '../utils/shell'
 import { dbGenerate, dbMigrate } from './db'
 import { dockerUp } from './docker'
 
-/**
- * Run full development setup for an app:
- * 1. Start Docker containers
- * 2. Generate DB schema
- * 3. Run migrations
- * 4. Start dev server
- */
 export async function dev(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -40,9 +33,6 @@ export async function dev(args: string[]) {
   await serve(args)
 }
 
-/**
- * Run only the development server for an app (without docker/db setup).
- */
 export async function serve(args: string[]) {
   const appName = parseAppArg(args)
 

@@ -8,9 +8,6 @@ const CURRENT_SCOPE = '@temp-repo'
 const CURRENT_NAME = CURRENT_SCOPE.slice(1)
 const FILE_GLOB = '**/{*.{ts,tsx,js,jsx,json,hbs,md,yml,yaml},sample.env}'
 
-/**
- * Rename the entire project scope
- */
 export async function renameProject(args: string[]) {
   const newScope = args[0]
 
@@ -21,7 +18,6 @@ export async function renameProject(args: string[]) {
     process.exit(1)
   }
 
-  // Validate scope name format
   if (!newScope.startsWith('@')) {
     console.error('❌ Error: Scope name must start with "@"')
     console.log('Example: @my-company, @acme, @myorg')
@@ -40,12 +36,10 @@ export async function renameProject(args: string[]) {
 
   const rootDir = getRootDir()
 
-  // Confirm with user
   console.log('⚠️  This will modify files throughout the entire monorepo.')
   console.log('   Make sure you have committed any important changes!\n')
   console.log('Press Ctrl+C to cancel, or press Enter to continue...')
 
-  // Wait for user input
   await new Promise<void>((resolve) => {
     process.stdin.once('data', () => {
       resolve()
@@ -54,7 +48,6 @@ export async function renameProject(args: string[]) {
 
   console.log('\n🔍 Finding files to update...\n')
 
-  // Find all files that need updating (excluding node_modules, dist, .git)
   const filesToUpdate = await glob(FILE_GLOB, {
     cwd: rootDir,
     ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/bun.lock'],
@@ -75,7 +68,6 @@ export async function renameProject(args: string[]) {
         fs.writeFileSync(filePath, newContent, 'utf-8')
         filesUpdated++
 
-        // Count occurrences
         const matches = content.match(
           new RegExp(CURRENT_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
         )
@@ -111,9 +103,6 @@ export async function renameProject(args: string[]) {
 `)
 }
 
-/**
- * Preview what files would be changed without actually changing them
- */
 export async function previewRename(args: string[]) {
   const newScope = args[0]
 
@@ -128,7 +117,6 @@ export async function previewRename(args: string[]) {
 
   const rootDir = getRootDir()
 
-  // Find all files that need updating
   const filesToUpdate = await glob(FILE_GLOB, {
     cwd: rootDir,
     ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/bun.lock'],

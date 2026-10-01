@@ -3,9 +3,6 @@ import { run } from '../utils/shell'
 import { dbMigrate } from './db'
 import { dockerUp } from './docker'
 
-/**
- * Reset an app: stop its containers, drop their volumes, start fresh, migrate.
- */
 export async function reset(args: string[]) {
   const appName = parseAppArg(args)
 

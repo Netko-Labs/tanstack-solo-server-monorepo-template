@@ -11,9 +11,6 @@ import {
 import { getPackageScope } from '../utils/scope'
 import { getRootDir, loadEnvFile, run } from '../utils/shell'
 
-/**
- * Run Drizzle migrations for an app
- */
 export async function dbMigrate(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -42,9 +39,6 @@ export async function dbMigrate(args: string[]) {
   console.log(`✅ Migrations for ${appName} completed!`)
 }
 
-/**
- * Generate Drizzle schema for an app
- */
 export async function dbGenerate(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -70,9 +64,6 @@ export async function dbGenerate(args: string[]) {
   console.log(`✅ Schema generation for ${appName} completed!`)
 }
 
-/**
- * Run the repository's re-runnable seed for an app
- */
 export async function dbSeed(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -106,9 +97,6 @@ export async function dbSeed(args: string[]) {
   console.log(`✅ Seed for ${appName} completed!`)
 }
 
-/**
- * Push schema changes directly (no migration file)
- */
 export async function dbPush(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -139,9 +127,6 @@ export async function dbPush(args: string[]) {
   console.log(`✅ Schema push for ${appName} completed!`)
 }
 
-/**
- * Open Drizzle Studio for an app
- */
 export async function dbStudio(args: string[]) {
   const appName = parseAppArg(args)
 

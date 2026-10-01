@@ -13,11 +13,7 @@ const readWorkspaceGlobs = (rootDir: string): string[] => {
   return Array.isArray(workspaces) ? workspaces.filter((w) => typeof w === 'string') : []
 }
 
-/**
- * Remove build artifacts and caches from the repo root and every workspace, never touching
- * sources. Artifacts live at package roots, so each pattern is one level deep and the scan
- * never descends into `node_modules`.
- */
+/** One level deep: artifacts live at package roots, so the scan never enters node_modules. */
 export async function clean() {
   console.log('🧹 Cleaning build artifacts...\n')
 

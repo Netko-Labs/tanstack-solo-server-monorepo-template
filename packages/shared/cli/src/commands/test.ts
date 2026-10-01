@@ -1,9 +1,6 @@
 import { getAppPackageName, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
 import { getRootDir, run } from '../utils/shell'
 
-/**
- * Run unit tests (bun test) via turbo
- */
 export const test = async (args: string[]) => {
   const appName = parseAppArg(args)
   const watch = args.includes('--watch') || args.includes('-w')
@@ -21,7 +18,6 @@ export const test = async (args: string[]) => {
     cmd.push('--filter', `${getAppPackageName(appName)}...`)
   }
 
-  // Pass additional flags to bun test
   const extraFlags: string[] = []
   if (watch) extraFlags.push('--watch')
   if (coverage) extraFlags.push('--coverage')

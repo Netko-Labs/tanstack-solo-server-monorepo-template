@@ -1,9 +1,6 @@
 import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
 import { run } from '../utils/shell'
 
-/**
- * Start Docker containers for an app using profiles
- */
 export async function dockerUp(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -30,9 +27,6 @@ export async function dockerUp(args: string[]) {
   console.log(`✅ Docker containers for ${appName} are running!`)
 }
 
-/**
- * Stop Docker containers for an app
- */
 export async function dockerDown(args: string[]) {
   const appName = parseAppArg(args)
 
