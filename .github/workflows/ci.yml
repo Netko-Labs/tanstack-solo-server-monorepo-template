@@ -81,6 +81,12 @@ jobs:
               test -f "apps/$app/public$href" || { echo "apps/$app links $href, missing from public/"; exit 1; }
             done
           done
+      - name: generated apps load the observability plugin first
+        run: |
+          for app in smoke admin; do
+            grep -q "plugins: \['./src/server/plugins/observability.ts'," "apps/$app/vite.config.ts" \
+              || { echo "apps/$app/vite.config.ts does not list observability.ts first"; exit 1; }
+          done
 
   commitlint:
     if: github.event_name == 'pull_request'

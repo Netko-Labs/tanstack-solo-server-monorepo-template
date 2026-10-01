@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { AnyRouter } from '@trpc/server'
 import { getWSConnectionHandler, type WSSHandlerOptions } from '@trpc/server/adapters/ws'
+import { userIdOf } from '../shared/context'
 import { isTrustedOrigin } from '../shared/origin'
 import type {
   CloseDetails,
@@ -60,13 +61,6 @@ export function closeAllPeers(code = 1001, reason = 'server shutting down'): voi
 function toNodeRequest(request: Request) {
   const url = new URL(request.url)
   return { url: `${url.pathname}${url.search}`, headers: Object.fromEntries(request.headers) }
-}
-
-function userIdOf(ctx: unknown): string | undefined {
-  if (typeof ctx !== 'object' || ctx === null || !('user' in ctx)) return undefined
-  const { user } = ctx
-  if (typeof user !== 'object' || user === null || !('id' in user)) return undefined
-  return typeof user.id === 'string' ? user.id : undefined
 }
 
 function parseFrame(text: string): unknown[] | undefined {

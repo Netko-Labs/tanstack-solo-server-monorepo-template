@@ -1,0 +1,12 @@
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
+import type { z } from 'zod'
+import { noteTable } from '../db'
+import { NOTE_BODY_MAX } from '../values'
+
+export const NoteInsertSchema = createInsertSchema(noteTable, {
+  body: (schema) => schema.min(1).max(NOTE_BODY_MAX),
+})
+export type NoteInsert = z.infer<typeof NoteInsertSchema>
+
+export const NoteSchema = createSelectSchema(noteTable)
+export type Note = z.infer<typeof NoteSchema>

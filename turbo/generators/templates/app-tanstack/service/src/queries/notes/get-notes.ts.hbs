@@ -1,0 +1,7 @@
+import { type Note, type NoteListInput, noteTable } from '@temp-repo/{{ name }}-domain'
+import { db } from '@temp-repo/{{ name }}-repository'
+import { desc } from 'drizzle-orm'
+
+export const getNotes = async ({ limit }: NoteListInput): Promise<Note[]> => {
+  return await db.select().from(noteTable).orderBy(desc(noteTable.createdAt)).limit(limit)
+}

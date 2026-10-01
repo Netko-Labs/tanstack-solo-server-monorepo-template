@@ -12,8 +12,17 @@ export const {{ pascalCase name }}ConfigSchema = z.object({
   db: z.object({
     url: z.string(),
   }),
+  observability: z.object({
+    serviceName: z.string().min(1),
+    release: z.string().min(1),
+    environment: z.string().min(1),
+    dsn: z.string().url().optional(),
+    tunnelDsns: z.array(z.string()).default([]),
+    otlp: z
+      .object({ endpoint: z.string().url(), headers: z.record(z.string(), z.string()) })
+      .optional(),
+  }),
   auth: z.object({
-    secret: z.string().optional(),
     trustedOrigins: z.array(z.string()).default([]),
   }),
 })

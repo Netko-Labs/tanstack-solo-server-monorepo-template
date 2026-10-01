@@ -1,0 +1,10 @@
+import { z } from 'zod'
+import { NoteSchema } from '../entities/notes'
+import { NOTE_LIST_LIMIT_DEFAULT, NOTE_LIST_LIMIT_MAX } from '../values'
+
+export const NoteListInputSchema = z.object({
+  limit: z.number().int().min(1).max(NOTE_LIST_LIMIT_MAX).default(NOTE_LIST_LIMIT_DEFAULT),
+})
+export type NoteListInput = z.infer<typeof NoteListInputSchema>
+
+export const NoteListSchema = z.array(NoteSchema)
