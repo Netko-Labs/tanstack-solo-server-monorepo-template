@@ -56,7 +56,7 @@ Failure modes and the rule that prevents them. Short, current, one entry per cor
 
 - **Cookies ride cross-site WebSocket upgrades, and CORS never applies to sockets.** Cross-site
   WebSocket hijacking was live until the upgrade checked `Origin` against `BASE_URL` +
-  `TRUSTED_ORIGINS`. Found 2026-09-30 in #14. Check: `ws/_tests/utils.test.ts` origin allow-list cases.
+  `TRUSTED_ORIGINS`. Found 2026-09-30 in #14. Check: `ws/__tests__/utils.test.ts` origin allow-list cases.
 - **A public procedure that returns user rows leaks what they hold.** `room.messages` returned
   every author's email; authors are display names now. Found 2026-09-30 in #16. Check:
   `procedures.test.ts` public allow-list.

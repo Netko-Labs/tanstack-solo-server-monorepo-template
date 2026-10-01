@@ -71,7 +71,7 @@ export const testSmoke = async (args: string[]) => {
     GATED_SUITE_VARS.flatMap((name) => (appEnv[name] ? [[name, appEnv[name]]] : [])),
   )
 
-  await run(['bun', '_tests/smoke.ts', '--app', appName], { cwd: getRootDir(), env })
+  await run(['bun', '__tests__/smoke.ts', '--app', appName], { cwd: getRootDir(), env })
 }
 
 async function countTestTasks(filter: string, cwd: string): Promise<number> {

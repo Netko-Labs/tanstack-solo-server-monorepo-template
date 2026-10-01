@@ -13,7 +13,7 @@
     "rename:preview": "bun run repo rename:preview",
     "fmt-lint": "biome check .",
     "fmt-lint:fix": "biome check --fix .",
-    "check-types": "turbo run check-types && tsc --noEmit -p _tests",
+    "check-types": "turbo run check-types && tsc --noEmit -p __tests__",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -111,7 +111,7 @@ await check('a foreign Origin cannot open the socket', async () => {
 
 const probes = TRPC_PROBES[app]
 if (!probes) {
-  console.log(`ℹ️  no tRPC probes for ${app}: add its paths to TRPC_PROBES in _tests/values.ts`)
+  console.log(`ℹ️  no tRPC probes for ${app}: add its paths to TRPC_PROBES in __tests__/values.ts`)
   await check('SIGTERM exits 0', () => stopsCleanly())
 } else {
   await check('an anonymous protected query is 401 over HTTP', async () => {

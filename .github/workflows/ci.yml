@@ -28,10 +28,10 @@ jobs:
       REQUIRE_GATED_SUITES: '1'
     steps:
       - uses: actions/checkout@v4
-      - name: every test lives in a _tests/ folder
+      - name: every test lives in a __tests__/ folder
         run: |
-          stray=$(git ls-files '*.test.ts' '*.test.tsx' '*.test.ts.hbs' '*.test.tsx.hbs' | grep -vE '(^|/)_tests/' || true)
-          test -z "$stray" || { echo "$stray"; echo 'tests belong in a _tests/ folder beside their subject'; exit 1; }
+          stray=$(git ls-files '*.test.ts' '*.test.tsx' '*.test.ts.hbs' '*.test.tsx.hbs' | grep -vE '(^|/)__tests__/' || true)
+          test -z "$stray" || { echo "$stray"; echo 'tests belong in a __tests__/ folder beside their subject'; exit 1; }
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
