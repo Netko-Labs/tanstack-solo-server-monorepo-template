@@ -1,0 +1,35 @@
+{
+  "name": "@temp-repo/observability",
+  "description": "Errors (Sentry protocol), traces and logs (OTLP/HTTP JSON) for code-whiskers; off unless configured",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test": "bun test --pass-with-no-tests"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api-logs": "^0.222.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.222.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-logs": "^0.222.0",
+    "@opentelemetry/sdk-trace-base": "^2.11.0",
+    "@opentelemetry/sdk-trace-node": "^2.11.0",
+    "@sentry/browser": "^11.1.0",
+    "@sentry/core": "^11.1.0",
+    "@sentry/node": "^11.1.0"
+  },
+  "devDependencies": {
+    "@temp-repo/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}

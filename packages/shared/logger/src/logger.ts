@@ -1,5 +1,6 @@
 import pino, { type DestinationStream, type Level } from 'pino'
 import pretty from 'pino-pretty'
+import type { GlobalLogStreams } from './types'
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -133,10 +134,15 @@ function createKawaiiPrettyStream() {
   })
 }
 
+// One multistream per process, not per module graph: Nitro bundles its plugins apart from the
+// app, so a plugin's addLogStream must reach the app's loggers too.
+const STREAMS_KEY = Symbol.for('temp-repo.logger.streams')
+const globalStreams = globalThis as GlobalLogStreams
 // Entries default to 'info'; 'trace' lets the logger's own level decide, so dev keeps debug lines.
-const streams = pino.multistream([
+globalStreams[STREAMS_KEY] ??= pino.multistream([
   { level: 'trace', stream: isDevelopment ? createKawaiiPrettyStream() : pino.destination(1) },
 ])
+const streams = globalStreams[STREAMS_KEY]
 
 /** Development: pretty and debug level. Production: plain JSON at info level for log shippers. */
 export const logger = pino(

@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@temp-repo/observability": "workspace:*",
     "@temp-repo/typescript-config": "workspace:*",
     "@temp-repo/studio-domain": "workspace:*"
   },

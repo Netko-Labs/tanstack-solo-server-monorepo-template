@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createLogger, rootCause } from '@temp-repo/logger'
+import { studioEnvConfig } from '@temp-repo/studio-config'
 import type { createCacheClient } from '@temp-repo/studio-repository'
 
 const PROBE_TIMEOUT_MS = 2_000
@@ -61,7 +62,8 @@ export const Route = createFileRoute('/api/health')({
             status: healthy ? 'healthy' : 'degraded',
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
-            environment: process.env.NODE_ENV || 'development',
+            release: studioEnvConfig.observability.release,
+            environment: studioEnvConfig.observability.environment,
             responseTime: Date.now() - startTime,
             checks: { database, cache },
           },

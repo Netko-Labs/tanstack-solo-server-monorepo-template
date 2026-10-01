@@ -1,5 +1,5 @@
-import type { AnyRouter, inferRouterContext, TRPCError, TRPCProcedureType } from '@trpc/server'
-import type { EdgeLogger } from '../types'
+import type { AnyRouter, inferRouterContext } from '@trpc/server'
+import type { EdgeLogger, TRPCErrorEvent } from '../types'
 
 /** The slice of a crossws `Peer` the bridge drives (structural, so no crossws dependency here). */
 export interface PeerLike {
@@ -27,16 +27,8 @@ export interface TRPCWebSocketHooksOptions<TRouter extends AnyRouter> {
   createContext: (opts: WSContextOptions) => Promise<inferRouterContext<TRouter>>
   trustedOrigins: readonly string[]
   keepAlive?: { pingMs: number; pongWaitMs: number }
-  onError?: (event: WSErrorEvent<TRouter>) => void
+  onError?: (event: TRPCErrorEvent<TRouter>) => void
   logger?: EdgeLogger
-}
-
-export interface WSErrorEvent<TRouter extends AnyRouter> {
-  error: TRPCError
-  path: string | undefined
-  type: TRPCProcedureType | 'unknown'
-  ctx: inferRouterContext<TRouter> | undefined
-  input: unknown
 }
 
 export interface CloseDetails {

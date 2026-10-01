@@ -1,14 +1,19 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { reportQueryError } from '@/integrations/observability'
 import { TRPCProvider, trpcClient } from '@/integrations/trpc'
-import { QUERY_STALE_TIME_MS, type QueryProviderProps } from './lib'
+import { QUERY_STALE_TIME_MS, type QueryProviderProps, shouldRetryQuery } from './lib'
 
 let clientQueryClient: QueryClient | undefined
 
 function createAppQueryClient() {
+  // Errors surface where they are rendered; the caches only report them, never toast.
   return new QueryClient({
+    queryCache: new QueryCache({ onError: reportQueryError }),
+    mutationCache: new MutationCache({ onError: reportQueryError }),
     defaultOptions: {
       queries: {
         staleTime: QUERY_STALE_TIME_MS,
+        retry: shouldRetryQuery,
       },
     },
   })

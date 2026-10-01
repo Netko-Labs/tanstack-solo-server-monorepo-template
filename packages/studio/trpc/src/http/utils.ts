@@ -65,6 +65,8 @@ export function createTRPCHttpHandler<TRouter extends AnyRouter>(
       endpoint: opts.endpoint,
       createContext: ({ req }) => opts.createContext({ req }),
       maxBatchSize: MAX_TRPC_BATCH_SIZE,
+      onError: ({ error, path, type, ctx, input }) =>
+        opts.onError?.({ error, path, type, ctx, input }),
     })
   }
 }

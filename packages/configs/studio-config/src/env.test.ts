@@ -19,6 +19,26 @@ test('production refuses to boot without its required env, naming every missing 
   expect(() => assertProductionEnv(PRODUCTION_ENV)).not.toThrow()
 })
 
+test('production rejects telemetry that is set but cannot work; unset is fine', () => {
+  expect(() => assertProductionEnv({ ...PRODUCTION_ENV, SENTRY_DSN: 'https://host/1' })).toThrow(
+    'SENTRY_DSN must look like',
+  )
+  expect(() => assertProductionEnv({ ...PRODUCTION_ENV, VITE_SENTRY_DSN: 'nope' })).toThrow(
+    'VITE_SENTRY_DSN must look like',
+  )
+  expect(() =>
+    assertProductionEnv({ ...PRODUCTION_ENV, OTEL_EXPORTER_OTLP_ENDPOINT: 'https://w/otlp' }),
+  ).toThrow('OTEL_EXPORTER_OTLP_HEADERS')
+  expect(() =>
+    assertProductionEnv({
+      ...PRODUCTION_ENV,
+      SENTRY_DSN: 'https://pub@w.example.com/1',
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'https://w.example.com/otlp',
+      OTEL_EXPORTER_OTLP_HEADERS: 'x-codewhiskers-key=pub',
+    }),
+  ).not.toThrow()
+})
+
 test('outside production nothing is required', () => {
   expect(() => assertProductionEnv({ NODE_ENV: 'development' })).not.toThrow()
   expect(() => assertProductionEnv({})).not.toThrow()

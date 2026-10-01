@@ -29,6 +29,16 @@ export const StudioConfigSchema = z.object({
     from: z.string().min(1),
     resend: z.object({ apiKey: z.string().min(1) }).optional(),
   }),
+  observability: z.object({
+    serviceName: z.string().min(1),
+    release: z.string().min(1),
+    environment: z.string().min(1),
+    dsn: z.string().url().optional(),
+    tunnelDsns: z.array(z.string()).default([]),
+    otlp: z
+      .object({ endpoint: z.string().url(), headers: z.record(z.string(), z.string()) })
+      .optional(),
+  }),
   auth: z.object({
     secret: z.string().optional(),
     emailAndPassword: z.object({

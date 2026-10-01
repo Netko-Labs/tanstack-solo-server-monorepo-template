@@ -1,4 +1,5 @@
 import { createLogger } from '@temp-repo/logger'
+import { withSpan } from '@temp-repo/observability/server'
 import { studioEnvConfig } from '@temp-repo/studio-config'
 import type { Context } from '@temp-repo/studio-domain'
 import { auth, ServiceError } from '@temp-repo/studio-service'
@@ -54,6 +55,19 @@ const loggingMiddleware = t.middleware(async ({ path, type, next }) => {
   return result
 })
 
+// Outermost, so the logging middleware's lines carry this span's trace id. On a socket the span
+// covers setup only: a subscription's stream outlives it.
+const spanMiddleware = t.middleware(({ path, type, next }) =>
+  withSpan(`trpc.${type} ${path}`, { 'trpc.path': path, 'trpc.type': type }, async (span) => {
+    const result = await next()
+    if (!result.ok) {
+      span.setAttribute('trpc.code', result.error.code)
+      if (result.error.code === 'INTERNAL_SERVER_ERROR') span.fail()
+    }
+    return result
+  }),
+)
+
 const serviceErrorMiddleware = t.middleware(async ({ next }) => {
   const result = await next()
   if (!result.ok && result.error.cause instanceof ServiceError) {
@@ -67,7 +81,10 @@ const serviceErrorMiddleware = t.middleware(async ({ next }) => {
   return result
 })
 
-const baseProcedure = t.procedure.use(loggingMiddleware).use(serviceErrorMiddleware)
+const baseProcedure = t.procedure
+  .use(spanMiddleware)
+  .use(loggingMiddleware)
+  .use(serviceErrorMiddleware)
 
 export const publicProcedure = baseProcedure
 export const protectedProcedure = baseProcedure.use(async ({ next, ctx }) => {

@@ -8,10 +8,11 @@
     "./init": "./src/init.ts"
   },
   "dependencies": {
+    "@temp-repo/logger": "workspace:*",
+    "@temp-repo/observability": "workspace:*",
     "@temp-repo/studio-config": "workspace:*",
     "@temp-repo/studio-domain": "workspace:*",
     "@temp-repo/studio-service": "workspace:*",
-    "@temp-repo/logger": "workspace:*",
     "@temp-repo/typescript-config": "workspace:*",
     "@trpc/server": "^11.19.0",
     "superjson": "^2.2.6"

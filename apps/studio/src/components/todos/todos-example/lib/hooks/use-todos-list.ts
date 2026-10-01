@@ -4,7 +4,7 @@ import { toUserMessage } from '@/shared/trpc-error'
 
 export function useTodosList() {
   const trpc = useTRPC()
-  const query = useQuery({ ...trpc.todos.list.queryOptions(), retry: false })
+  const query = useQuery(trpc.todos.list.queryOptions())
   return {
     todos: query.data,
     isError: query.isError && !query.data,
