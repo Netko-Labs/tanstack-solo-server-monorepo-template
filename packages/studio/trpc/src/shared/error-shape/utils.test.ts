@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { TodoError } from '@temp-repo/studio-service'
-import { initTRPC } from '@trpc/server'
+import { initTRPC, TRPCError } from '@trpc/server'
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
-import { formatErrorShape } from './utils'
+import { errorLogLevel, formatErrorShape } from './utils'
 
 const LEAK = 'Failed query: insert into "user" ("email") values ($1)\nparams: victim@example.com'
 
@@ -43,5 +43,13 @@ describe('error shape', () => {
   test('in dev the raw message stays for debugging', async () => {
     const { body } = await call(true, 'leak')
     expect(JSON.parse(body).error.message).toBe(LEAK)
+  })
+
+  test('a 4xx that never reached a procedure is logged at warn, one inside a procedure at debug', () => {
+    const notFound = new TRPCError({ code: 'NOT_FOUND' })
+    expect(errorLogLevel({ error: notFound, type: 'unknown' })).toBe('warn')
+    expect(errorLogLevel({ error: notFound, type: 'query' })).toBe('debug')
+    const internal = new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
+    expect(errorLogLevel({ error: internal, type: 'unknown' })).toBe('error')
   })
 })
