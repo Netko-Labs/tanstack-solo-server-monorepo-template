@@ -79,7 +79,7 @@ revisit.
 - **Decision:** one concept per file: one operation, one value group, one error with its codes.
   Files under `queries/` and `mutations/` export exactly one operation. Grab-bag modules are split
   by concept.
-- **Consequence:** `HISTORY_LIMIT` moves to `service/values/chat/chat-history-limit.ts`; `room/`
+- **Consequence:** `CHAT_HISTORY_LIMIT` moves to `service/values/chat/chat-history-limit.ts`; `room/`
   is an integration and keeps its grouped files.
 - **Considered and not used:** the literal one-export rule.
 - **Revisit when:** a grouped file passes 300 lines.

@@ -20,10 +20,8 @@ export function useTodoActions(listKey: QueryKey, onSuccess: (action: TodoAction
   const mutation = useMutation({
     mutationKey: TODO_ACTION_KEY,
     mutationFn: run,
-    onSuccess: (_, action) => {
-      queryClient.invalidateQueries({ queryKey: listKey })
-      onSuccess(action)
-    },
+    onSuccess: (_, action) => onSuccess(action),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: listKey }),
   })
   const inFlight = useMutationState({
     filters: { mutationKey: TODO_ACTION_KEY, status: 'pending' },

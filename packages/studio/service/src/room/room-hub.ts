@@ -46,8 +46,8 @@ export class RoomHub {
     const deadline = until
       ? setTimeout(() => controller.abort(), Math.max(0, until.getTime() - Date.now()))
       : undefined
-    // Events lost in an outage need a fresh snapshot; the marker keeps queue order so later
-    // events are deduped against it (docs/room-bus.md, snapshot boundary).
+    // Events lost in an outage need a fresh snapshot, queued as a marker to keep event order
+    // (docs/room-bus.md, snapshot boundary).
     const offReconnect = this.bus.onReconnect(() => queue.push({ type: 'resync' }))
     let joined = false
     let closing = false

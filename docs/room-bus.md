@@ -23,8 +23,10 @@ collapse connections to one member per user (`active` beats `idle`).
   In Redis both run as one Lua script that also does the `PUBLISH`, so concurrent connections of
   the same user cannot both stay silent, and event order equals state order across instances.
 - **Snapshot boundary.** `stream` subscribes, joins, loads history, then reads members *last* and
-  yields `sync`. Anything queued before that point is deduped against the snapshot (joins of listed
-  users, chats already in history). Anything after passes untouched.
+  yields `sync`. Joins queued before that point are dropped when the user is listed. A chat already
+  in a snapshot is dropped for the stream's lifetime, since its notification may trail the history
+  read. Everything else passes untouched. A bus reconnect queues a `resync` marker, so the fresh
+  snapshot keeps queue order and the events behind it are deduped against it the same way.
 - **Heartbeat never overlaps and never lands after leave.** One in flight at a time; cleanup awaits
   it before leaving. Heartbeat rewrites the record's details but keeps its stored status, so a client-set status is
   kept; pruning is a conditional delete (`EXISTS alive == 0 → HDEL`) so it cannot erase a refresh.
