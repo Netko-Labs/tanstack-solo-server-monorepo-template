@@ -6,12 +6,14 @@ Rules, layering, security, examples, tests and generator parity settled before t
 Stack: `feat/freeze-pass` → `main`
 
 - [x] batch 1–3: rules & specs, generator & CLI basics, domain contracts & layering
-- [ ] batch 5 (WP18): todos `update`/`delete` throw `not_found` for a row removed elsewhere; map the
+- [x] batch 5 (WP18): todos `update`/`delete` throw `not_found` for a row removed elsewhere; map the
       code to copy through `toUserMessage` instead of showing `mutation.error.message`
 - [ ] batch 8 (WP09): one example query in the generator's service template (carried from WP02):
       domain table + drizzle-zod entity + flat schema + `domain/src/values/`, a
       `service/queries/{entity}/{op}.ts`, and a D2 procedure with `.input()`/`.output()`; the
       template `entities/index.ts.hbs` re-exports that entity instead of `export {}`
+- [ ] batch 9 (WP03/WP04): README folder tree still lists the deleted `use-todos-example.ts`;
+      start-a-project docs name `public/manifest.json` beside `APP_NAME` (a test keeps them equal)
 - [ ] verify: `bun run check-types`, `bun run fmt-lint`, `bun run test` (with `CACHE_URL`,
       `DATABASE_URL`) green before every commit
 - acceptance: §2 of `docs/conventions.md` unchanged; every baseline `lib/` folder still exists

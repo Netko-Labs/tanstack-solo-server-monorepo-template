@@ -1,35 +1,25 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { glob } from 'glob'
+import { requireScope } from '../utils/scope'
 import { getRootDir } from '../utils/shell'
 
 const CURRENT_SCOPE = '@temp-repo'
 // Bare name also appears in compose project names, POSTGRES_DB and sample.env URLs.
 const CURRENT_NAME = CURRENT_SCOPE.slice(1)
 const FILE_GLOB = '**/{*.{ts,tsx,js,jsx,json,hbs,md,yml,yaml},sample.env}'
+const RENAME_IGNORE = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/.git/**',
+  '**/.output/**',
+  '**/.nitro/**',
+  '**/.tanstack/**',
+  '**/bun.lock',
+]
 
 export async function renameProject(args: string[]) {
-  const newScope = args[0]
-
-  if (!newScope) {
-    console.error('❌ Error: New scope name is required')
-    console.log('\nUsage: bun repo rename <new-scope>')
-    console.log('Example: bun repo rename @my-company')
-    process.exit(1)
-  }
-
-  if (!newScope.startsWith('@')) {
-    console.error('❌ Error: Scope name must start with "@"')
-    console.log('Example: @my-company, @acme, @myorg')
-    process.exit(1)
-  }
-
-  if (!/^@[a-z0-9-]+$/.test(newScope)) {
-    console.error('❌ Error: Scope name must contain only lowercase letters, numbers, and hyphens')
-    console.log('Example: @my-company, @acme-corp, @my-org123')
-    process.exit(1)
-  }
-
+  const newScope = requireScope(args[0], 'rename')
   const newName = newScope.slice(1)
 
   console.log(`\n🔄 Renaming project from ${CURRENT_SCOPE} to ${newScope}...\n`)
@@ -50,7 +40,7 @@ export async function renameProject(args: string[]) {
 
   const filesToUpdate = await glob(FILE_GLOB, {
     cwd: rootDir,
-    ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/bun.lock'],
+    ignore: RENAME_IGNORE,
     absolute: true,
   })
 
@@ -97,21 +87,16 @@ export async function renameProject(args: string[]) {
    1. Review the changes with: git diff
    2. Run: bun install
    3. Run: bun run fmt-lint:fix (import order shifts with the new scope)
-   4. Test your apps to ensure everything works
-   5. Commit the changes: git add . && git commit -m "chore: rename project to ${newScope}"
+   4. Re-copy every apps/*/.env from its sample.env (rename leaves .env untouched, so its
+      DATABASE_URL still points at the old database name)
+   5. Test your apps to ensure everything works
+   6. Commit the changes: git add . && git commit -m "chore: rename project to ${newScope}"
 
 `)
 }
 
 export async function previewRename(args: string[]) {
-  const newScope = args[0]
-
-  if (!newScope) {
-    console.error('❌ Error: New scope name is required')
-    console.log('\nUsage: bun repo rename:preview <new-scope>')
-    console.log('Example: bun repo rename:preview @my-company')
-    process.exit(1)
-  }
+  const newScope = requireScope(args[0], 'rename:preview')
 
   console.log(`\n🔍 Preview: Renaming from ${CURRENT_SCOPE} to ${newScope}\n`)
 
@@ -119,7 +104,7 @@ export async function previewRename(args: string[]) {
 
   const filesToUpdate = await glob(FILE_GLOB, {
     cwd: rootDir,
-    ignore: ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/bun.lock'],
+    ignore: RENAME_IGNORE,
     absolute: true,
   })
 
