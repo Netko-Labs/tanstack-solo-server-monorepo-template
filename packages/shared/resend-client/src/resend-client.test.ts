@@ -34,4 +34,15 @@ describe('createResendClient', () => {
     expect(error).toBeInstanceOf(ResendApiError)
     expect(error).toMatchObject({ status: 422, detail: 'invalid from' })
   })
+
+  test('a 2xx response without an id throws ResendApiError', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ message: 'ok' }))
+
+    const error = await createResendClient({ apiKey: 'test-key' })
+      .sendEmail(email)
+      .catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(ResendApiError)
+    expect(error).toMatchObject({ status: 200, detail: 'malformed response body' })
+  })
 })

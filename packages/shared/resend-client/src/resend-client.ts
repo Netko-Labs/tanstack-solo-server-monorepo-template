@@ -1,5 +1,6 @@
 import { ResendApiError } from './errors'
-import type { ResendClient, ResendClientConfig, ResendSendResult } from './types'
+import type { ResendClient, ResendClientConfig } from './types'
+import { isSendResult } from './utils'
 import { RESEND_EMAILS_URL, RESEND_TIMEOUT_MS } from './values'
 
 export function createResendClient(config: ResendClientConfig): ResendClient {
@@ -17,7 +18,9 @@ export function createResendClient(config: ResendClientConfig): ResendClient {
         signal: AbortSignal.timeout(timeoutMs),
       })
       if (!res.ok) throw new ResendApiError(res.status, await res.text())
-      return (await res.json()) as ResendSendResult
+      const body: unknown = await res.json().catch(() => null)
+      if (!isSendResult(body)) throw new ResendApiError(res.status, 'malformed response body')
+      return { id: body.id }
     },
   }
 }
