@@ -65,6 +65,13 @@ jobs:
       - run: bun run check-types
       - run: bun run fmt-lint
       - run: bun run test
+      - name: every asset the root route links exists in public/
+        run: |
+          for app in smoke admin; do
+            for href in $(grep -o "href: '/[^']*'" "apps/$app/src/routes/__root.tsx" | cut -d"'" -f2); do
+              test -f "apps/$app/public$href" || { echo "apps/$app links $href, missing from public/"; exit 1; }
+            done
+          done
 
   commitlint:
     if: github.event_name == 'pull_request'

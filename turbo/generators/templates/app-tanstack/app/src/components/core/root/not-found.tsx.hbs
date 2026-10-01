@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { buttonVariants } from '@temp-repo/ui/components/button'
 import {
   NOT_FOUND_DESCRIPTION,
   NOT_FOUND_HEADING,
@@ -8,18 +9,15 @@ import {
 
 export function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-4 text-foreground">
       <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-900">{NOT_FOUND_HEADING}</h1>
-        <p className="mt-4 text-xl text-gray-600">{NOT_FOUND_TITLE}</p>
-        <p className="mt-2 text-gray-500">{NOT_FOUND_DESCRIPTION}</p>
-        <Link
-          to="/"
-          className="mt-6 inline-block rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
+        <h1 className="font-bold font-heading text-6xl">{NOT_FOUND_HEADING}</h1>
+        <p className="mt-4 text-xl">{NOT_FOUND_TITLE}</p>
+        <p className="mt-2 text-muted-foreground">{NOT_FOUND_DESCRIPTION}</p>
+        <Link to="/" className={buttonVariants({ className: 'mt-6' })}>
           {NOT_FOUND_HOME_LABEL}
         </Link>
       </div>
-    </div>
+    </main>
   )
 }
