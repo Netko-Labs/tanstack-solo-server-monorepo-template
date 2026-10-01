@@ -458,8 +458,9 @@ Commit types: `✨ feat`, `🐛 fix`, `📝 docs`, `💄 style`, `♻️ refacto
 - One recipe per layer:
   - **domain** — parse and reject cases for a schema.
   - **repository / service** — against real Postgres or Redis, gated with
-    `describe.skipIf(!process.env.DATABASE_URL)` (or `CACHE_URL`). Migrations applied first,
-    unique ids per run, `afterAll` deletes only the rows the test made.
+    `describe.skipIf(!gatedEnv('DATABASE_URL'))` (or `CACHE_URL`); `gatedEnv` fails instead of
+    skipping when `REQUIRE_GATED_SUITES` is set, as CI does. Migrations applied first, unique ids
+    per run, `afterAll` deletes only the rows the test made.
   - **trpc** — `appRouter.createCaller(ctx)` with null, expired and valid sessions. A sweep over
     the router asserts the public allow-list and that every query and mutation has an output
     parser.

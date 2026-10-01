@@ -58,6 +58,9 @@
         "@temp-repo/studio-domain": "workspace:*",
         "@temp-repo/typescript-config": "workspace:*",
       },
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
+      },
     },
     "packages/shared/cli": {
       "name": "@temp-repo/cli",

@@ -3,9 +3,10 @@ import { user } from '@temp-repo/studio-domain'
 import { db } from '@temp-repo/studio-repository'
 import { handleOAuthUserInfo } from 'better-auth/oauth2'
 import { eq } from 'drizzle-orm'
+import { gatedEnv } from '../shared/testing'
 import { auth } from './auth'
 
-const hasDb = Boolean(process.env.DATABASE_URL)
+const hasDb = Boolean(gatedEnv('DATABASE_URL'))
 const id = `test-${crypto.randomUUID()}`
 const email = `${id}@example.com`
 

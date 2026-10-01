@@ -16,7 +16,8 @@
     },
     "test": {
       "dependsOn": ["transit"],
-      "env": ["CACHE_URL", "DATABASE_URL"]
+      "env": ["CACHE_URL", "DATABASE_URL", "REQUIRE_GATED_SUITES"],
+      "passThroughEnv": ["LOG_LEVEL"]
     },
     "dev": {
       "cache": false,

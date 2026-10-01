@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import type { Member, RoomEvent } from '@temp-repo/studio-domain'
+import { gatedEnv } from '../../shared/testing'
 import { RedisRoomBus } from './redis-room-bus'
 
-const url = process.env.CACHE_URL ?? ''
+const url = gatedEnv('CACHE_URL')
 const member: Member = { userId: 'u1', name: 'one', status: 'active' }
 const client = () => new Bun.RedisClient(url)
 

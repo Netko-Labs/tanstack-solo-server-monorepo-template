@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test": "bun test",
+    "test": "bun test --pass-with-no-tests",
     "dev": "bun run repo dev --app studio",
     "serve": "bun run repo serve --app studio",
     "build": "bun run repo build --app studio",

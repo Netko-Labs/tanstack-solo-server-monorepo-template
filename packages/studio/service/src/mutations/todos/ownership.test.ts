@@ -3,12 +3,13 @@ import { user } from '@temp-repo/studio-domain'
 import { db } from '@temp-repo/studio-repository'
 import { inArray } from 'drizzle-orm'
 import { getTodo, getTodos } from '../../queries/todos'
+import { gatedEnv } from '../../shared/testing'
 import { createTodo } from './create-todo'
 import { deleteTodo } from './delete-todo'
 import { TodoError } from './todo-error'
 import { updateTodo } from './update-todo'
 
-const hasDb = Boolean(process.env.DATABASE_URL)
+const hasDb = Boolean(gatedEnv('DATABASE_URL'))
 const ids = { a: `test-${crypto.randomUUID()}`, b: `test-${crypto.randomUUID()}` }
 
 describe.skipIf(!hasDb)('todo ownership', () => {

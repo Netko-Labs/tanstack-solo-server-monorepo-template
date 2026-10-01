@@ -24,6 +24,8 @@ jobs:
     env:
       CACHE_URL: redis://localhost:6379
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/temp-repo
+      # a gated suite that cannot reach its service fails here instead of skipping
+      REQUIRE_GATED_SUITES: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

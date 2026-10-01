@@ -16,6 +16,7 @@
     "typescript": "^7.0.2"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test --pass-with-no-tests"
   }
 }

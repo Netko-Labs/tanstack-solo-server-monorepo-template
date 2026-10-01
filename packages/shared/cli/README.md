@@ -57,7 +57,7 @@ bun run status       # Show monorepo status
 
 | Command | Description |
 |---------|-------------|
-| `test [--app <name>]` | Run unit tests |
+| `test [--app <name>]` | Run tests with the app's `.env` loaded under the shell env (`studio` by default) |
 | `test --watch` | Run tests in watch mode |
 | `test --coverage` | Run tests with coverage |
 

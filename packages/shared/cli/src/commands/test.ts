@@ -1,5 +1,15 @@
-import { getAppPackageName, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
-import { getRootDir, run } from '../utils/shell'
+import * as path from 'node:path'
+import {
+  getAppDir,
+  getAppPackageName,
+  getAvailableApps,
+  parseAppArg,
+  validateApp,
+} from '../utils/apps'
+import { getRootDir, loadEnvFile, run } from '../utils/shell'
+
+const DEFAULT_ENV_APP = 'studio'
+const GATED_SUITE_VARS = ['DATABASE_URL', 'CACHE_URL']
 
 export const test = async (args: string[]) => {
   const appName = parseAppArg(args)
@@ -26,5 +36,18 @@ export const test = async (args: string[]) => {
     cmd.push('--', ...extraFlags)
   }
 
-  await run(cmd, { cwd: rootDir })
+  const env = appTestEnv(appName ?? DEFAULT_ENV_APP)
+  const unset = GATED_SUITE_VARS.filter((name) => !env[name] && !process.env[name])
+  if (unset.length > 0) {
+    console.log(`ℹ️  ${unset.join(' and ')} unset: the suites gated on them will skip`)
+  }
+
+  await run(cmd, { cwd: rootDir, env })
+}
+
+/** The app's .env under the shell's own env, which wins: CI sets its service URLs there. */
+function appTestEnv(appName: string): Record<string, string> {
+  if (!validateApp(appName)) return {}
+  const fileEnv = loadEnvFile(path.join(getAppDir(appName), '.env'))
+  return Object.fromEntries(Object.entries(fileEnv).filter(([name]) => !(name in process.env)))
 }

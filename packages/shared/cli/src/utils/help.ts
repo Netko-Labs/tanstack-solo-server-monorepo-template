@@ -25,7 +25,7 @@ Generators
   generate:lib               Create a shared library or an external-service client
 
 Testing
-  test [--app <name>]        Run unit tests
+  test [--app <name>]        Run tests with the app's .env (studio by default)
   test --watch               Run tests in watch mode
   test --coverage            Run tests with coverage
 

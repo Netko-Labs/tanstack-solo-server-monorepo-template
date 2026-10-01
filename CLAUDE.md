@@ -58,7 +58,12 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Repo typecheck: `bun run check-types`
 - Repo lint and formatting check: `bun run fmt-lint`
 - Repo lint and formatting fix: `bun run fmt-lint:fix`
-- Repo tests: `bun run test` (bun test via turbo). Two suites skip without their env: the Redis bus contract tests need `CACHE_URL`; the todo ownership test needs `DATABASE_URL` with migrations applied
+- Repo tests: `bun run test` (bun test via turbo; `repo test` loads `apps/studio/.env`, or the
+  `--app` one, under the shell env). Gated suites skip without their env: the Redis bus contract
+  needs `CACHE_URL`; todo ownership and OAuth linking need `DATABASE_URL` with migrations applied.
+  A run with skips is not a pass for those layers; CI sets `REQUIRE_GATED_SUITES=1` so a skip
+  fails. `LOG_LEVEL=silent bun run test` quiets logs; telemetry env is deliberately not passed
+  to tests.
 - Generate app: `bun run gen:app`
 - Generate library: `bun run gen:lib`
 - Studio DB generate: `bun run repo db:generate --app studio`

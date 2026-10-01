@@ -14,13 +14,13 @@ const MIN_AUTH_SECRET_LENGTH = 32
 
 // A production boot without its public URL, database, secret or mail delivery is a
 // misconfiguration that must fail loudly, not serve.
-function assertProductionEnv(): void {
-  if (process.env.NODE_ENV !== 'production') return
+export function assertProductionEnv(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.NODE_ENV !== 'production') return
   const missing = ['BASE_URL', 'DATABASE_URL', 'AUTH_SECRET', 'RESEND_API_KEY'].filter(
-    (name) => !process.env[name],
+    (name) => !env[name],
   )
   if (missing.length > 0) throw new Error(`production requires ${missing.join(', ')}`)
-  if ((process.env.AUTH_SECRET?.length ?? 0) < MIN_AUTH_SECRET_LENGTH) {
+  if ((env.AUTH_SECRET?.length ?? 0) < MIN_AUTH_SECRET_LENGTH) {
     throw new Error(`AUTH_SECRET must be at least ${MIN_AUTH_SECRET_LENGTH} characters`)
   }
 }
