@@ -42,6 +42,7 @@ tuning knobs (`OTEL_BSP_*`, `OTEL_EXPORTER_OTLP_COMPRESSION=gzip`).
 | Browser error | Route loader/render errors, global errors, query/mutation errors the server never answered | `router.tsx` `defaultOnCatch`, `integrations/observability/`, the QueryClient caches |
 | Trace span | `METHOD /path` per request (not `/api/health`, `/api/monitor`) | `start.ts` |
 | Trace span | `trpc.{type} {path}` per procedure, outermost middleware | `trpc/src/init.ts` |
+| Trace span | better-auth's own spans (`handler /get-session`, `db findOne session`, plugin hooks), through the global tracer | better-auth itself |
 | Log record | Every pino line at `info`+ while OTLP is on | `server/plugins/observability.ts` → `createOtlpLogStream` |
 
 Browser events go to `POST /api/monitor`, which forwards an envelope only to an allowed DSN
@@ -67,7 +68,8 @@ await withSpan('room.replay', { 'room.id': roomId }, async (span) => { /* … */
 ```
 
 There is no auto-instrumentation: Nitro bundles dependencies into `.output/server/_libs`, where
-require-hooks never see them. Name spans by operation, never by id (`room.replay`, not
+require-hooks never see them. Libraries that call the OpenTelemetry API themselves still report
+(better-auth does). Name spans by operation, never by id (`room.replay`, not
 `room.lobby`); put ids in attributes.
 
 ## Rules
