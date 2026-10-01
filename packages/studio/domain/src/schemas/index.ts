@@ -1,3 +1,6 @@
 export * from './auth'
+export * from './chat'
+export * from './config'
 export * from './context'
 export * from './room'
+export * from './todos'

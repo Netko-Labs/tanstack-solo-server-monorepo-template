@@ -1,8 +1,9 @@
+import { CHAT_CONTENT_MAX } from '@temp-repo/studio-domain'
 import { Button } from '@temp-repo/ui/components/button'
 import { Input } from '@temp-repo/ui/components/input'
 import { type FormEvent, useState } from 'react'
 import type { SendMessageFormProps } from '../lib'
-import { MESSAGE_MAX_LENGTH, SEND_LABEL, SEND_PENDING_LABEL, SEND_PLACEHOLDER } from '../lib'
+import { SEND_LABEL, SEND_PENDING_LABEL, SEND_PLACEHOLDER } from '../lib'
 
 export function SendMessageForm({ onSend, isPending, error }: SendMessageFormProps) {
   const [content, setContent] = useState('')
@@ -19,7 +20,7 @@ export function SendMessageForm({ onSend, isPending, error }: SendMessageFormPro
           aria-label={SEND_PLACEHOLDER}
           placeholder={SEND_PLACEHOLDER}
           value={content}
-          maxLength={MESSAGE_MAX_LENGTH}
+          maxLength={CHAT_CONTENT_MAX}
           onChange={(e) => setContent(e.target.value)}
           disabled={isPending}
           className="flex-1"

@@ -1,3 +1,4 @@
+import { TODO_DESCRIPTION_MAX, TODO_TITLE_MAX } from '@temp-repo/studio-domain'
 import { Button } from '@temp-repo/ui/components/button'
 import {
   Card,
@@ -47,6 +48,7 @@ export function CreateTodoForm({ onSubmit, isPending }: CreateTodoFormProps) {
                 id="todo-title"
                 placeholder={CREATE_TODO_TITLE_PLACEHOLDER}
                 value={title}
+                maxLength={TODO_TITLE_MAX}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
@@ -57,6 +59,7 @@ export function CreateTodoForm({ onSubmit, isPending }: CreateTodoFormProps) {
                 id="todo-description"
                 placeholder={CREATE_TODO_DESCRIPTION_PLACEHOLDER}
                 value={description}
+                maxLength={TODO_DESCRIPTION_MAX}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </Field>
