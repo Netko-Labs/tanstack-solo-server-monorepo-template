@@ -43,7 +43,7 @@ bun run status       # Show monorepo status
 | `db:migrate --app <name>` | Run database migrations |
 | `db:generate --app <name>` | Generate migrations from schema |
 | `db:push --app <name>` | Push schema changes (no migration) |
-| `db:seed --app <name>` | Seed database with initial data |
+| `db:seed --app <name>` | Run the re-runnable dev seed (refuses in production) |
 | `db:studio --app <name>` | Open Drizzle Studio GUI |
 
 ### Generators

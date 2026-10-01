@@ -62,6 +62,7 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 - Studio DB generate: `bun run repo db:generate --app studio`
 - Studio DB migrate: `bun run repo db:migrate --app studio`
 - Studio DB push: `bun run repo db:push --app studio`
+- Studio DB seed: `bun run repo db:seed --app studio` (re-runnable stub in `repository/src/db/seed.ts`; refuses in production)
 
 ## Verification
 

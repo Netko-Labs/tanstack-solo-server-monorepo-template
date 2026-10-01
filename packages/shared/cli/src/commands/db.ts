@@ -1,10 +1,11 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import * as path from 'node:path'
 import {
   getAppDir,
   getAvailableApps,
   getRepositoryDir,
   parseAppArg,
+  requireEnvFile,
   validateApp,
 } from '../utils/apps'
 import { getPackageScope } from '../utils/scope'
@@ -73,6 +74,42 @@ export async function dbGenerate(args: string[]) {
   })
 
   console.log(`✅ Schema generation for ${appName} completed!`)
+}
+
+/**
+ * Run the repository's re-runnable seed for an app
+ */
+export async function dbSeed(args: string[]) {
+  const appName = parseAppArg(args)
+
+  if (!appName) {
+    console.error('❌ Please specify an app with --app <name>')
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  if (!validateApp(appName)) {
+    console.error(`❌ App "${appName}" not found`)
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  const repoDir = getRepositoryDir(appName)
+  const repoPkg = JSON.parse(readFileSync(path.join(repoDir, 'package.json'), 'utf-8'))
+  if (!repoPkg.scripts?.['db:seed']) {
+    console.log(`ℹ️  No seed defined for ${appName} (no db:seed script in its repository)`)
+    return
+  }
+
+  const envFile = requireEnvFile(appName)
+
+  console.log(`🌱 Seeding database for ${appName}...`)
+
+  await run(['bun', 'run', `--env-file=${envFile}`, '--cwd', repoDir, 'db:seed'], {
+    cwd: getRootDir(),
+  })
+
+  console.log(`✅ Seed for ${appName} completed!`)
 }
 
 /**

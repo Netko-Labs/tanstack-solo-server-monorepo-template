@@ -4,17 +4,20 @@
   "type": "module",
   "scripts": {
     "check-types": "tsgo --noEmit",
-    "dev": "bun --bun vite dev",
-    "build": "bun --bun vite build",
+    "test": "bun test --pass-with-no-tests",
+    "dev": "bun run repo dev --app {{ name }}",
+    "serve": "bun run repo serve --app {{ name }}",
+    "build": "bun run repo build --app {{ name }}",
     "start": "NODE_ENV=production bun .output/server/index.mjs",
-    "docker:up": "repo docker:up --app {{ name }}",
-    "docker:down": "repo docker:down --app {{ name }}",
-    "db:migrate": "repo db:migrate --app {{ name }}",
-    "db:generate": "repo db:generate --app {{ name }}",
-    "db:push": "repo db:push --app {{ name }}",
-    "db:seed": "repo db:seed --app {{ name }}"
+    "docker:up": "bun run repo docker:up --app {{ name }}",
+    "docker:down": "bun run repo docker:down --app {{ name }}",
+    "db:migrate": "bun run repo db:migrate --app {{ name }}",
+    "db:generate": "bun run repo db:generate --app {{ name }}",
+    "db:push": "bun run repo db:push --app {{ name }}",
+    "db:seed": "bun run repo db:seed --app {{ name }}"
   },
   "dependencies": {
+    "@temp-repo/cli": "workspace:*",
     "@temp-repo/logger": "workspace:*",
     "@temp-repo/{{ name }}-config": "workspace:*",
     "@temp-repo/{{ name }}-domain": "workspace:*",
