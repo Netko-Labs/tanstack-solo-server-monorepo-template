@@ -1,5 +1,6 @@
 import { closeDb } from '@temp-repo/studio-repository'
-import { closeAllPeers, hub } from '@temp-repo/studio-trpc'
+import { hub } from '@temp-repo/studio-service'
+import { closeAllPeers } from '@temp-repo/studio-trpc'
 import { definePlugin } from 'nitro'
 
 const DRAIN_TIMEOUT_MS = 5_000

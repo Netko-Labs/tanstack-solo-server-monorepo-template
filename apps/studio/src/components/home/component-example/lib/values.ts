@@ -48,20 +48,12 @@ export const TECH_STACK_ITEMS = [
 ]
 
 export const CODE_EXAMPLE_TRPC = `
-// packages/studio/trpc/src/routers/room/index.ts
-export const roomRouter = router({
+// packages/studio/trpc/src/routers/room/mutations.ts
+export const roomMutations = router({
   send: protectedProcedure
-    .input(z.object({ roomId: RoomIdSchema, content: z.string().min(1).max(2000) }))
-    .mutation(async ({ ctx, input }) => {
-      const message = await createChatMessage({
-        roomId: input.roomId,
-        content: input.content,
-        authorId: ctx.user.id,
-        authorName: displayName(ctx.user),
-      })
-      if (message) await hub.chat(input.roomId, message)
-      return message
-    }),
+    .input(ChatMessageSendInputSchema)
+    .output(ChatMessageSchema.nullable())
+    .mutation(({ ctx, input }) => sendChatMessage(ctx.user, input)),
 })
 `
 
