@@ -30,7 +30,7 @@ export class RoomHub {
   ): AsyncGenerator<RoomEvent> {
     const connectionId = crypto.randomUUID()
     const controller = new AbortController()
-    if (signal?.aborted) controller.abort()
+    if (signal?.aborted || (until && until.getTime() <= Date.now())) controller.abort()
     else signal?.addEventListener('abort', () => controller.abort(), { once: true })
     const queue = createAsyncQueue<RoomQueueItem>(controller.signal)
     // Counted before the subscribe resolves so a drain sees streams still on their way in;
