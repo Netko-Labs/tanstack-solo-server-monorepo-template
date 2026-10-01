@@ -8,9 +8,6 @@ export const TRANSPORT_DESCRIPTION =
 export const TRANSPORT_BADGE = 'HTTP batch'
 export const TRANSPORT_WRITES = 'Writes accepted this session'
 
-export const GUEST_MESSAGE = 'Sign in to keep a todo list; every list is private to its owner.'
-export const GUEST_CTA = 'Sign in'
-
 export const CREATE_TODO_TITLE = 'Create New Todo'
 export const CREATE_TODO_DESCRIPTION = 'Add a new item to your todo list'
 export const CREATE_TODO_TITLE_LABEL = 'Title'

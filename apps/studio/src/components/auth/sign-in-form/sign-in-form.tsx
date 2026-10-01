@@ -8,36 +8,33 @@ import {
   CardTitle,
 } from '@temp-repo/ui/components/card'
 import { Input } from '@temp-repo/ui/components/input'
-import type { AuthGuestFormProps } from './lib'
+import type { SignInFormProps } from './lib'
 import {
-  AUTH_DEV_HINT,
-  AUTH_EMAIL_LABEL,
-  AUTH_EMAIL_PLACEHOLDER,
-  AUTH_GUEST,
-  AUTH_GUEST_BADGE,
-  AUTH_GUEST_DESCRIPTION,
-  AUTH_SEND_LINK,
-  AUTH_SENDING,
+  SIGN_IN_DEV_HINT,
+  SIGN_IN_EMAIL_LABEL,
+  SIGN_IN_EMAIL_PLACEHOLDER,
+  SIGN_IN_FORM_BADGE,
+  SIGN_IN_FORM_DESCRIPTION,
+  SIGN_IN_FORM_TITLE,
+  SIGN_IN_SEND_LINK,
+  SIGN_IN_SENDING,
+  useSignInForm,
 } from './lib'
 
-export function AuthGuestForm({
-  email,
-  isLoading,
-  message,
-  onEmailChange,
-  onSubmit,
-}: AuthGuestFormProps) {
+export function SignInForm(props: SignInFormProps) {
+  const { email, setEmail, isSending, message, handleSubmit } = useSignInForm(props)
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          {AUTH_GUEST}
-          <Badge variant="secondary">{AUTH_GUEST_BADGE}</Badge>
+          {SIGN_IN_FORM_TITLE}
+          <Badge variant="secondary">{SIGN_IN_FORM_BADGE}</Badge>
         </CardTitle>
-        <CardDescription>{AUTH_GUEST_DESCRIPTION}</CardDescription>
+        <CardDescription>{SIGN_IN_FORM_DESCRIPTION}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {message && (
             <div
               role={message.type === 'error' ? 'alert' : 'status'}
@@ -52,21 +49,21 @@ export function AuthGuestForm({
           )}
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
-              {AUTH_EMAIL_LABEL}
+              {SIGN_IN_EMAIL_LABEL}
             </label>
             <Input
               id="email"
               type="email"
-              placeholder={AUTH_EMAIL_PLACEHOLDER}
+              autoComplete="email"
+              placeholder={SIGN_IN_EMAIL_PLACEHOLDER}
               value={email}
-              onChange={(e) => onEmailChange(e.target.value)}
-              required
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? AUTH_SENDING : AUTH_SEND_LINK}
+          <Button type="submit" className="w-full" disabled={isSending}>
+            {isSending ? SIGN_IN_SENDING : SIGN_IN_SEND_LINK}
           </Button>
-          <p className="text-xs text-muted-foreground text-center">{AUTH_DEV_HINT}</p>
+          <p className="text-xs text-muted-foreground text-center">{SIGN_IN_DEV_HINT}</p>
         </form>
       </CardContent>
     </Card>

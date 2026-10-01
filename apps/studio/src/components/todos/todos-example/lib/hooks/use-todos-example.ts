@@ -3,13 +3,12 @@ import type { TodoWriteCounts } from '../types'
 import { useTodoActions } from './use-todo-actions'
 import { useTodosList } from './use-todos-list'
 
-/** `enabled` gates the list query: guests render nothing, so they should fetch nothing. */
-export function useTodosExample(enabled: boolean) {
+export function useTodosExample() {
   const [writes, setWrites] = useState<TodoWriteCounts>({ completed: 0, creates: 0 })
   const {
     query: { data: todos = [], isLoading, error },
     queryKey,
-  } = useTodosList(enabled)
+  } = useTodosList()
   const actions = useTodoActions(queryKey, (action) =>
     setWrites((w) => ({
       completed: w.completed + 1,
