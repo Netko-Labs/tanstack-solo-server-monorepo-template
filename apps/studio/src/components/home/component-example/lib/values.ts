@@ -23,7 +23,7 @@ export const FEATURE_CARDS: FeatureCardProps[] = [
   {
     title: 'Chat Example',
     description:
-      'Real-time global chat using tRPC subscriptions. Requires authentication to send messages.',
+      'Presence and live chat over the /trpc-ws socket. Guests see a sign-in notice; the room streams once signed in.',
     href: '/chat',
     badge: 'WebSocket',
   },

@@ -37,8 +37,9 @@ collapse connections to one member per user (`active` beats `idle`).
 - **Redis outage.** Bun's client reconnects but does not re-issue `SUBSCRIBE`. The bus keeps its own
   subscription table, restores it on the next `onconnect`, and fires `onReconnect`; the hub then
   pushes a fresh `sync` to every stream, because events published during the outage are gone.
-  `room.send` persists to Postgres before publishing, so a lost publish loses a notification, not a
-  message. Publish failures are logged and not rethrown: the message is already saved.
+  `room.send` persists to Postgres before publishing
+  (`service/src/mutations/chat/send-chat-message.ts`), so a lost publish loses a notification, not
+  a message. Publish failures are logged and not rethrown: the message is already saved.
 - **Restores never stack.** Restores of one channel run strictly in order, and one failed channel
   never stops the others. Only the first attempt is awaited; retries back off (capped) in the
   background for as long as the listener is wanted, because a deaf instance is never a steady
