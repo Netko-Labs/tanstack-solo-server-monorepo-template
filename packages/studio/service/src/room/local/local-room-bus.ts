@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { Member, RoomEvent } from '@temp-repo/studio-domain'
-import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from './types'
-import { aggregateMembers, isExpired } from './utils'
+import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from '../types'
+import { aggregateMembers, isExpired } from '../utils'
 
 export class LocalRoomBus implements RoomBus {
   private readonly emitter = new EventEmitter()

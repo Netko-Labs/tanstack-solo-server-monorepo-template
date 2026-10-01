@@ -41,3 +41,8 @@ export interface AsyncQueue<T> extends AsyncIterable<T> {
   push(item: T): void
   size(): number
 }
+
+export type RoomSync = Extract<RoomEvent, { type: 'sync' }>
+
+/** Room events plus an internal marker asking the consumer to take a fresh snapshot. */
+export type RoomQueueItem = RoomEvent | { type: 'resync' }

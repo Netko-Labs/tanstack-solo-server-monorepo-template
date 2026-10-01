@@ -1,16 +1,10 @@
 import { createLogger } from '@temp-repo/logger'
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
-import { CACHE_URL, createCacheClient } from '@temp-repo/studio-repository'
 import { getChatMessages } from '../queries/chat'
 import { HEARTBEAT_MS } from './constants'
-import { LocalRoomBus } from './local-room-bus'
-import { RedisRoomBus } from './redis-room-bus'
-import type { MemberStatus, RoomBus } from './types'
+import { createRoomBus } from './create-room-bus'
+import type { MemberStatus, RoomBus, RoomQueueItem, RoomSync } from './types'
 import { createAsyncQueue, presenceSignature } from './utils'
-
-type Sync = Extract<RoomEvent, { type: 'sync' }>
-/** Queue items: room events plus an internal marker asking the consumer to take a fresh snapshot. */
-type QueueItem = RoomEvent | { type: 'resync' }
 
 const logger = createLogger('room')
 
@@ -38,7 +32,7 @@ export class RoomHub {
     const controller = new AbortController()
     if (signal?.aborted) controller.abort()
     else signal?.addEventListener('abort', () => controller.abort(), { once: true })
-    const queue = createAsyncQueue<QueueItem>(controller.signal)
+    const queue = createAsyncQueue<RoomQueueItem>(controller.signal)
     // Counted before the subscribe resolves so a drain sees streams still on their way in;
     // a failed subscribe throws before the `finally` below exists, so it uncounts itself.
     this.activeStreams += 1
@@ -148,7 +142,7 @@ export class RoomHub {
     return this.bus.setStatus(roomId, connectionId, userId, status)
   }
 
-  private async snapshot(roomId: string, connectionId: string): Promise<Sync> {
+  private async snapshot(roomId: string, connectionId: string): Promise<RoomSync> {
     const messages = await this.loadHistory(roomId)
     const members = await this.bus.members(roomId)
     return { type: 'sync', connectionId, members, messages }
@@ -159,12 +153,6 @@ export class RoomHub {
   }
 }
 
-function createBus(): RoomBus {
-  if (!CACHE_URL) return new LocalRoomBus()
-  logger.info('room bus: redis')
-  return new RedisRoomBus(createCacheClient(), createCacheClient())
-}
-
 // The bus (connections + subscriptions + presence) is one per process, not per module
 // graph: dev evaluates the HTTP route (Vite `ssr` env) and the WebSocket handler (`nitro`
 // env) separately. The hub is stateless, so every module evaluation builds a fresh one on
@@ -172,6 +160,6 @@ function createBus(): RoomBus {
 // bus files still need one.
 const BUS_KEY = Symbol.for('studio.room-bus')
 const globalBus = globalThis as typeof globalThis & Record<symbol, RoomBus | undefined>
-globalBus[BUS_KEY] ??= createBus()
+globalBus[BUS_KEY] ??= createRoomBus()
 
 export const hub = new RoomHub(globalBus[BUS_KEY])

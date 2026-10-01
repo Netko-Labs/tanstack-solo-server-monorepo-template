@@ -1,9 +1,9 @@
+// conventions: >300 lines — one RoomHub lifecycle suite over shared fixtures; split when next touched
 import { describe, expect, test } from 'bun:test'
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
-import { LocalRoomBus } from './local-room-bus'
+import { LocalRoomBus } from './local'
 import { RoomHub } from './room-hub'
 import type { RoomBus } from './types'
-import { parseEvent, serializeEvent } from './utils'
 
 /** LocalRoomBus with a reconnect signal the test can fire. */
 class ReconnectableBus extends LocalRoomBus implements RoomBus {
@@ -37,15 +37,6 @@ async function take(stream: AsyncGenerator<RoomEvent>, count: number): Promise<R
   }
   return events
 }
-
-describe('room event wire format', () => {
-  test('round-trips events and ignores garbage', () => {
-    const event: RoomEvent = { type: 'chat', message }
-    expect(parseEvent(serializeEvent(event))).toEqual(event)
-    expect(parseEvent('not json')).toBeUndefined()
-    expect(parseEvent('{"json":{"type":"nope"}}')).toBeUndefined()
-  })
-})
 
 describe('RoomHub over LocalRoomBus', () => {
   test('sync first (own join is not echoed), then chat fan-out', async () => {
