@@ -185,8 +185,10 @@ revisit.
 - **Context:** behind a CDN every visitor arrives from the proxy's IP, so better-auth's per-IP
   rate limit becomes one shared magic-link bucket for the whole site. The option
   (`advanced.ipAddress.trustedProxies`) is verified in `@better-auth/core`.
-- **Decision:** `TRUSTED_PROXIES` wires to it; unset keeps today's behavior.
-- **Consequence:** a deploy behind a proxy sets it explicitly.
+- **Decision:** `TRUSTED_PROXIES` wires to it; unset keeps today's behavior. `rateLimit.enabled`
+  follows the build-time app mode (`!app.dev`), not better-auth's runtime `NODE_ENV` read.
+- **Consequence:** a deploy behind a proxy sets it explicitly. Limits stay in memory, per
+  instance.
 - **Considered and not used:** keeping it deferred and only documenting the shared bucket.
 - **Revisit when:** the proxy chain changes.
 

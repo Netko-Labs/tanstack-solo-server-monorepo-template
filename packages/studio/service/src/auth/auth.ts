@@ -6,6 +6,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { lastLoginMethod, magicLink } from 'better-auth/plugins'
 import { sendMagicLinkEmail } from '../email'
 
+const { trustedProxies } = studioEnvConfig.app
+
 export const auth = betterAuth({
   appName: 'Studio',
   baseURL: studioEnvConfig.app.baseUrl,
@@ -21,12 +23,15 @@ export const auth = betterAuth({
   }),
   advanced: {
     cookiePrefix: 'studio',
+    ipAddress: trustedProxies.length > 0 ? { trustedProxies } : undefined,
+  },
+  rateLimit: {
+    enabled: !studioEnvConfig.app.dev,
   },
   account: {
     encryptOAuthTokens: true,
     accountLinking: {
       enabled: true,
-      trustedProviders: ['google', 'github', 'discord'],
     },
   },
   plugins: [

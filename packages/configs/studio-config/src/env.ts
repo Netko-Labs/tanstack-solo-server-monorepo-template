@@ -31,6 +31,7 @@ const studioConfig: StudioConfig = {
     dev: process.env.NODE_ENV !== 'production',
     baseUrl: process.env.BASE_URL ?? 'http://localhost:3000',
     port: Number(process.env.PORT ?? 3000),
+    trustedProxies: splitList(process.env.TRUSTED_PROXIES),
   },
   cache: {
     url: process.env.CACHE_URL ?? '',

@@ -17,6 +17,7 @@ export const StudioConfigSchema = z.object({
     dev: z.boolean().default(false),
     port: z.number().default(3000),
     baseUrl: z.string().url(),
+    trustedProxies: z.array(z.string()).default([]),
   }),
   cache: z.object({
     url: z.string(),
