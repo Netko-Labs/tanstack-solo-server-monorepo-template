@@ -20,7 +20,7 @@ services:
       - studio_postgres_data:/var/lib/postgresql/data
 
   redis-studio:
-    image: redis:latest
+    image: redis:8-alpine
     profiles: [studio]
     ports:
       - "${STUDIO_REDIS_PORT:-6379}:6379"

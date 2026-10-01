@@ -5,7 +5,7 @@ const PRODUCTION_ENV = {
   NODE_ENV: 'production',
   BASE_URL: 'https://studio.example.com',
   DATABASE_URL: 'postgresql://db/studio',
-  AUTH_SECRET: 'x'.repeat(32),
+  AUTH_SECRET: 'kQ7v2mZp9XcR4tLw8bNf3yHd6sJg1aUe5oPi0Tq=',
   RESEND_API_KEY: 're_test',
 }
 
@@ -15,6 +15,9 @@ test('production refuses to boot without its required env, naming every missing 
   )
   expect(() => assertProductionEnv({ ...PRODUCTION_ENV, AUTH_SECRET: 'short' })).toThrow(
     'AUTH_SECRET must be at least 32 characters',
+  )
+  expect(() => assertProductionEnv({ ...PRODUCTION_ENV, AUTH_SECRET: 'X'.repeat(32) })).toThrow(
+    'AUTH_SECRET looks like a placeholder',
   )
   expect(() => assertProductionEnv(PRODUCTION_ENV)).not.toThrow()
 })

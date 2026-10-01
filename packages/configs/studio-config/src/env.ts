@@ -12,6 +12,8 @@ const isEnabled = (args: (string | undefined)[]): boolean => {
 }
 
 const MIN_AUTH_SECRET_LENGTH = 32
+// A generated secret has dozens of distinct characters; a placeholder (`XXXX…`) has one.
+const MIN_AUTH_SECRET_DISTINCT_CHARS = 10
 
 // Telemetry is never required, but a set-and-broken value would fail silently on every event.
 function assertTelemetryEnv(env: NodeJS.ProcessEnv): void {
@@ -37,6 +39,11 @@ export function assertProductionEnv(env: NodeJS.ProcessEnv = process.env): void 
   if (missing.length > 0) throw new Error(`production requires ${missing.join(', ')}`)
   if ((env.AUTH_SECRET?.length ?? 0) < MIN_AUTH_SECRET_LENGTH) {
     throw new Error(`AUTH_SECRET must be at least ${MIN_AUTH_SECRET_LENGTH} characters`)
+  }
+  if (new Set(env.AUTH_SECRET).size < MIN_AUTH_SECRET_DISTINCT_CHARS) {
+    throw new Error(
+      'AUTH_SECRET looks like a placeholder: generate one with openssl rand -base64 32',
+    )
   }
   assertTelemetryEnv(env)
 }
