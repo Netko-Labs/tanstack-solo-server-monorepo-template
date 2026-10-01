@@ -11,7 +11,7 @@ import { logs } from './commands/logs'
 import { previewRename, renameProject } from './commands/rename'
 import { reset } from './commands/reset'
 import { status } from './commands/status'
-import { test } from './commands/test'
+import { test, testSmoke } from './commands/test'
 import { printHelp } from './utils/help'
 
 const args = process.argv.slice(2)
@@ -41,6 +41,7 @@ const commands: Record<string, (args: string[]) => Promise<void>> = {
   logs: logs,
 
   test: test,
+  'test:smoke': testSmoke,
 
   rename: renameProject,
   'rename:preview': previewRename,

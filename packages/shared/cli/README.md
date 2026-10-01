@@ -60,6 +60,7 @@ bun run status       # Show monorepo status
 | `test [--app <name>]` | Run tests with the app's `.env` loaded under the shell env (`studio` by default) |
 | `test --watch` | Run tests in watch mode |
 | `test --coverage` | Run tests with coverage |
+| `test:smoke [--app <name>]` | Boot the built server (`build` first) in production mode on :4790 and probe health, SSR, tRPC and the socket (`tests/smoke.ts`) |
 
 ### Utilities
 

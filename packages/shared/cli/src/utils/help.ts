@@ -28,6 +28,7 @@ Testing
   test [--app <name>]        Run tests with the app's .env (studio by default)
   test --watch               Run tests in watch mode
   test --coverage            Run tests with coverage
+  test:smoke [--app <name>]  Boot the built server in production mode and probe it
 
 Utilities
   status                     Show monorepo status (docker, ports, apps)

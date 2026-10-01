@@ -53,6 +53,9 @@ ui`, plus `lib/`/`shared/` and the `domain` folder vocabulary) live in **Backend
 
 - Development: `bun run repo dev --app studio` (localhost:3000, WebSocket at `/trpc-ws`)
 - Web production build: `bun run repo build --app studio`
+- Smoke the built server: `bun run repo test:smoke --app studio` (after the build; `tests/smoke.ts`
+  boots `.output` in production mode on :4790 against `DATABASE_URL`/`CACHE_URL` and probes health,
+  SSR, tRPC over HTTP and the socket, the origin check and the SIGTERM drain)
 - Dev server only (no docker/migrations): `bun run repo serve --app studio`
 - Docker up/down: `bun run repo docker:up --app studio` / `bun run repo docker:down --app studio`
 - Repo typecheck: `bun run check-types`

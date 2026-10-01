@@ -1,0 +1,4 @@
+{
+  "extends": "../packages/shared/typescript-config/bun.json",
+  "include": ["*.ts"]
+}

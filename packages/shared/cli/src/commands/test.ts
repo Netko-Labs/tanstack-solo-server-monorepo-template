@@ -1,3 +1,4 @@
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import {
   getAppDir,
@@ -43,6 +44,29 @@ export const test = async (args: string[]) => {
   }
 
   await run(cmd, { cwd: rootDir, env })
+}
+
+export const testSmoke = async (args: string[]) => {
+  const appName = parseAppArg(args) ?? DEFAULT_ENV_APP
+
+  if (!validateApp(appName)) {
+    console.error(`App "${appName}" not found`)
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  if (!fs.existsSync(path.join(getAppDir(appName), '.output', 'server', 'index.mjs'))) {
+    console.error(`❌ apps/${appName} has no build. Run: bun run repo build --app ${appName}`)
+    process.exit(1)
+  }
+
+  // Only the service URLs: the smoke supplies its own throwaway production env.
+  const appEnv = appTestEnv(appName)
+  const env = Object.fromEntries(
+    GATED_SUITE_VARS.flatMap((name) => (appEnv[name] ? [[name, appEnv[name]]] : [])),
+  )
+
+  await run(['bun', 'tests/smoke.ts', '--app', appName], { cwd: getRootDir(), env })
 }
 
 /** The app's .env under the shell's own env, which wins: CI sets its service URLs there. */

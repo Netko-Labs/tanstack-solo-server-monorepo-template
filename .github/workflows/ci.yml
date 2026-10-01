@@ -39,11 +39,17 @@ jobs:
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
       - run: cp apps/studio/sample.env apps/studio/.env
+      - run: bun run repo db:generate --app studio
+      - name: no schema change without its committed migration
+        run: |
+          drift=$(git status --porcelain -- packages/studio/repository/src/db/drizzle)
+          test -z "$drift" || { echo "$drift"; echo 'schema changed without a committed migration'; exit 1; }
       - run: bun run repo db:migrate --app studio
       - run: bun run check-types
       - run: bun run fmt-lint
       - run: bun run test
       - run: bun run repo build --app studio
+      - run: bun run repo test:smoke --app studio
 
   generator:
     runs-on: blacksmith-4vcpu-ubuntu-2404
