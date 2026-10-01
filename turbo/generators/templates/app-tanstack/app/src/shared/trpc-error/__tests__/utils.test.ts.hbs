@@ -1,10 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { TRPCClientError } from '@trpc/client'
+import { serverError } from '../__mocks__/server-error'
 import { toUserMessage } from '../utils'
 import { GENERIC_ERROR_COPY, TRPC_ERROR_COPY } from '../values'
-
-const serverError = (message: string, code: string) =>
-  TRPCClientError.from({ error: { message, code: -32000, data: { code } } })
 
 describe('toUserMessage', () => {
   test('the feature copy for a service code wins over the tRPC code', () => {

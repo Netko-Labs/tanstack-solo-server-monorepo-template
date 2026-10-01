@@ -1,0 +1,6 @@
+import type { Context } from '@temp-repo/{{ name }}-domain'
+
+export const sessionContext = (expiresInMs: number): Context => ({
+  user: { id: 'u', email: 'u@example.com', name: 'u' },
+  session: { id: 's', userId: 'u', expiresAt: new Date(Date.now() + expiresInMs) },
+})

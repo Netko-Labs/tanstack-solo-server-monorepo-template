@@ -1,29 +1,16 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 import { trace } from '@opentelemetry/api'
 import { activeTraceIds } from '@temp-repo/logger'
+import { createIngestSink } from '../__mocks__/ingest-sink'
 import { initServerTelemetry, shutdownTelemetry } from '../init'
 import { createOtlpLogStream } from '../log-stream'
 import { reportError } from '../report-error'
 import { withSpan } from '../span'
 
 const SINK_PORT = 4795
-const hits: { path: string; contentType: string | null; key: string | null; body: string }[] = []
-
-const sink = Bun.serve({
-  port: SINK_PORT,
-  async fetch(request) {
-    let bytes = new Uint8Array(await request.arrayBuffer())
-    if (request.headers.get('content-encoding') === 'gzip') bytes = Bun.gunzipSync(bytes)
-    hits.push({
-      path: new URL(request.url).pathname,
-      contentType: request.headers.get('content-type'),
-      key: request.headers.get('x-codewhiskers-key'),
-      body: new TextDecoder().decode(bytes),
-    })
-    return Response.json({})
-  },
-})
-afterAll(() => sink.stop(true))
+const sink = createIngestSink(SINK_PORT)
+const { hits } = sink
+afterAll(sink.stop)
 
 const BASE = { serviceName: 'studio', release: 'r1', environment: 'staging' }
 const logLine = (msg: string) =>

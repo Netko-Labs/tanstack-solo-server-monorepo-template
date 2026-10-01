@@ -1,37 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import type { RedisClient } from 'bun'
+import { fakeRedisClient } from '../__mocks__/fake-redis-client'
 import { RedisRoomBus } from '../redis-room-bus'
-
-/** Just enough of RedisClient for the subscriber side: records every SUBSCRIBE. */
-function fakeSubscriber() {
-  const calls: string[] = []
-  const ops: string[] = []
-  const client = {
-    onconnect: null as (() => void) | null,
-    onclose: null as ((error: Error) => void) | null,
-    failUntil: 0,
-    subscribeDelayMs: 0,
-    unsubscribeDelayMs: 0,
-    async subscribe(channel: string) {
-      calls.push(channel)
-      if (calls.length <= this.failUntil) throw new Error('SUBSCRIBE refused')
-      if (this.subscribeDelayMs > 0) await Bun.sleep(this.subscribeDelayMs)
-      ops.push(`sub:${channel}`)
-      return 1
-    },
-    async unsubscribe(channel: string) {
-      if (this.unsubscribeDelayMs > 0) await Bun.sleep(this.unsubscribeDelayMs)
-      ops.push(`unsub:${channel}`)
-    },
-    close() {},
-  }
-  return { client: client as unknown as RedisClient, calls, ops }
-}
 
 describe('RedisRoomBus reconnect', () => {
   test('restores every subscription and notifies listeners on a later connect', async () => {
-    const sub = fakeSubscriber()
-    const cmd = fakeSubscriber()
+    const sub = fakeRedisClient()
+    const cmd = fakeRedisClient()
     const bus = new RedisRoomBus(cmd.client, sub.client)
     let notified = 0
     bus.onReconnect(() => {
@@ -53,8 +27,8 @@ describe('RedisRoomBus reconnect', () => {
   })
 
   test('a channel that fails to restore retries in the background, then resyncs again', async () => {
-    const sub = fakeSubscriber()
-    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    const sub = fakeRedisClient()
+    const bus = new RedisRoomBus(fakeRedisClient().client, sub.client)
     let notified = 0
     bus.onReconnect(() => {
       notified += 1
@@ -77,8 +51,8 @@ describe('RedisRoomBus reconnect', () => {
   })
 
   test('a listener dropped while its restore is in flight is not subscribed again', async () => {
-    const sub = fakeSubscriber()
-    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    const sub = fakeRedisClient()
+    const bus = new RedisRoomBus(fakeRedisClient().client, sub.client)
     const stop = await bus.subscribe('lobby', () => {})
     await bus.subscribe('other', () => {})
     ;(sub.client as unknown as { unsubscribeDelayMs: number }).unsubscribeDelayMs = 20
@@ -91,8 +65,8 @@ describe('RedisRoomBus reconnect', () => {
   })
 
   test('a slow restore from an older reconnect cannot undo the newer one', async () => {
-    const sub = fakeSubscriber()
-    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    const sub = fakeRedisClient()
+    const bus = new RedisRoomBus(fakeRedisClient().client, sub.client)
     await bus.subscribe('lobby', () => {})
     ;(sub.client as unknown as { subscribeDelayMs: number }).subscribeDelayMs = 30
 
@@ -111,8 +85,8 @@ describe('RedisRoomBus reconnect', () => {
   })
 
   test('a reconnect listener that throws does not silence the others', async () => {
-    const sub = fakeSubscriber()
-    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    const sub = fakeRedisClient()
+    const bus = new RedisRoomBus(fakeRedisClient().client, sub.client)
     let notified = 0
     bus.onReconnect(() => {
       throw new Error('boom')
@@ -127,8 +101,8 @@ describe('RedisRoomBus reconnect', () => {
   })
 
   test('a retry left over from an older restore is dropped once a newer restore succeeds', async () => {
-    const sub = fakeSubscriber()
-    const bus = new RedisRoomBus(fakeSubscriber().client, sub.client)
+    const sub = fakeRedisClient()
+    const bus = new RedisRoomBus(fakeRedisClient().client, sub.client)
     let notified = 0
     bus.onReconnect(() => {
       notified += 1

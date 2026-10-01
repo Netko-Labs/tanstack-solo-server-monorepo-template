@@ -12,20 +12,25 @@ revisit.
 | Hydrate a tRPC query cache during SSR (`unstable_localLink` + `@tanstack/react-router-ssr-query`)? | No. Route data goes through server functions (see *Route data through server functions*). | The first page whose loader must prime the same data a tRPC query then owns. |
 | Portless dev hosts (`{app}.{project}.localhost`, generator-registered, HMR behind the proxy)? | Fixed `PORT` per app from its `.env`. | Before a second app or a second project from this template runs side by side. |
 
-## Tests live in a `__tests__/` folder beside their subject
+## Tests live in `__tests__/`, test doubles in `__mocks__/`, beside their subject
 
 2026-10-01 · freeze pass · Juan's call
 
 - **Context:** tests sat as `{file}.test.ts` siblings, mixing test files into module folders next
   to the code they ship.
 - **Decision:** a test of `{dir}/{file}.ts` lives at `{dir}/__tests__/{file}.test.ts`, at the same
-  level as the component, service op, domain model or utils it covers. Test-only helpers and fakes
-  move into that `__tests__/`. The repo-level smoke harness is `__tests__/` at the root. Generator
-  templates follow the same layout.
-- **Consequence:** subject imports go one level up (`../utils`). `__tests__/` is never a module: no
-  barrel, nothing imports from it. `docs/conventions.md` §8 states the rule; §2 is unchanged.
+  level as the component, service op, domain model or utils it covers. The repo-level smoke harness
+  is `__tests__/` at the root. Test doubles (named fakes, factories, recording servers/sinks,
+  fixture builders) live in `{dir}/__mocks__/{name}.ts` beside the code they stand in for, one per
+  file with a named export; inline `spyOn`/`mock()` stay in the test. Generator templates follow
+  the same layout. `service/src/shared/testing/` (`gatedEnv`) stays: a test gate, not a double.
+- **Consequence:** subject imports go one level up (`../utils`). `__tests__/` and `__mocks__/` are
+  never modules: no barrel; nothing imports `__tests__/`, and only `__tests__/` or `__mocks__/`
+  import `__mocks__/`, which CI enforces. A double that closed over test state becomes a factory
+  taking it as parameters. `docs/conventions.md` §8 states the rule; §2 is unchanged.
 - **Considered and not used:** colocated `{file}.test.ts` siblings (the previous layout); a
-  top-level `tests/` per package (far from the subject, mirrors the tree by hand).
+  top-level `tests/` per package (far from the subject, mirrors the tree by hand); doubles inside
+  `__tests__/` (mixes fixtures with specs, no Jest-style pair).
 - **Revisit when:** Juan reopens it.
 
 ## The `lib/` convention is fixed

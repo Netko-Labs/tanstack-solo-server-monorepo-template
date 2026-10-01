@@ -1,20 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import type { ChatMessage, Member } from '@temp-repo/studio-domain'
+import { member } from '../__mocks__/member'
+import { msg } from '../__mocks__/msg'
 import { INITIAL_ROOM_STATE, roomReducer } from '../utils'
-
-const member = (userId: string, status: Member['status'] = 'active'): Member => ({
-  userId,
-  name: userId,
-  status,
-})
-const msg = (id: string): ChatMessage => ({
-  id,
-  roomId: 'lobby',
-  content: id,
-  authorId: 'a',
-  authorName: 'a',
-  createdAt: new Date(0),
-})
 
 describe('roomReducer', () => {
   test('sync replaces, chat dedupes, joins upsert, leave removes, a later sync wins', () => {

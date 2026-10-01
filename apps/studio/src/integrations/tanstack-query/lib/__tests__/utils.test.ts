@@ -1,10 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { TRPCClientError } from '@trpc/client'
+import { answered } from '../__mocks__/answered'
 import { QUERY_MAX_RETRIES } from '../constants'
 import { shouldRetryQuery } from '../utils'
-
-const answered = (httpStatus: number) =>
-  TRPCClientError.from({ error: { message: 'x', code: -32000, data: { httpStatus } } })
 
 describe('shouldRetryQuery', () => {
   test('a client error is never retried', () => {

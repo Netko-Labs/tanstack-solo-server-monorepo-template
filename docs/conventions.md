@@ -456,14 +456,20 @@ enforces exactly these types, and the PR template does not repeat them.
 
 - A test of `{dir}/{file}.ts` lives at `{dir}/__tests__/{file}.test.ts`: a `__tests__/` folder at the
   same level as its subject (component, service op, domain model, utils), importing it from `../`.
-  Test-only helpers and fakes sit in the same `__tests__/`. `__tests__/` is not a module: no barrel,
-  nothing imports from it. Run with `bun test`; every package's `test` script is
-  `bun test --pass-with-no-tests`.
+  `__tests__/` is not a module: no barrel, nothing imports from it. Run with `bun test`; every
+  package's `test` script is `bun test --pass-with-no-tests`.
+- A test double (named fake class, factory, recording server/sink, fixture builder) of
+  `{dir}/{thing}.ts`, or of a dependency `{dir}` consumes, lives in `{dir}/__mocks__/{name}.ts`: one
+  per file, kebab-case file, named export (`fake-peer.ts` → `fakePeer`). Inline `spyOn(...)` and
+  `mock()` stay in the test. A double that would close over test state takes it as parameters;
+  types shared by two doubles go in `__mocks__/types.ts`. `__mocks__/` is not a module: no barrel,
+  only `__tests__/` and other `__mocks__/` import from it.
 
   ```
   lib/utils.ts
   lib/__tests__/utils.test.ts
   mutations/todos/__tests__/ownership.test.ts
+  ws/__mocks__/fake-peer.ts
   ```
 - One recipe per layer:
   - **domain** — parse and reject cases for a schema.

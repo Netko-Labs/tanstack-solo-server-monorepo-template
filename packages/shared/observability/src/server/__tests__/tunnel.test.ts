@@ -1,19 +1,11 @@
 import { afterAll, describe, expect, test } from 'bun:test'
+import { createIngestSink } from '../__mocks__/ingest-sink'
 import { handleSentryTunnel } from '../tunnel'
 
 const SINK_PORT = 4796
 const DSN = `http://pub@127.0.0.1:${SINK_PORT}/7`
-const forwarded: string[] = []
-
-const sink = Bun.serve({
-  port: SINK_PORT,
-  fetch(request) {
-    const url = new URL(request.url)
-    forwarded.push(`${url.pathname}${url.search}`)
-    return Response.json({ id: 'ok' })
-  },
-})
-afterAll(() => sink.stop(true))
+const sink = createIngestSink(SINK_PORT)
+afterAll(sink.stop)
 
 const envelope = (dsn: string) =>
   [JSON.stringify({ dsn, sent_at: new Date().toISOString() }), '{"type":"event"}', '{}'].join('\n')
@@ -27,9 +19,9 @@ describe('sentry tunnel', () => {
       allowedDsns: [` http://pub:@127.0.0.1:${SINK_PORT}/7 `],
     })
     expect(res.status).toBe(200)
-    expect(forwarded).toHaveLength(1)
-    expect(forwarded[0]).toStartWith('/api/7/envelope/?')
-    expect(forwarded[0]).toContain('sentry_key=pub')
+    expect(sink.hits).toHaveLength(1)
+    expect(sink.hits[0]?.path).toBe('/api/7/envelope/')
+    expect(sink.hits[0]?.search).toContain('sentry_key=pub')
   })
 
   test('a foreign DSN is refused', async () => {

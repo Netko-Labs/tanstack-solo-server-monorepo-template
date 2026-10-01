@@ -83,7 +83,8 @@ packages/
   configs/studio-config/  env read once, production checks
   shared/             cli, logger, ui, observability, resend-client, typescript-config
 turbo/generators/     gen:app and gen:lib templates
-__tests__/               built-server smoke; unit tests sit in a __tests__/ beside each subject
+__tests__/               built-server smoke; unit tests sit in a __tests__/ beside each subject,
+                         test doubles in a __mocks__/ beside what they stand in for
 ```
 
 ## 🧩 Where the layers live (the todos example)

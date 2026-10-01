@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import type { Context } from '@temp-repo/{{ name }}-domain'
 import { ServiceError } from '@temp-repo/{{ name }}-service'
 import type { AnyProcedure } from '@trpc/server'
+import { sessionContext } from '../__mocks__/session-context'
 import { appRouter } from '../index'
 import { protectedProcedure, publicProcedure, router } from '../init'
 
@@ -17,11 +17,6 @@ const callPath = (caller: unknown, path: string) =>
   path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], caller) as (
     input?: unknown,
   ) => Promise<unknown>
-
-const sessionContext = (expiresInMs: number): Context => ({
-  user: { id: 'u', email: 'u@example.com', name: 'u' },
-  session: { id: 's', userId: 'u', expiresAt: new Date(Date.now() + expiresInMs) },
-})
 
 const probe = router({
   guarded: protectedProcedure.query(({ ctx }) => ctx.user.id),

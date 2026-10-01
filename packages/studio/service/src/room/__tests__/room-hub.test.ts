@@ -1,23 +1,13 @@
-// conventions: >300 lines — one RoomHub lifecycle suite over shared fixtures; split when next touched
 import { describe, expect, test } from 'bun:test'
-import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
+import type { ChatMessage, RoomEvent } from '@temp-repo/studio-domain'
+import { DeafBus } from '../__mocks__/deaf-bus'
+import { GhostBus } from '../__mocks__/ghost-bus'
+import { member } from '../__mocks__/member'
+import { ReconnectableBus } from '../__mocks__/reconnectable-bus'
+import { SlowBus } from '../__mocks__/slow-bus'
 import { LocalRoomBus } from '../local'
 import { RoomHub } from '../room-hub'
-import type { RoomBus } from '../types'
 
-/** LocalRoomBus with a reconnect signal the test can fire. */
-class ReconnectableBus extends LocalRoomBus implements RoomBus {
-  private readonly reconnectListeners = new Set<() => void>()
-  override onReconnect(listener: () => void): () => void {
-    this.reconnectListeners.add(listener)
-    return () => this.reconnectListeners.delete(listener)
-  }
-  fireReconnect(): void {
-    for (const listener of this.reconnectListeners) listener()
-  }
-}
-
-const member = (userId: string): Member => ({ userId, name: userId, status: 'active' })
 const message: ChatMessage = {
   id: crypto.randomUUID(),
   roomId: 'lobby',
@@ -117,11 +107,6 @@ describe('RoomHub over LocalRoomBus', () => {
   })
 
   test('a failed subscribe rejects the stream and leaves nothing for drain to wait on', async () => {
-    class DeafBus extends LocalRoomBus {
-      override subscribe(): Promise<() => void> {
-        return Promise.reject(new Error('bus down'))
-      }
-    }
     const hub = new RoomHub(new DeafBus(), async () => [])
     await expect(hub.stream('lobby', member('a')).next()).rejects.toThrow('bus down')
     const started = Date.now()
@@ -248,12 +233,6 @@ describe('RoomHub over LocalRoomBus', () => {
   })
 
   test('a member whose instance died vanishes within one heartbeat interval', async () => {
-    // A dead instance publishes nothing: its records just stop being live.
-    class GhostBus extends LocalRoomBus {
-      vanish(roomId: string, connectionId: string) {
-        this.presence.get(roomId)?.delete(connectionId)
-      }
-    }
     const bus = new GhostBus()
     const hub = new RoomHub(bus, async () => [], 20)
     await bus.join('lobby', 'ghost', member('ghost'))
@@ -270,14 +249,9 @@ describe('RoomHub over LocalRoomBus', () => {
 
   test('a slow heartbeat cannot land after the leave', async () => {
     let heartbeatDone = false
-    class SlowBus extends LocalRoomBus {
-      override async heartbeat(roomId: string, connectionId: string, m: Member) {
-        await Bun.sleep(80)
-        await super.heartbeat(roomId, connectionId, m)
-        heartbeatDone = true
-      }
-    }
-    const bus = new SlowBus()
+    const bus = new SlowBus(80, () => {
+      heartbeatDone = true
+    })
     const hub = new RoomHub(bus, async () => [], 20)
     const stream = hub.stream('lobby', member('a'))
     await take(stream, 1)

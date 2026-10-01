@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { initTRPC } from '@trpc/server'
+import { fakePeer } from '../__mocks__/fake-peer'
+import { recordingLogger } from '../__mocks__/recording-logger'
 import { createTRPCWebSocketHooks, MAX_SUBSCRIPTIONS_PER_PEER, MAX_WS_MESSAGE_BYTES } from '../utils'
 
 const t = initTRPC.create()
@@ -10,30 +12,6 @@ const router = t.router({
     yield 2
   }),
 })
-
-function fakePeer(origin?: string, onSend?: (peer: { id: string }, data: string) => void) {
-  const sent: string[] = []
-  const headers = new Headers({ host: 'app.test' })
-  if (origin) headers.set('origin', origin)
-  return {
-    id: crypto.randomUUID(),
-    request: new Request('http://app.test/trpc-ws', { headers }),
-    sent,
-    closed: false,
-    closeCode: undefined as number | undefined,
-    send(data: string | Uint8Array) {
-      sent.push(String(data))
-      onSend?.(this, String(data))
-    },
-    close(code?: number) {
-      this.closed = true
-      this.closeCode = code
-    },
-    terminate() {
-      this.closed = true
-    },
-  }
-}
 
 const hooks = createTRPCWebSocketHooks({
   router,
@@ -171,14 +149,12 @@ describe('crossws ↔ tRPC bridge', () => {
   })
 
   test('logs a refused origin, socket open with the user, and close with its lifetime', async () => {
-    const lines: { level: string; fields: Record<string, unknown>; message: string }[] = []
-    const record = (level: string) => (fields: object, message: string) =>
-      lines.push({ level, fields: fields as Record<string, unknown>, message })
+    const { lines, logger } = recordingLogger()
     const logged = createTRPCWebSocketHooks({
       router,
       createContext: async () => ({ user: { id: 'u1', email: 'u1@example.com' } }),
       trustedOrigins: ['http://app.test'],
-      logger: { info: record('info'), warn: record('warn') },
+      logger,
     })
     logged.upgrade(fakePeer('https://evil.example').request)
     expect(lines[0]).toEqual({

@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import type { Member } from '@temp-repo/studio-domain'
+import { member } from '../__mocks__/member'
 import { LocalRoomBus } from '../local'
 import { RoomHub } from '../room-hub'
-
-const member = (userId: string): Member => ({ userId, name: userId, status: 'active' })
 
 describe('RoomHub session deadline', () => {
   test('an `until` deadline ends a live stream and removes the member from presence', async () => {
