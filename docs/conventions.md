@@ -287,6 +287,8 @@ These rules apply to frontend UI code (apps and shared UI packages). They extend
 - Name folders and files consistently: `{feature}-{section}.tsx`, `{feature}-{element}.tsx`.
 - Keep route files thin — export `Route` and delegate substantial UI to a component under
   `components/` or a route-specific feature folder.
+- Navigation is a `Link` styled with `buttonVariants()`; `Button` is for actions. A `Link` rendered
+  through `Button` makes Base UI treat the anchor as a button and log an error.
 
 ### Size and hook budgets
 
