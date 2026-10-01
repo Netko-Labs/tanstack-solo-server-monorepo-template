@@ -1,7 +1,9 @@
 import { EventEmitter } from 'node:events'
 import type { AnyRouter } from '@trpc/server'
 import { getWSConnectionHandler, type WSSHandlerOptions } from '@trpc/server/adapters/ws'
+import { isTrustedOrigin } from '../shared/origin'
 import type {
+  CloseDetails,
   MessageLike,
   PeerLike,
   TRPCWebSocketHooks,
@@ -13,12 +15,15 @@ import type {
 const WEBSOCKET_OPEN = 1
 const WEBSOCKET_CLOSED = 3
 const POLICY_VIOLATION = 1008
+const MESSAGE_TOO_BIG = 1009
+export const MAX_WS_MESSAGE_BYTES = 1024 * 1024
 /** Live subscriptions one socket may hold; a slot frees on client stop or server `stopped`/error. */
 export const MAX_SUBSCRIPTIONS_PER_PEER = 16
 
 /** Adapts a crossws peer to the `ws`-shaped client tRPC's WebSocket adapter drives. */
 class PeerSocket extends EventEmitter {
   readyState = WEBSOCKET_OPEN
+  readonly openedAt = Date.now()
   /** In-flight request id → method, so a response can be matched to what it answers. */
   readonly requests = new Map<string, string>()
   liveSubscriptions = 0
@@ -51,25 +56,17 @@ export function closeAllPeers(code = 1001, reason = 'server shutting down'): voi
   for (const socket of openSockets) socket.close(code, reason)
 }
 
-// Browsers send Origin in canonical form (lowercase host, default port dropped, no path);
-// compare configured entries the same way.
-function canonicalOrigin(value: string): string | undefined {
-  try {
-    return new URL(value).origin
-  } catch {
-    return undefined
-  }
-}
-
-function isTrustedOrigin(origin: string, trusted: readonly string[]): boolean {
-  const target = canonicalOrigin(origin)
-  return target !== undefined && trusted.some((entry) => canonicalOrigin(entry) === target)
-}
-
 // tRPC's adapter reads `req.url` + `req.headers.host` (connectionParams live in the query).
 function toNodeRequest(request: Request) {
   const url = new URL(request.url)
   return { url: `${url.pathname}${url.search}`, headers: Object.fromEntries(request.headers) }
+}
+
+function userIdOf(ctx: unknown): string | undefined {
+  if (typeof ctx !== 'object' || ctx === null || !('user' in ctx)) return undefined
+  const { user } = ctx
+  if (typeof user !== 'object' || user === null || !('id' in user)) return undefined
+  return typeof user.id === 'string' ? user.id : undefined
 }
 
 function parseFrame(text: string): unknown[] | undefined {
@@ -134,16 +131,19 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
   opts: TRPCWebSocketHooksOptions<TRouter>,
 ): TRPCWebSocketHooks {
   const sockets = new Map<string, PeerSocket>()
-  const requestOf = new WeakMap<object, Request>()
+  const peerOf = new WeakMap<object, PeerLike>()
 
   const onConnection = getWSConnectionHandler({
     router: opts.router,
-    createContext: ({ req }) => {
-      const request = requestOf.get(req)
-      if (!request) throw new Error('trpc-ws: upgrade request missing for peer')
-      return opts.createContext({ req: request })
+    createContext: async ({ req }) => {
+      const peer = peerOf.get(req)
+      if (!peer) throw new Error('trpc-ws: upgrade request missing for peer')
+      const ctx = await opts.createContext({ req: peer.request })
+      opts.logger?.info({ peer: peer.id, user: userIdOf(ctx) }, 'socket open')
+      return ctx
     },
-    onError: ({ error, path }) => opts.onError?.({ error, path }),
+    onError: ({ error, path, type, ctx, input }) =>
+      opts.onError?.({ error, path, type, ctx, input }),
     // Protocol-level: the adapter sends a "PING" message and resets on any message back
     // (wsLink answers "PONG"); no WebSocket ping frames are involved.
     keepAlive: opts.keepAlive ? { enabled: true, ...opts.keepAlive } : undefined,
@@ -158,6 +158,7 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
     upgrade(request) {
       const origin = request.headers.get('origin')
       if (!origin || isTrustedOrigin(origin, opts.trustedOrigins)) return undefined
+      opts.logger?.warn({ origin }, 'socket origin refused')
       return new Response('forbidden origin', { status: 403 })
     },
     open(peer) {
@@ -165,22 +166,35 @@ export function createTRPCWebSocketHooks<TRouter extends AnyRouter>(
       sockets.set(peer.id, socket)
       openSockets.add(socket)
       const req = toNodeRequest(peer.request)
-      requestOf.set(req, peer.request)
+      peerOf.set(req, peer)
       onConnection(socket as never, req as never)
     },
     message(peer, message: MessageLike) {
       const socket = sockets.get(peer.id)
       if (!socket) return
       const text = message.text()
+      if (Buffer.byteLength(text) > MAX_WS_MESSAGE_BYTES) {
+        socket.close(MESSAGE_TOO_BIG, 'message too big')
+        return
+      }
       if (!trackSubscriptions(socket, text)) {
         socket.close(POLICY_VIOLATION, 'too many subscriptions')
         return
       }
       socket.emit('message', Buffer.from(text), false)
     },
-    close(peer) {
+    close(peer, details: CloseDetails = {}) {
       const socket = sockets.get(peer.id)
       if (!socket) return
+      opts.logger?.info(
+        {
+          peer: peer.id,
+          code: details.code,
+          reason: details.reason || undefined,
+          lifetime: Date.now() - socket.openedAt,
+        },
+        'socket closed',
+      )
       socket.readyState = WEBSOCKET_CLOSED
       socket.emit('close')
       sockets.delete(peer.id)
