@@ -449,7 +449,8 @@ Commit freely at logical checkpoints, using `<emoji> <type>(<scope>?): <subject>
 main in multi-branch repos — branch first.
 
 Commit types: `✨ feat`, `🐛 fix`, `📝 docs`, `💄 style`, `♻️ refactor`, `⚡ perf`, `✅ test`,
-`🔧 chore`, `🏗️ build`, `👷 ci`, `🔒 security`.
+`🔧 chore`, `🏗️ build`, `👷 ci`, `🔒 security`. This is the only list: `commitlint.config.mjs`
+enforces exactly these types, and the PR template does not repeat them.
 
 ## 8. Testing
 

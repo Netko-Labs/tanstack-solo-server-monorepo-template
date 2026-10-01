@@ -17,7 +17,6 @@ export default {
         '🏗️ build', // Build system
         '👷 ci', // CI/CD
         '🔒 security', // Security fix
-        '🚀 release', // Release
       ],
     ],
     'type-empty': [2, 'never'],

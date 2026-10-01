@@ -1,36 +1,16 @@
-## Summary
+## What + why
 
-<!-- Brief description of what this PR does and why -->
+<!-- 2–4 sentences. The why is the valuable part; don't restate what the diff shows. -->
 
-## Changes
+## Visual
 
-<!-- List the key changes made -->
+<!-- A mermaid diagram for flow or architecture, a before/after table for behavior, a screenshot or
+recording for UI. Delete the section if there is nothing to show. -->
 
--
+## Caveats
 
-## Type
+<!-- Short bullets: what is untested, known tradeoffs. Stated once. -->
 
-<!-- Check the relevant type -->
+## Suggestions
 
-- [ ] ✨ Feature
-- [ ] 🐛 Bug fix
-- [ ] ♻️ Refactor
-- [ ] 📝 Documentation
-- [ ] ⚡ Performance
-- [ ] ✅ Test
-- [ ] 🔧 Chore
-
-## Architecture Impact
-
-<!-- Does this change affect the data flow? Domain → Repository → Service → tRPC → Frontend -->
-<!-- List any new or modified layers -->
-
-None / Describe impact
-
-## Checklist
-
-- [ ] Types pass (`bun run check-types`)
-- [ ] Lint/format pass (`bun run fmt-lint`)
-- [ ] Tests pass (`bun run test`) or N/A
-- [ ] No new dependencies added (or justified below)
-- [ ] No `any` types or `ts-ignore` directives introduced
+<!-- Optional follow-ups as bullets ("could later: …"). Delete if none. -->
