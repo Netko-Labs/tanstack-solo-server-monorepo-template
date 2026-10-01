@@ -19,8 +19,6 @@ export function useChatExample() {
     // Joined but no snapshot yet: the room is loading, not empty.
     isLoading:
       Boolean(currentUser) && !room.connectionId && room.connectionStatus !== 'disconnected',
-    send: sender.send,
-    isSending: sender.isPending,
-    sendError: sender.error,
+    sender,
   }
 }

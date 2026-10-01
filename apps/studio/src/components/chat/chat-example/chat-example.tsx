@@ -28,7 +28,14 @@ export function ChatExample() {
             isLoading={chat.isLoading}
             currentUserId={chat.currentUser.id}
           />
-          <SendMessageForm onSend={chat.send} isPending={chat.isSending} error={chat.sendError} />
+          <SendMessageForm
+            content={chat.sender.content}
+            onContentChange={chat.sender.setContent}
+            onSubmit={chat.sender.submit}
+            canSend={chat.sender.canSend}
+            isPending={chat.sender.isPending}
+            error={chat.sender.error}
+          />
         </>
       ) : (
         <GuestNotice />

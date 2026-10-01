@@ -7,11 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@temp-repo/ui/components/card'
-import { Field, FieldGroup, FieldLabel } from '@temp-repo/ui/components/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@temp-repo/ui/components/field'
 import { Input } from '@temp-repo/ui/components/input'
 import { Textarea } from '@temp-repo/ui/components/textarea'
-import { type FormEvent, useState } from 'react'
-import type { CreateTodoFormProps } from '../lib'
 import {
   CREATE_TODO_DESCRIPTION,
   CREATE_TODO_DESCRIPTION_LABEL,
@@ -21,17 +19,12 @@ import {
   CREATE_TODO_TITLE,
   CREATE_TODO_TITLE_LABEL,
   CREATE_TODO_TITLE_PLACEHOLDER,
+  useCreateTodo,
 } from '../lib'
 
-export function CreateTodoForm({ onSubmit, isPending }: CreateTodoFormProps) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-
-  const handleSubmit = (e: FormEvent) => {
-    onSubmit(e, title, description)
-    setTitle('')
-    setDescription('')
-  }
+export function CreateTodoForm() {
+  const { draft, setTitle, setDescription, issue, error, isPending, submit } = useCreateTodo()
+  const message = issue ?? error
 
   return (
     <Card>
@@ -40,17 +33,16 @@ export function CreateTodoForm({ onSubmit, isPending }: CreateTodoFormProps) {
         <CardDescription>{CREATE_TODO_DESCRIPTION}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={submit} noValidate>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="todo-title">{CREATE_TODO_TITLE_LABEL}</FieldLabel>
               <Input
                 id="todo-title"
                 placeholder={CREATE_TODO_TITLE_PLACEHOLDER}
-                value={title}
+                value={draft.title}
                 maxLength={TODO_TITLE_MAX}
                 onChange={(e) => setTitle(e.target.value)}
-                required
               />
             </Field>
             <Field>
@@ -58,11 +50,12 @@ export function CreateTodoForm({ onSubmit, isPending }: CreateTodoFormProps) {
               <Textarea
                 id="todo-description"
                 placeholder={CREATE_TODO_DESCRIPTION_PLACEHOLDER}
-                value={description}
+                value={draft.description}
                 maxLength={TODO_DESCRIPTION_MAX}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </Field>
+            {message && <FieldError>{message}</FieldError>}
             <Button type="submit" disabled={isPending}>
               {isPending ? CREATE_TODO_PENDING_LABEL : CREATE_TODO_SUBMIT_LABEL}
             </Button>
