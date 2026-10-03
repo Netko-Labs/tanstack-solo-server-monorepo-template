@@ -1,15 +1,8 @@
 import { Badge } from '@temp-repo/ui/components/badge'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@temp-repo/ui/components/card'
-import type { TransportInfoProps } from '../lib'
-import { TRANSPORT_BADGE, TRANSPORT_DESCRIPTION, TRANSPORT_TITLE, TRANSPORT_WRITES } from '../lib'
+import { Card, CardDescription, CardHeader, CardTitle } from '@temp-repo/ui/components/card'
+import { TRANSPORT_BADGE, TRANSPORT_DESCRIPTION, TRANSPORT_TITLE } from '../lib'
 
-export function TransportInfo({ completedWrites }: TransportInfoProps) {
+export function TransportInfo() {
   return (
     <Card>
       <CardHeader>
@@ -19,13 +12,6 @@ export function TransportInfo({ completedWrites }: TransportInfoProps) {
         </CardTitle>
         <CardDescription>{TRANSPORT_DESCRIPTION}</CardDescription>
       </CardHeader>
-      {completedWrites > 0 && (
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {TRANSPORT_WRITES}: {completedWrites}
-          </p>
-        </CardContent>
-      )}
     </Card>
   )
 }

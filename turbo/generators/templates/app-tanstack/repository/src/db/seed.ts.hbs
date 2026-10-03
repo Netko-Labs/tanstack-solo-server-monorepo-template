@@ -1,0 +1,28 @@
+import { noteTable } from '@temp-repo/{{ name }}-domain'
+import { inArray } from 'drizzle-orm'
+import { db } from './client'
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('db:seed refuses to run with NODE_ENV=production')
+  process.exit(1)
+}
+
+const SEED_NOTES = [
+  {
+    id: '00000000-0000-4000-8000-000000000001',
+    body: 'Seeded by db:seed. Replace the notes example with your first entity.',
+  },
+]
+
+// Re-runnable: delete this seed's own fixture rows, then insert them again; touch nothing else.
+await db.transaction(async (tx) => {
+  await tx.delete(noteTable).where(
+    inArray(
+      noteTable.id,
+      SEED_NOTES.map((note) => note.id),
+    ),
+  )
+  await tx.insert(noteTable).values(SEED_NOTES)
+})
+console.log(`seed: ${SEED_NOTES.length} note(s)`)
+await db.$client.close()

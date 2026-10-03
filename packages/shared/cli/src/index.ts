@@ -1,70 +1,49 @@
 #!/usr/bin/env bun
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* REPO CLI *:･ﾟ✧*:･ﾟ✧
- *
- * A Bun-powered CLI for managing the monorepo! (◕‿◕✿)
- *
- * Usage: bun repo <command> [options]
- */
-
 import { build } from './commands/build'
 import { clean } from './commands/clean'
-// Database commands
-import { dbGenerate, dbMigrate, dbPush, dbStudio } from './commands/db'
-// Development commands
-import { dev, serve } from './commands/dev'
-// Docker commands
+import { dbGenerate, dbMigrate, dbPush, dbSeed, dbStudio } from './commands/db'
+import { checkNitroPatch, dev, serve } from './commands/dev'
 import { dockerDown, dockerUp } from './commands/docker'
-
-// Generator commands
 import { generateApp, generateLib } from './commands/generate'
 import { info } from './commands/info'
 import { logs } from './commands/logs'
-// Project commands
 import { previewRename, renameProject } from './commands/rename'
 import { reset } from './commands/reset'
-// Utility commands
 import { status } from './commands/status'
-
-// Test commands
-import { test } from './commands/test'
+import { test, testSmoke } from './commands/test'
 import { printHelp } from './utils/help'
 
 const args = process.argv.slice(2)
 const command = args[0]
 
 const commands: Record<string, (args: string[]) => Promise<void>> = {
-  // Development
   dev: dev,
   serve: serve,
   build: build,
+  'check:nitro-patch': checkNitroPatch,
 
-  // Docker
   'docker:up': dockerUp,
   'docker:down': dockerDown,
 
-  // Database
   'db:migrate': dbMigrate,
   'db:generate': dbGenerate,
   'db:push': dbPush,
+  'db:seed': dbSeed,
   'db:studio': dbStudio,
 
-  // Generators
   'generate:app': async () => generateApp(),
   'generate:lib': async () => generateLib(),
 
-  // Utilities
   status: async () => status(),
   info: info,
   clean: async () => clean(),
   reset: reset,
   logs: logs,
 
-  // Testing
   test: test,
+  'test:smoke': testSmoke,
 
-  // Project
   rename: renameProject,
   'rename:preview': previewRename,
 }

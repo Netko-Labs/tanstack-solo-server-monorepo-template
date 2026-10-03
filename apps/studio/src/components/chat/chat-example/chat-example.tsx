@@ -1,3 +1,4 @@
+import { Skeleton } from '@temp-repo/ui/components/skeleton'
 import { ConnectionStatus } from './connection-status'
 import { GuestNotice } from './guest-notice'
 import { ImplementationInfo } from './implementation-info'
@@ -16,7 +17,9 @@ export function ChatExample() {
         <p className="text-muted-foreground">{CHAT_PAGE_DESCRIPTION}</p>
       </div>
 
-      {chat.currentUser ? (
+      {chat.isSessionPending ? (
+        <Skeleton className="h-96 w-full" />
+      ) : chat.currentUser ? (
         <>
           <ConnectionStatus status={chat.connectionStatus} userName={chat.currentUser.name} />
           <MembersList members={chat.members} />
@@ -25,7 +28,14 @@ export function ChatExample() {
             isLoading={chat.isLoading}
             currentUserId={chat.currentUser.id}
           />
-          <SendMessageForm onSend={chat.send} isPending={chat.isSending} error={chat.sendError} />
+          <SendMessageForm
+            content={chat.sender.content}
+            onContentChange={chat.sender.setContent}
+            onSubmit={chat.sender.submit}
+            canSend={chat.sender.canSend}
+            isPending={chat.sender.isPending}
+            error={chat.sender.error}
+          />
         </>
       ) : (
         <GuestNotice />

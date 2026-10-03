@@ -11,7 +11,7 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     services:
       redis:
-        image: redis:7-alpine
+        image: redis:8-alpine
         ports: ['6379:6379']
       postgres:
         image: postgres:17
@@ -24,8 +24,18 @@ jobs:
     env:
       CACHE_URL: redis://localhost:6379
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/temp-repo
+      # a gated suite that cannot reach its service fails here instead of skipping
+      REQUIRE_GATED_SUITES: '1'
     steps:
       - uses: actions/checkout@v4
+      - name: every test lives in a __tests__/ folder
+        run: |
+          stray=$(git ls-files '*.test.ts' '*.test.tsx' '*.test.ts.hbs' '*.test.tsx.hbs' | grep -vE '(^|/)__tests__/' || true)
+          test -z "$stray" || { echo "$stray"; echo 'tests belong in a __tests__/ folder beside their subject'; exit 1; }
+      - name: only tests and doubles import from __mocks__/
+        run: |
+          leaks=$(git grep -nE "from ['\"][^'\"]*__mocks__" -- ':!**/__tests__/**' ':!**/__mocks__/**' || true)
+          test -z "$leaks" || { echo "$leaks"; echo 'production code never imports a __mocks__/ double'; exit 1; }
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
@@ -36,12 +46,19 @@ jobs:
             .turbo
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
+      - run: bun run repo check:nitro-patch --app studio
       - run: cp apps/studio/sample.env apps/studio/.env
+      - run: bun run repo db:generate --app studio
+      - name: no schema change without its committed migration
+        run: |
+          drift=$(git status --porcelain -- packages/studio/repository/src/db/drizzle)
+          test -z "$drift" || { echo "$drift"; echo 'schema changed without a committed migration'; exit 1; }
       - run: bun run repo db:migrate --app studio
       - run: bun run check-types
       - run: bun run fmt-lint
       - run: bun run test
       - run: bun run repo build --app studio
+      - run: bun run repo test:smoke --app studio
 
   generator:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -51,11 +68,33 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      # one name on each side of "logger", so generated imports sort both ways
       - run: bunx turbo gen app --args smoke
+      - run: bunx turbo gen app --args admin
+      - run: bunx turbo gen lib --args client acme "Acme API"
       - run: bun install
-      # build first: it regenerates the route tree the typecheck reads
-      - run: bun run repo build --app smoke
+      # build first: it regenerates the route tree the typecheck reads; the app's own script
+      # proves `bun run repo` resolves inside apps/*
+      - run: bun run build
+        working-directory: apps/smoke
+      - run: bun run build
+        working-directory: apps/admin
       - run: bun run check-types
+      - run: bun run fmt-lint
+      - run: bun run test
+      - name: every asset the root route links exists in public/
+        run: |
+          for app in smoke admin; do
+            for href in $(grep -o "href: '/[^']*'" "apps/$app/src/routes/__root.tsx" | cut -d"'" -f2); do
+              test -f "apps/$app/public$href" || { echo "apps/$app links $href, missing from public/"; exit 1; }
+            done
+          done
+      - name: generated apps load the observability plugin first
+        run: |
+          for app in smoke admin; do
+            grep -q "plugins: \['./src/server/plugins/observability.ts'," "apps/$app/vite.config.ts" \
+              || { echo "apps/$app/vite.config.ts does not list observability.ts first"; exit 1; }
+          done
 
   commitlint:
     if: github.event_name == 'pull_request'

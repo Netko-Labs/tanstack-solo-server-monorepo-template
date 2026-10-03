@@ -1,24 +1,16 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import * as path from 'node:path'
 import {
   getAppDir,
   getAvailableApps,
   getRepositoryDir,
   parseAppArg,
+  requireEnvFile,
   validateApp,
 } from '../utils/apps'
 import { getPackageScope } from '../utils/scope'
 import { getRootDir, loadEnvFile, run } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* DATABASE COMMANDS *:･ﾟ✧*:･ﾟ✧
- *
- * Drizzle database commands per app (◕‿◕✿)
- */
-
-/**
- * Run Drizzle migrations for an app
- */
 export async function dbMigrate(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -47,9 +39,6 @@ export async function dbMigrate(args: string[]) {
   console.log(`✅ Migrations for ${appName} completed!`)
 }
 
-/**
- * Generate Drizzle schema for an app
- */
 export async function dbGenerate(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -75,9 +64,39 @@ export async function dbGenerate(args: string[]) {
   console.log(`✅ Schema generation for ${appName} completed!`)
 }
 
-/**
- * Push schema changes directly (no migration file)
- */
+export async function dbSeed(args: string[]) {
+  const appName = parseAppArg(args)
+
+  if (!appName) {
+    console.error('❌ Please specify an app with --app <name>')
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  if (!validateApp(appName)) {
+    console.error(`❌ App "${appName}" not found`)
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  const repoDir = getRepositoryDir(appName)
+  const repoPkg = JSON.parse(readFileSync(path.join(repoDir, 'package.json'), 'utf-8'))
+  if (!repoPkg.scripts?.['db:seed']) {
+    console.log(`ℹ️  No seed defined for ${appName} (no db:seed script in its repository)`)
+    return
+  }
+
+  const envFile = requireEnvFile(appName)
+
+  console.log(`🌱 Seeding database for ${appName}...`)
+
+  await run(['bun', 'run', `--env-file=${envFile}`, '--cwd', repoDir, 'db:seed'], {
+    cwd: getRootDir(),
+  })
+
+  console.log(`✅ Seed for ${appName} completed!`)
+}
+
 export async function dbPush(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -108,9 +127,6 @@ export async function dbPush(args: string[]) {
   console.log(`✅ Schema push for ${appName} completed!`)
 }
 
-/**
- * Open Drizzle Studio for an app
- */
 export async function dbStudio(args: string[]) {
   const appName = parseAppArg(args)
 

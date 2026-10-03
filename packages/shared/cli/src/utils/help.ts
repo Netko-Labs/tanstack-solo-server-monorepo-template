@@ -1,9 +1,3 @@
-/**
- * ✧･ﾟ: *✧･ﾟ:* HELP UTILITIES *:･ﾟ✧*:･ﾟ✧
- *
- * CLI help output (◕‿◕✿)
- */
-
 export const printHelp = () => {
   console.log(`
 Monorepo CLI
@@ -14,6 +8,7 @@ Development
   dev --app <name>           Start full dev environment (docker + db + server)
   serve --app <name>         Start dev server only
   build --app <name>         Build for production
+  check:nitro-patch --app <name>  Fail unless the nitro dev patch reached node_modules
 
 Docker
   docker:up --app <name>     Start Docker containers
@@ -23,16 +18,18 @@ Database
   db:migrate --app <name>    Run database migrations
   db:generate --app <name>   Generate migrations from schema
   db:push --app <name>       Push schema changes (no migration)
+  db:seed --app <name>       Run the re-runnable dev seed (refuses in production)
   db:studio --app <name>     Open Drizzle Studio GUI
 
 Generators
   generate:app               Create a new app
-  generate:lib               Create a shared library
+  generate:lib               Create a shared library or an external-service client
 
 Testing
-  test [--app <name>]        Run unit tests
+  test [--app <name>]        Run tests with the app's .env (studio by default)
   test --watch               Run tests in watch mode
   test --coverage            Run tests with coverage
+  test:smoke [--app <name>]  Boot the built server in production mode and probe it
 
 Utilities
   status                     Show monorepo status (docker, ports, apps)

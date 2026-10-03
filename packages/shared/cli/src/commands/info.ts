@@ -3,12 +3,6 @@ import { join } from 'node:path'
 import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
 import { loadEnvFile } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* INFO COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Show detailed info about an app (◕‿◕✿)
- */
-
 export const info = async (args: string[]) => {
   const appName = parseAppArg(args)
 
@@ -31,14 +25,12 @@ export const info = async (args: string[]) => {
   console.log(`\nApp: ${appName}`)
   console.log(`Path: ${appDir}`)
 
-  // Package info
   if (existsSync(pkgPath)) {
     const pkg = await Bun.file(pkgPath).json()
     console.log(`Version: ${pkg.version || 'N/A'}`)
     console.log(`Dependencies: ${Object.keys(pkg.dependencies || {}).length}`)
   }
 
-  // Environment
   if (existsSync(envPath)) {
     const env = loadEnvFile(envPath)
     console.log('\nEnvironment:')
@@ -50,7 +42,6 @@ export const info = async (args: string[]) => {
     console.log('\nEnvironment: No .env file found')
   }
 
-  // Docker services
   console.log(
     `\nDocker Compose: ${existsSync(join(appDir, 'compose.yml')) ? '✓ Found' : '✗ Not found'}`,
   )

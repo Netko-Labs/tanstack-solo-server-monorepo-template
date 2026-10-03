@@ -5,23 +5,11 @@ import {
   requireEnvFile,
   validateApp,
 } from '../utils/apps'
+import { assertNitroPatchApplied } from '../utils/nitro'
 import { killProcessOnPort, loadEnvFile, run } from '../utils/shell'
 import { dbGenerate, dbMigrate } from './db'
 import { dockerUp } from './docker'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* DEV COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Run development server for an app (◕‿◕✿)
- */
-
-/**
- * Run full development setup for an app:
- * 1. Start Docker containers
- * 2. Generate DB schema
- * 3. Run migrations
- * 4. Start dev server
- */
 export async function dev(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -46,9 +34,6 @@ export async function dev(args: string[]) {
   await serve(args)
 }
 
-/**
- * Run only the development server for an app (without docker/db setup).
- */
 export async function serve(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -65,6 +50,7 @@ export async function serve(args: string[]) {
   }
 
   const appDir = getAppDir(appName)
+  assertNitroPatchApplied(appDir)
   const appEnv = loadEnvFile(requireEnvFile(appName))
 
   const port = Number(appEnv.PORT || process.env.PORT || 3000)
@@ -78,4 +64,17 @@ export async function serve(args: string[]) {
     cwd: appDir,
     env: appEnv,
   })
+}
+
+export async function checkNitroPatch(args: string[]) {
+  const appName = parseAppArg(args)
+
+  if (!appName || !validateApp(appName)) {
+    console.error('❌ Please specify an app with --app <name>')
+    console.log(`Available apps: ${getAvailableApps().join(', ')}`)
+    process.exit(1)
+  }
+
+  assertNitroPatchApplied(getAppDir(appName))
+  console.log(`✅ nitro dev patch applied for ${appName}`)
 }

@@ -1,0 +1,69 @@
+import { describe, expect, test } from 'bun:test'
+import { ServiceError } from '@temp-repo/{{ name }}-service'
+import type { AnyProcedure } from '@trpc/server'
+import { sessionContext } from '../__mocks__/session-context'
+import { appRouter } from '../index'
+import { protectedProcedure, publicProcedure, router } from '../init'
+
+/** Every procedure is protected unless listed here on purpose. */
+const PUBLIC = new Set(['notes.list'])
+
+const procedures = Object.entries(
+  appRouter._def.procedures as unknown as Record<string, AnyProcedure>,
+)
+const guarded = procedures.map(([path]) => path).filter((path) => !PUBLIC.has(path))
+
+const callPath = (caller: unknown, path: string) =>
+  path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], caller) as (
+    input?: unknown,
+  ) => Promise<unknown>
+
+const probe = router({
+  guarded: protectedProcedure.query(({ ctx }) => ctx.user.id),
+  missing: publicProcedure.query(() => {
+    throw new ServiceError('not_found')
+  }),
+})
+
+describe('procedure auth', () => {
+  test('protectedProcedure refuses no session and an expired one, and passes a live one', async () => {
+    await expect(probe.createCaller({ user: null, session: null }).guarded()).rejects.toMatchObject(
+      { code: 'UNAUTHORIZED' },
+    )
+    await expect(probe.createCaller(sessionContext(-1000)).guarded()).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+    })
+    expect(await probe.createCaller(sessionContext(60_000)).guarded()).toBe('u')
+  })
+
+  test('anonymous and expired callers are refused everywhere except the explicit public list', async () => {
+    const callers = [
+      appRouter.createCaller({ user: null, session: null }),
+      appRouter.createCaller(sessionContext(-1000)),
+    ]
+    for (const caller of callers) {
+      for (const path of guarded) {
+        await expect(callPath(caller, path)(undefined)).rejects.toMatchObject({
+          code: 'UNAUTHORIZED',
+        })
+      }
+    }
+  })
+})
+
+describe('procedure contracts', () => {
+  test('every query and mutation declares an output parser; subscriptions do not', () => {
+    const misdeclared = procedures.filter(([, procedure]) => {
+      const { _def: def } = procedure
+      const hasOutput = 'output' in def && def.output !== undefined
+      return def.type === 'subscription' ? hasOutput : !hasOutput
+    })
+    expect(misdeclared.map(([path]) => path)).toEqual([])
+  })
+
+  test('a service error crosses the edge as its code and nothing else', async () => {
+    await expect(probe.createCaller({ user: null, session: null }).missing()).rejects.toMatchObject(
+      { code: 'NOT_FOUND', message: 'not_found' },
+    )
+  })
+})

@@ -1,0 +1,56 @@
+import { Button } from '@temp-repo/ui/components/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@temp-repo/ui/components/card'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@temp-repo/ui/components/empty'
+import { Skeleton } from '@temp-repo/ui/components/skeleton'
+import { formatDateTime } from '@/shared/format-date'
+import {
+  NOTE_LIST_DESCRIPTION,
+  NOTE_LIST_EMPTY,
+  NOTE_LIST_ERROR_TITLE,
+  NOTE_LIST_RETRY,
+  NOTE_LIST_TITLE,
+  useNotes,
+} from './lib'
+
+export function NoteList() {
+  const list = useNotes()
+
+  return (
+    <Card className="w-full max-w-2xl text-left">
+      <CardHeader>
+        <CardTitle>{NOTE_LIST_TITLE}</CardTitle>
+        <CardDescription>{NOTE_LIST_DESCRIPTION}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {list.isError ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{NOTE_LIST_ERROR_TITLE}</EmptyTitle>
+              <EmptyDescription>{list.error}</EmptyDescription>
+            </EmptyHeader>
+            <Button variant="outline" size="sm" onClick={list.retry}>
+              {NOTE_LIST_RETRY}
+            </Button>
+          </Empty>
+        ) : !list.notes ? (
+          <Skeleton className="h-16 w-full" />
+        ) : list.notes.length === 0 ? (
+          <p className="text-muted-foreground">{NOTE_LIST_EMPTY}</p>
+        ) : (
+          list.notes.map((note) => (
+            <div key={note.id} className="space-y-1">
+              <p>{note.body}</p>
+              <p className="text-muted-foreground text-xs">{formatDateTime(note.createdAt)}</p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  )
+}

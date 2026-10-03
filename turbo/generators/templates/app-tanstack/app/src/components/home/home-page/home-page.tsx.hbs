@@ -1,22 +1,25 @@
-import { HOME_DESCRIPTION, HOME_DOCS_LABEL, HOME_TITLE } from './lib'
+import { IconExternalLink } from '@tabler/icons-react'
+import { buttonVariants } from '@temp-repo/ui/components/button'
+import { NoteList } from '@/components/home/note-list'
+import { HOME_DESCRIPTION, HOME_DOCS_LABEL, HOME_DOCS_URL, HOME_TITLE } from './lib'
 
 export function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-background to-muted p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-gradient-to-b from-background to-muted p-8 text-foreground">
       <div className="max-w-2xl text-center">
-        <h1 className="mb-4 text-4xl font-bold tracking-tight">{HOME_TITLE}</h1>
+        <h1 className="mb-4 font-bold font-heading text-4xl tracking-tight">{HOME_TITLE}</h1>
         <p className="mb-8 text-lg text-muted-foreground">{HOME_DESCRIPTION}</p>
-        <div className="flex justify-center gap-4">
-          <a
-            href="https://tanstack.com/start"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {HOME_DOCS_LABEL}
-          </a>
-        </div>
+        <a
+          href={HOME_DOCS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonVariants({ size: 'lg' })}
+        >
+          {HOME_DOCS_LABEL}
+          <IconExternalLink data-icon="inline-end" />
+        </a>
       </div>
-    </div>
+      <NoteList />
+    </main>
   )
 }

@@ -3,6 +3,7 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
@@ -16,6 +17,7 @@
     "@types/bun": "^1.4.2"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test --pass-with-no-tests"
   }
 }

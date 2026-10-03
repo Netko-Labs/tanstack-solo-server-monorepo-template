@@ -1,16 +1,10 @@
 import { createLogger } from '@temp-repo/logger'
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
-import { CACHE_URL, createCacheClient } from '@temp-repo/studio-repository'
 import { getChatMessages } from '../queries/chat'
 import { HEARTBEAT_MS } from './constants'
-import { LocalRoomBus } from './local-room-bus'
-import { RedisRoomBus } from './redis-room-bus'
-import type { MemberStatus, RoomBus } from './types'
+import { createRoomBus } from './create-room-bus'
+import type { MemberStatus, RoomBus, RoomQueueItem, RoomSync } from './types'
 import { createAsyncQueue, presenceSignature } from './utils'
-
-type Sync = Extract<RoomEvent, { type: 'sync' }>
-/** Queue items: room events plus an internal marker asking the consumer to take a fresh snapshot. */
-type QueueItem = RoomEvent | { type: 'resync' }
 
 const logger = createLogger('room')
 
@@ -36,9 +30,9 @@ export class RoomHub {
   ): AsyncGenerator<RoomEvent> {
     const connectionId = crypto.randomUUID()
     const controller = new AbortController()
-    if (signal?.aborted) controller.abort()
+    if (signal?.aborted || (until && until.getTime() <= Date.now())) controller.abort()
     else signal?.addEventListener('abort', () => controller.abort(), { once: true })
-    const queue = createAsyncQueue<QueueItem>(controller.signal)
+    const queue = createAsyncQueue<RoomQueueItem>(controller.signal)
     // Counted before the subscribe resolves so a drain sees streams still on their way in;
     // a failed subscribe throws before the `finally` below exists, so it uncounts itself.
     this.activeStreams += 1
@@ -52,10 +46,8 @@ export class RoomHub {
     const deadline = until
       ? setTimeout(() => controller.abort(), Math.max(0, until.getTime() - Date.now()))
       : undefined
-    // After a transport reconnect the client re-syncs from a fresh snapshot: events published
-    // during the outage are gone for good, so a diff cannot repair the view. The marker keeps
-    // queue order: the snapshot is taken when the consumer reaches it, so events queued after
-    // it are deduped against that snapshot instead of being wiped by it.
+    // Events lost in an outage need a fresh snapshot, queued as a marker to keep event order
+    // (docs/room-bus.md, snapshot boundary).
     const offReconnect = this.bus.onReconnect(() => queue.push({ type: 'resync' }))
     let joined = false
     let closing = false
@@ -88,10 +80,8 @@ export class RoomHub {
       let sync = await this.snapshot(roomId, connectionId)
       if (controller.signal.aborted) return
       signature = presenceSignature(sync.members)
-      // Joins queued before a snapshot for users it already lists are echoes (a later rejoin
-      // is real, so this is backlog-scoped). Chat ids are immutable, so any chat already in a
-      // snapshot is suppressed for the stream's lifetime: its notification may trail the
-      // history read by more than the backlog window.
+      // Backlog joins of listed users are echoes; a chat already in a snapshot is suppressed for
+      // the stream's lifetime, since its notification may trail the history read.
       let snapshotUsers = new Set(sync.members.map((m) => m.userId))
       const seenMessages = new Set(sync.messages.map((m) => m.id))
       let backlog = queue.size()
@@ -148,7 +138,7 @@ export class RoomHub {
     return this.bus.setStatus(roomId, connectionId, userId, status)
   }
 
-  private async snapshot(roomId: string, connectionId: string): Promise<Sync> {
+  private async snapshot(roomId: string, connectionId: string): Promise<RoomSync> {
     const messages = await this.loadHistory(roomId)
     const members = await this.bus.members(roomId)
     return { type: 'sync', connectionId, members, messages }
@@ -159,19 +149,10 @@ export class RoomHub {
   }
 }
 
-function createBus(): RoomBus {
-  if (!CACHE_URL) return new LocalRoomBus()
-  logger.info('room bus: redis')
-  return new RedisRoomBus(createCacheClient(), createCacheClient())
-}
-
-// The bus (connections + subscriptions + presence) is one per process, not per module
-// graph: dev evaluates the HTTP route (Vite `ssr` env) and the WebSocket handler (`nitro`
-// env) separately. The hub is stateless, so every module evaluation builds a fresh one on
-// the shared bus and HMR edits to this file take effect without a restart; edits to the
-// bus files still need one.
+// One bus per process, not per module graph: dev evaluates the HTTP route and the WebSocket
+// handler separately (docs/room-bus.md, dev gotcha). The stateless hub is rebuilt each time.
 const BUS_KEY = Symbol.for('studio.room-bus')
 const globalBus = globalThis as typeof globalThis & Record<symbol, RoomBus | undefined>
-globalBus[BUS_KEY] ??= createBus()
+globalBus[BUS_KEY] ??= createRoomBus()
 
 export const hub = new RoomHub(globalBus[BUS_KEY])

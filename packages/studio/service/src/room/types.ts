@@ -13,6 +13,7 @@ export type MemberStatus = Member['status']
  * tracked per connection (a user with two tabs is two connections) and read per user.
  */
 export interface RoomBus {
+  /** Best-effort: never rejects, since callers publish after persisting. */
   publish(roomId: string, event: RoomEvent): Promise<void>
   /** Resolves once the subscription is live, so nothing published afterwards is missed. */
   subscribe(roomId: string, listener: RoomListener): Promise<() => void>
@@ -41,3 +42,8 @@ export interface AsyncQueue<T> extends AsyncIterable<T> {
   push(item: T): void
   size(): number
 }
+
+export type RoomSync = Extract<RoomEvent, { type: 'sync' }>
+
+/** Room events plus an internal marker asking the consumer to take a fresh snapshot. */
+export type RoomQueueItem = RoomEvent | { type: 'resync' }

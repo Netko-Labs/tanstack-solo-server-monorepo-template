@@ -9,16 +9,6 @@ import {
 } from '../utils/apps'
 import { getRootDir, loadEnvFile, run } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* BUILD COMMAND *:･ﾟ✧*:･ﾟ✧
- *
- * Build an app for production (◕‿◕✿)
- */
-
-/**
- * Build an app for production. Vite apps run `vite build`; headless server apps
- * bundle their entry with `bun build`.
- */
 export async function build(args: string[]) {
   const appName = parseAppArg(args)
 
@@ -51,11 +41,7 @@ export async function build(args: string[]) {
   console.log(`✅ Build for ${appName} completed!`)
 }
 
-/**
- * Bundle the repository's `migrate.ts` (plus its `drizzle/` SQL) into `{outDir}/migrate` so a
- * deploy image without node_modules can still run `bun {outDir}/migrate/migrate.js`. The
- * bundle is always produced: the deploy start command runs it, and it no-ops without SQL.
- */
+/** Always produced: the deploy start command runs it, and it no-ops without SQL. */
 async function bundleMigrator(appName: string, outDir: string) {
   const dbDir = path.join(getRepositoryDir(appName), 'src', 'db')
   const entry = path.join(dbDir, 'migrate.ts')

@@ -4,9 +4,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check-types": "tsgo --noEmit",
+    "check-types": "tsc --noEmit",
+    "test": "bun test --pass-with-no-tests",
     "db:generate": "bunx --bun drizzle-kit generate",
-    "db:migrate": "bunx --bun drizzle-kit migrate"
+    "db:migrate": "bunx --bun drizzle-kit migrate",
+    "db:seed": "bun run ./src/db/seed.ts"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.11",

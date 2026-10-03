@@ -10,16 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthedRouteRouteImport } from './routes/_authed/route'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as TodosRouteImport } from './routes/todos'
+import { Route as AuthedTodosRouteImport } from './routes/_authed/todos'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiMonitorRouteImport } from './routes/api/monitor'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthedRouteRoute = AuthedRouteRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -32,14 +38,19 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TodosRoute = TodosRouteImport.update({
+const AuthedTodosRoute = AuthedTodosRouteImport.update({
   id: '/todos',
   path: '/todos',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthedRouteRoute,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMonitorRoute = ApiMonitorRouteImport.update({
+  id: '/api/monitor',
+  path: '/api/monitor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -57,8 +68,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/sign-in': typeof SignInRoute
-  '/todos': typeof TodosRoute
+  '/todos': typeof AuthedTodosRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/monitor': typeof ApiMonitorRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
@@ -66,18 +78,21 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/chat': typeof ChatRoute
   '/sign-in': typeof SignInRoute
-  '/todos': typeof TodosRoute
+  '/todos': typeof AuthedTodosRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/monitor': typeof ApiMonitorRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authed': typeof AuthedRouteRouteWithChildren
   '/chat': typeof ChatRoute
   '/sign-in': typeof SignInRoute
-  '/todos': typeof TodosRoute
+  '/_authed/todos': typeof AuthedTodosRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/monitor': typeof ApiMonitorRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
@@ -89,6 +104,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/todos'
     | '/api/health'
+    | '/api/monitor'
     | '/api/auth/$'
     | '/api/trpc/$'
   fileRoutesByTo: FileRoutesByTo
@@ -98,25 +114,29 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/todos'
     | '/api/health'
+    | '/api/monitor'
     | '/api/auth/$'
     | '/api/trpc/$'
   id:
     | '__root__'
     | '/'
+    | '/_authed'
     | '/chat'
     | '/sign-in'
-    | '/todos'
+    | '/_authed/todos'
     | '/api/health'
+    | '/api/monitor'
     | '/api/auth/$'
     | '/api/trpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthedRouteRoute: typeof AuthedRouteRouteWithChildren
   ChatRoute: typeof ChatRoute
   SignInRoute: typeof SignInRoute
-  TodosRoute: typeof TodosRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiMonitorRoute: typeof ApiMonitorRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
@@ -128,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -144,18 +171,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/todos': {
-      id: '/todos'
+    '/_authed/todos': {
+      id: '/_authed/todos'
       path: '/todos'
       fullPath: '/todos'
-      preLoaderRoute: typeof TodosRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedTodosRouteImport
+      parentRoute: typeof AuthedRouteRoute
     }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/monitor': {
+      id: '/api/monitor'
+      path: '/api/monitor'
+      fullPath: '/api/monitor'
+      preLoaderRoute: typeof ApiMonitorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -175,12 +209,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthedRouteRouteChildren {
+  AuthedTodosRoute: typeof AuthedTodosRoute
+}
+
+const AuthedRouteRouteChildren: AuthedRouteRouteChildren = {
+  AuthedTodosRoute: AuthedTodosRoute,
+}
+
+const AuthedRouteRouteWithChildren = AuthedRouteRoute._addFileChildren(
+  AuthedRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthedRouteRoute: AuthedRouteRouteWithChildren,
   ChatRoute: ChatRoute,
   SignInRoute: SignInRoute,
-  TodosRoute: TodosRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiMonitorRoute: ApiMonitorRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }

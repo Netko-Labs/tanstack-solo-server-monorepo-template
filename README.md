@@ -1,325 +1,161 @@
 # TanStack Solo Server Monorepo Template
 
-A modern, type-safe full-stack **solo-server** template: one TanStack Start app (`studio`) that serves the UI, better-auth, tRPC over HTTP **and** tRPC over a native **WebSocket** (`/trpc-ws`), wired with Drizzle ORM, TanStack Query, and Bun.
+A type-safe full-stack **solo-server** template: one TanStack Start app (`studio`) that serves the UI,
+better-auth, tRPC over HTTP **and** tRPC over a native **WebSocket** (`/trpc-ws`), wired with Drizzle
+ORM, TanStack Query, and Bun.
 
 ## 🚀 Features
 
 - 🏛️ **Solo server** - one Nitro/Bun process serves SSR, `/api/auth`, `/api/trpc` and the `/trpc-ws` WebSocket
-- 🔄 **tRPC** - End-to-end type-safe APIs (`httpBatchLink` for queries/mutations, `wsLink` for subscriptions via `splitLink`)
-- 🔌 **WebSocket real-time** - presence + live chat room over crossws (Nitro `experimental.websocket`), same-origin cookie auth
-- 🔑 **Magic-link auth** - better-auth magic link + a `/sign-in` page (Resend email, console fallback)
-- 📊 **TanStack Query** + 🗃️ **Drizzle ORM** - typed data fetching + `drizzle-zod` schemas; one database
-- 📦 **Turborepo** + ⚙️ **Bun** - fast monorepo tooling and runtime
-- 🎯 **TypeScript** - Full type safety across the stack
+- 🔄 **tRPC** - end-to-end types; `httpBatchLink` for queries/mutations, `wsLink` for subscriptions via `splitLink`
+- 🔌 **WebSocket real-time** - presence + live chat over crossws, same-origin cookie auth, Redis fan-out when `CACHE_URL` is set
+- 🔑 **Magic-link auth** - better-auth magic link on `/sign-in` (Resend email; console fallback in development only), optional GitHub/Google/Discord
+- 🗃️ **Drizzle + PostgreSQL** - `drizzle-zod` entities, contracts in `domain`, one baseline migration
+- 🔭 **Observability** - errors, traces and logs to code-whiskers, off until env is set
+- 📦 **Turborepo** + ⚙️ **Bun** - monorepo tooling, runtime, tests and a `repo` CLI
 
-## 📦 What's Included
+Agents and contributors: the house rules are `CLAUDE.md` (topology, commands) and
+[`docs/conventions.md`](docs/conventions.md) (layering, modules, commits). Settled choices live in
+[`docs/decisions.md`](docs/decisions.md).
 
-### Working examples
+## 🧭 Start a project from this canvas
 
-- ✅ **Todos** — CRUD over tRPC HTTP batching, session-authorized
-- ✅ **Presence + live chat** — a WebSocket room: who's-online presence (join/leave) + live messages
-- ✅ **Magic-link sign-in** — email → link → session cookie, on a dedicated `/sign-in` page
-- ✅ **drizzle-zod** — Zod schemas generated from Drizzle tables
-- ✅ **Clean architecture** — `domain → repository → service → trpc → ui`
+Do these in order: renaming after `.env` exists leaves the old database name in it.
 
-## 🏗️ Project Structure
+1. `bun run rename:preview @acme`, then `bun run rename @acme` (scope, compose project names,
+   `POSTGRES_DB`, `sample.env` URLs).
+2. `bun install`, then `bun run fmt-lint:fix` (imports re-sort under the new scope).
+3. `cp apps/studio/sample.env apps/studio/.env` and set `AUTH_SECRET` to the output of
+   `openssl rand -base64 32`. Every variable the app reads is documented there. If ports 5432/6379 are taken, set
+   `STUDIO_DB_PORT`/`STUDIO_REDIS_PORT` and change `DATABASE_URL`/`CACHE_URL` with them.
+4. `bun run dev`, open http://localhost:3000/sign-in and sign in: with no `RESEND_API_KEY` the magic
+   link is logged to the dev server's console.
+5. `bun run check-types && bun run fmt-lint && bun run test` (see `CLAUDE.md` for the gated suites
+   and their env).
+6. Strip the examples you don't want ([Removing the examples](#-removing-the-examples)). Before the
+   first deploy, regenerate one baseline: delete `packages/studio/repository/src/db/drizzle/`, run
+   `bun run repo db:generate --app studio`, then `bun run repo reset --app studio` (drops the local
+   volumes and migrates fresh). After a deploy, never rewrite shipped migrations.
+7. Reset `tasks/todo.md` to its headings. Keep `tasks/lessons.md` and `docs/decisions.md`, minus the
+   entries about examples you removed.
+8. Optional: `bun run gen:app` for another app (auth-less; port auth from `apps/studio`).
+9. Deploy: one Coolify application per app ([Deploy](#-deploy-coolify--railpack)).
+10. Observability: create a code-whiskers project and set four env vars
+    ([`docs/observability.md`](docs/observability.md)).
+11. Copy `docs/templates/tech-spec.md` to `docs/tech-spec.md` and fill §0 (Foundation).
 
-```
-.
-├── apps/
-│   └── studio/                 # TanStack Start application
-│       └── src/
-│           ├── components/     # React components (feature folders + definitions/)
-│           ├── integrations/   # TanStack Query + tRPC setup
-│           │   ├── tanstack-query/
-│           │   └── trpc/       # client.ts: httpBatchLink + wsLink (splitLink)
-│           ├── routes/         # File-based routing (thin Route exports)
-│           └── server/         # Nitro handlers (trpc-ws.ts → /trpc-ws)
-│
-├── packages/
-│   ├── studio/
-│   │   ├── domain/             # Domain layer
-│   │   │   ├── db/             # Drizzle schemas
-│   │   │   └── entities/       # drizzle-zod generated schemas
-│   │   ├── repository/         # Database layer
-│   │   ├── service/            # Business logic
-│   │   │   ├── queries/        # Query functions (folder per entity)
-│   │   │   └── mutations/      # Mutation functions (folder per entity)
-│   │   └── trpc/               # tRPC routers
-│   │       └── routers/
-│   │           └── todos/
-│   │               ├── queries.ts
-│   │               ├── mutations.ts
-│   │               └── subscriptions.ts
-│   └── shared/
-│       └── ui/                 # Shared UI primitives (shadcn-style)
-```
+CI runs on Blacksmith runners (`blacksmith-4vcpu-ubuntu-2404`); outside an org with the Blacksmith
+app installed, replace that label with `ubuntu-latest` in `.github/workflows/ci.yml`.
 
-## 🚀 Quick Start
+## ⚡ Quick start
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) 1.4.0 (the version in `package.json`'s `packageManager`; older Bun lacks the
-  Redis client and cannot apply the nitro patch)
-- Docker (Postgres and Redis run from `apps/studio/compose.yml`)
-
-### Installation
+Prerequisites: [Bun](https://bun.sh/) 1.4.0 (the `packageManager` version; older Bun lacks the Redis
+client and cannot apply the nitro patch) and Docker (Postgres and Redis run from
+`apps/studio/compose.yml`).
 
 ```bash
 bun install
 cp apps/studio/sample.env apps/studio/.env   # defaults match the compose services
+bun run dev                                  # docker up, db:generate, db:migrate, dev server
 ```
 
-### Development
+The server listens on http://localhost:3000 (WebSocket at `ws://localhost:3000/trpc-ws`). `/todos`
+is the signed-in CRUD example, `/chat` the presence + live chat room. Every command, with what it
+does, is in `CLAUDE.md` → Commands and [`packages/shared/cli/README.md`](packages/shared/cli/README.md).
+If every dev route answers 500 with `[crossws] Using Node.js adapter in an incompatible environment`,
+see `CLAUDE.md` → Nitro patch (`bun run repo check:nitro-patch --app studio`).
 
-```bash
-# Starts Postgres + Redis, generates and applies migrations, then the dev server
-bun run repo dev --app studio
-# or: bun run dev
-
-# Server will start at http://localhost:3000 (WebSocket at ws://localhost:3000/trpc-ws)
-# Visit http://localhost:3000/chat for presence + live chat, /todos for CRUD
-```
-
-## 📖 Architecture Patterns
-
-### Frontend component organization
-
-React components in `apps/studio` follow a consistent structure (see `CLAUDE.md` for full agent rules):
-
-**Module anatomy** — each feature is a module: the public `.tsx` (and nested sub-components) at the root, internals under `lib/`, and an `index.ts` barrel as the module's only public entry:
+## 🏗️ Project structure
 
 ```
-components/todos/todos-example/
-  todos-example.tsx             # public component
-  todo-list/                    # nested sub-components get their own folders
-  lib/
-    hooks/
-      use-todos-example.ts      # hooks ALWAYS live in a hooks/ subfolder
-    types.ts                    # props, hook types, local unions
-    values.ts                   # labels, empty-state copy (optional)
-    constants.ts                # limits, keys — UPPER_SNAKE_CASE (optional)
-    utils.ts                    # pure helpers for this feature (optional)
-    index.ts                    # re-exports the lib surface
-  index.ts                      # module barrel: export { TodosExample }
+apps/studio/src/
+  components/         feature modules (auth, chat, home, todos, shared, core)
+  integrations/       auth (get-session server fn), observability, tanstack-query, trpc (splitLink)
+  routes/             thin Route files; _authed/ gates its children; api/{auth,trpc,health,monitor}
+  server/             trpc-ws.ts (/trpc-ws) and plugins/{observability,shutdown}.ts
+  shared/             app logic modules (dom-events, redirect-path, trpc-error, format-date)
+packages/
+  studio/domain/      db/ tables, entities/ (drizzle-zod), schemas/, values/, factory/, shared/
+  studio/repository/  db client, Tx, migrations, seed; cache client
+  studio/service/     queries/ mutations/ values/ by entity; auth, email/, room/ integrations;
+                      logger/ (better-auth logger), shared/ (ServiceError)
+  studio/trpc/        routers/{auth,room,todos}, init.ts, http/, ws/, shared/
+  configs/studio-config/  env read once, production checks
+  shared/             cli, logger, ui, observability, resend-client, typescript-config
+turbo/generators/     gen:app and gen:lib templates
+__tests__/               built-server smoke; unit tests sit in a __tests__/ beside each subject,
+                         test doubles in a __mocks__/ beside what they stand in for
 ```
 
-Import a module through its barrel (`@/components/todos/todos-example`), never its inner files. `lib/` is private to its module.
+## 🧩 Where the layers live (the todos example)
 
-**Progressive disclosure** — `utils`/`types`/`constants`/`values` start as a single flat file and graduate to a folder (`utils/`) only when the category has many entries or a file exceeds 300 lines. Only `hooks/` is always a subfolder.
+Read these files in order to see one feature cross every layer. The rules behind them are in
+[`docs/conventions.md`](docs/conventions.md) §3–§5.
 
-**Scope ladder** (narrowest → widest):
-- module-internal → the module's `lib/`
-- cross-feature reuse within the app → a `shared/` module (`components/shared/*` for UI, `src/shared/*` for logic like `@/shared/dom-events`)
-- app-root shells and providers → `components/core/*`
-- cross-app primitives → `packages/shared/*`
+| Layer | File | Role |
+| --- | --- | --- |
+| domain | `packages/studio/domain/src/db/todos.ts` | the `todo` table |
+| domain | `packages/studio/domain/src/entities/todos.ts` | drizzle-zod insert/select schemas, refined with limits |
+| domain | `packages/studio/domain/src/schemas/todos.ts` | hand-written inputs and the list result |
+| domain | `packages/studio/domain/src/values/todos.ts` | limits and `TODO_ERROR_CODES`, shared with the client |
+| service | `packages/studio/service/src/queries/todos/get-todos.ts` | a read that calls drizzle, scoped to the owner |
+| service | `packages/studio/service/src/mutations/todos/update-todo.ts` | a write that throws `TodoError('not_found')` |
+| service | `packages/studio/service/src/mutations/todos/__tests__/ownership.test.ts` | the ownership where-clause, against Postgres |
+| trpc | `packages/studio/trpc/src/routers/todos/mutations.ts` | `.input()`/`.output()` from domain, no zod import |
+| trpc | `packages/studio/trpc/src/init.ts` | procedures, logging/span middleware, service-error mapping |
+| app | `apps/studio/src/routes/_authed/route.tsx` | the gate: `getSession` server fn, redirect, session in context |
+| app | `apps/studio/src/components/todos/todos-example/lib/hooks/use-toggle-todo.ts` | one `mutationOptions` hook per action, list invalidation |
+| app | `apps/studio/src/components/todos/todos-example/lib/hooks/use-todos-list.ts` | the list-hook contract: `isError`, error copy, `retry` |
 
-**Hierarchy** — shallow feature trees, not flat large files: feature → section → element.
+Realtime follows the same order: `domain/src/schemas/room.ts` (the `RoomEvent` union),
+`service/src/room/` (hub and bus, [`docs/room-bus.md`](docs/room-bus.md)),
+`trpc/src/routers/room/subscriptions.ts` (`room.stream`), and
+`apps/studio/src/components/chat/chat-example/lib/hooks/use-room-stream.ts` (the client side).
 
-```
-components/todos/
-  todos-example/
-  todo-list/
-    todo-item/
-shared/                         # cross-feature UI within the app
-core/                           # app-wide shells and providers
-```
+## 🧹 Removing the examples
 
-**Budgets:**
-- `.tsx` and colocated `.ts` files: **≤ 300 lines**
-- Hooks per component file: **≤ 3** (extract `lib/hooks/use-*.ts` when exceeded)
-- Route files: thin `Route` export only; UI lives under `components/`
+Each example spans every layer; remove it as a unit, then run `bun run check-types`, `bun run test`
+and `bun run repo db:generate --app studio` (a drop migration, or a fresh baseline before the first
+deploy).
 
-**Layer boundaries:**
-- UI-only types/constants/values → the module's `lib/` (private to the module)
-- Pure helpers → the module's `lib/utils.ts`, or an app `src/shared/*` logic module when reused across features
-- Entities, schemas, validation → `packages/studio/domain`
+**Todos**
+- domain: `db/todos.ts`, `entities/todos.ts`, `schemas/todos.ts`, `values/todos.ts` and their
+  barrel lines.
+- service: `queries/todos/`, `mutations/todos/` (with `TodoError` and `__tests__/ownership.test.ts`) and
+  their barrel lines.
+- trpc: `routers/todos/` and the `todos` key in `src/index.ts`; `__tests__/procedures.test.ts` and
+  `shared/error-shape/__tests__/utils.test.ts` throw `TodoError`, so switch them to `ServiceError`.
+- app: `routes/_authed/todos.tsx` (keep `_authed/route.tsx` as the gate for your own pages),
+  `components/todos/`, the Todos entry in the home `FEATURE_CARDS` and its code tab.
+- `__tests__/values.ts`: point `protectedQuery` at one of your protected queries.
 
-The full, portable rules live in `@docs/conventions.md`.
+**Chat (realtime)**
+- domain: `db/chat.ts`, `entities/chat.ts`, `schemas/chat.ts`, `schemas/room.ts` (and its test),
+  `values/chat.ts`.
+- service: `queries/chat/`, `mutations/chat/`, `values/chat/`, and `room/` (hub, bus and their
+  tests).
+- trpc: `routers/room/` and the `room` key.
+- app: `routes/chat.tsx`, `components/chat/`, the Chat card and its code tabs, and the chat mention
+  in `components/auth/sign-in-form/lib/values.ts`.
+- `server/plugins/shutdown.ts`: drop `hub.drain`/`hub.bus.close()`. The hub and its shutdown wiring
+  are realtime infra: keep or remove them as a unit. The `/trpc-ws` bridge (`trpc/src/ws/`) stays for
+  any future subscription.
+- `__tests__/values.ts`: drop `guardedStream`/`streamInput` or point them at your own subscription.
+- `docs/room-bus.md`, and the room entries in `docs/decisions.md` if they no longer apply.
 
-### Domain Layer (`packages/studio/domain`)
+**Home demo**
+- `components/home/` and `routes/index.tsx`'s component. Sign-in does not depend on it
+  (`components/auth/` owns the form).
 
-**Database Schema** (`src/db/todos.ts`):
-```typescript
-export const todoTable = pgTable('todo', {
-  id: uuid('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  title: text('title').notNull(),
-  description: text('description'),
-  completed: boolean('completed').default(false).notNull(),
-  createdBy: text('created_by').notNull().references(() => user.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
-  updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).$onUpdate(() => new Date()).notNull(),
-})
-```
-
-**Entity Schemas** (`src/entities/todos.ts`) - Using `drizzle-zod`:
-```typescript
-import { createInsertSchema, createSelectSchema, createUpdateSchema } from 'drizzle-zod'
-
-export const TodoInsertSchema = createInsertSchema(todoTable)
-export type TodoInsert = z.infer<typeof TodoInsertSchema>
-
-export const TodoUpdateSchema = createUpdateSchema(todoTable).required({ id: true })
-export type TodoUpdate = z.infer<typeof TodoUpdateSchema>
-
-export const TodoSchema = createSelectSchema(todoTable)
-export type Todo = z.infer<typeof TodoSchema>
-```
-
-### Service Layer (`packages/studio/service`)
-
-**Queries** (`src/queries/todos/get-todo.ts`):
-```typescript
-export const getTodo = async (
-  todoId: string,
-  ctx?: AuthenticatedContext,
-): Promise<Todo | undefined> => {
-  const where = ctx
-    ? and(eq(todoTable.id, todoId), eq(todoTable.createdBy, ctx.user.id))
-    : eq(todoTable.id, todoId)
-
-  return await db.select().from(todoTable).where(where).then(([result]) => result)
-}
-```
-
-**Mutations** (`src/mutations/todos/create-todo.ts`):
-```typescript
-export const createTodo = async (data: TodoInsert): Promise<Todo | undefined> => {
-  return await db.insert(todoTable).values(data).returning().then(([result]) => result)
-}
-```
-
-### tRPC Layer (`packages/studio/trpc`)
-
-**Queries** (`src/routers/todos/queries.ts`):
-```typescript
-export const todosQueries = router({
-  list: protectedProcedure.query(async ({ ctx }) => {
-    return getTodos(ctx.user.id)
-  }),
-
-  getById: protectedProcedure
-    .input(z.object({ todoId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      return getTodo(input.todoId, ctx)
-    }),
-})
-```
-
-**Mutations** (`src/routers/todos/mutations.ts`):
-```typescript
-export const todosMutations = router({
-  create: protectedProcedure
-    .input(TodoInsertSchema.omit({ createdBy: true }))
-    .mutation(async ({ ctx, input }) => {
-      return createTodo({ ...input, createdBy: ctx.user.id })
-    }),
-})
-```
-
-**Subscriptions** (`src/routers/todos/subscriptions.ts`):
-```typescript
-export const todosSubscriptions = router({
-  onUpdate: protectedProcedure
-    .subscription(async function* ({ ctx, signal }) {
-      // Initial data
-      yield { id: '0', type: 'sync', todos: await getTodos(ctx.user.id), timestamp: Date.now() }
-
-      // Poll for updates
-      while (!signal?.aborted) {
-        await new Promise((resolve) => setTimeout(resolve, 3000))
-        yield { id: String(++eventId), type: 'update', todos: await getTodos(ctx.user.id), timestamp: Date.now() }
-      }
-    }),
-})
-```
-
-### Frontend Integration (`apps/studio/src/integrations`)
-
-**tRPC client**:
-- `client.ts` - `splitLink`: `httpBatchLink` for queries/mutations, `wsLink` (lazy, same-origin `/trpc-ws`) for subscriptions
-- `react.ts` - TanStack Query + tRPC context (`useTRPC`, `TRPCProvider`)
-
-**Usage in Components**:
-```typescript
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { trpcClient, useTRPC } from '@/integrations/trpc'
-
-function TodosExample() {
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
-
-  const { data: todos } = useQuery(trpc.todos.list.queryOptions())
-
-  const createMutation = useMutation(
-    trpc.todos.create.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.todos.list.queryKey() })
-      },
-    }),
-  )
-
-  useEffect(() => {
-    const sub = trpcClient.room.stream.subscribe({ roomId: 'lobby' }, {
-      onData: (event) => {
-        if (event.type === 'chat') queryClient.invalidateQueries({ queryKey: trpc.room.messages.queryKey() })
-      },
-    })
-    return () => sub.unsubscribe()
-  }, [queryClient, trpc.room.messages])
-}
-```
-
-## 🔧 Key Patterns
-
-### 1. drizzle-zod for Schema Generation
-Instead of manually defining Zod schemas, use `drizzle-zod` to automatically generate them from your Drizzle tables:
-- `createInsertSchema()` - For create operations
-- `createUpdateSchema()` - For update operations
-- `createSelectSchema()` - For reading/selecting data
-
-### 2. Folder-per-Entity in Service Layer
-Each entity has its own folder with individual files for each operation:
-```
-service/src/
-├── queries/
-│   └── todos/
-│       ├── get-todo.ts
-│       ├── get-todos.ts
-│       └── index.ts
-└── mutations/
-    └── todos/
-        ├── create-todo.ts
-        ├── update-todo.ts
-        ├── delete-todo.ts
-        └── index.ts
-```
-
-### 3. Merged tRPC Routers
-Routers are split by concern and merged:
-```typescript
-export const todosRouter = mergeRouters(todosQueries, todosMutations)
-```
-
-### 4. tRPC HTTP + WebSocket in one process
-
-- **Client** (`trpcClient`): `splitLink` sends subscriptions over `wsLink` and everything else over `httpBatchLink`. SSR builds HTTP-only links.
-- **Server**: `apps/studio/src/server/trpc-ws.ts` is a Nitro handler (`defineWebSocketHandler`) mounted at `/trpc-ws` from `vite.config.ts`. `packages/studio/trpc/src/ws/` adapts each crossws peer to tRPC's official `getWSConnectionHandler`, so the wire protocol is stock tRPC.
-- **Auth**: the upgrade request carries the better-auth session cookie; `createContext({ req })` is shared by the fetch and WebSocket paths. The upgrade hook enforces an origin allow-list.
-- **Dev under Bun**: `patches/nitro@*.patch` (via `bun patch`) lets Nitro's Vite dev worker install the crossws Bun plugin; without it `vite dev` answers upgrades with 426.
-
-## 📦 Dependencies
-
-Key packages added:
-- `@tanstack/react-query` - Data fetching and caching
-- `@trpc/tanstack-react-query` - tRPC + React Query integration
-- `@trpc/client` - tRPC client
-- `drizzle-zod` - Zod schema generation from Drizzle
-- `superjson` - Type-safe serialization
+Keep `PUBLIC` in `packages/studio/trpc/src/__tests__/procedures.test.ts` equal to the procedures you mean to
+expose without a session; the test calls every other path anonymous and with an expired session.
 
 ## 🚀 Deploy (Coolify + Railpack)
 
-One Coolify application, built from the repo root by [Railpack](https://railpack.com). `apps/studio/railpack.json` holds the build command and a pruned deploy image (bun toolchain + `.output`, no `node_modules`). WebSockets need nothing extra: Coolify's Traefik proxies the `/trpc-ws` upgrade like any HTTP/1.1 request.
+One Coolify application, built from the repo root by [Railpack](https://railpack.com).
+`apps/studio/railpack.json` holds the build command and a pruned deploy image (bun toolchain +
+`.output`, no `node_modules`). WebSockets need nothing extra: Coolify's Traefik proxies the
+`/trpc-ws` upgrade like any HTTP/1.1 request.
 
 In Coolify:
 
@@ -329,36 +165,44 @@ In Coolify:
    exists, so it would apply last deploy's migrations. `railpack.json`'s `startCommand` migrates inside the
    new container and only then serves; a failed migration fails the healthcheck and rolls back. Write
    migrations expand/contract: the old container keeps serving during the rollout.
-4. **Healthcheck** → `/api/health` on port 3000 (503 when Postgres or Redis is unreachable). The
-   runtime image gets `curl` from `railpack.json`'s `deploy.aptPackages`; without it Coolify's probe can
-   never pass. **Watch Paths** → `apps/studio/**`, `packages/studio/**`, `packages/configs/studio-config/**`,
-   `packages/shared/**`, `patches/**`, `package.json`, `bun.lock`.
-5. Runtime variables, all required in production (the app refuses to boot otherwise): `BASE_URL`,
-   `DATABASE_URL`, `AUTH_SECRET` (32+ chars), `RESEND_API_KEY`. Recommended: `CACHE_URL` (Redis; without it
-   the room bus is in-process, so set it before running more than one instance). Optional:
-   `TRUSTED_ORIGINS`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, `LOG_LEVEL`.
+4. **Healthcheck** → `/api/health` on port 3000 (503 when Postgres or Redis is unreachable; it also
+   reports `release` and `environment`). The runtime image gets `curl` from `railpack.json`'s
+   `deploy.aptPackages`; without it Coolify's probe can never pass. **Watch Paths** → `apps/studio/**`,
+   `packages/studio/**`, `packages/configs/studio-config/**`, `packages/shared/**`, `patches/**`,
+   `package.json`, `bun.lock`.
+5. Runtime variables (the full list, with defaults, is `apps/studio/sample.env`). Required in
+   production, or the app refuses to boot: `BASE_URL`, `DATABASE_URL`, `AUTH_SECRET` (32+ characters,
+   not a placeholder: `openssl rand -base64 32`), `RESEND_API_KEY`. Recommended: `CACHE_URL` (Redis;
+   without it the room bus is in-process, so set it before running more than one instance).
+   Optional: `TRUSTED_ORIGINS`, `TRUSTED_PROXIES`, `EMAIL_FROM`, `GITHUB_CLIENT_ID`/`_SECRET`,
+   `GOOGLE_CLIENT_ID`/`_SECRET`, `DISCORD_CLIENT_ID`/`_SECRET`, `LOG_LEVEL`, and the observability
+   set ([`docs/observability.md`](docs/observability.md); `VITE_SENTRY_DSN` and
+   `SENTRY_ENVIRONMENT` are build variables too).
 6. Graceful shutdown: `railpack.json` clears Railpack's `CI=true` (which disables the server's SIGTERM
    handling) and sets `SERVER_SHUTDOWN_TIMEOUT=10`; keep Coolify's stop grace period above that. On
-   SIGTERM every socket closes with 1001, room leaves run, then Redis and Postgres clients close.
+   SIGTERM every socket closes with 1001, room leaves run, then Redis and Postgres clients close and
+   telemetry flushes (bounded at 2 s).
 
 What a deploy does:
 
 ```
 bun install --frozen-lockfile
 bun run repo build --app studio                    # .output/ + .output/migrate/
-bun apps/studio/.output/migrate/migrate.js \
-  && bun apps/studio/.output/server/index.mjs      # start: migrate, then serve HTTP + WebSocket
+bun --no-install apps/studio/.output/migrate/migrate.js \
+  && bun --no-install apps/studio/.output/server/index.mjs   # start: migrate, then serve HTTP + WebSocket
 ```
 
-If Coolify's Railpack build ignores `RAILPACK_CONFIG_FILE`, the fallback is the **Build Command** / **Start Command** fields with the same two commands — the app still deploys, but without the pruned image.
+`--no-install` matters: the runtime image has no `node_modules`, and without it Bun auto-installs
+any package a dependency probes for at runtime (with `SENTRY_DSN` set, Sentry's module hooks ask npm
+for `hono` on every cold boot).
 
-Dry-run the plan locally with the [Railpack CLI](https://railpack.com/getting-started):
+If Coolify's Railpack build ignores `RAILPACK_CONFIG_FILE`, the fallback is the **Build Command** /
+**Start Command** fields with the same two commands — the app still deploys, but without the pruned
+image. Dry-run the plan locally with the [Railpack CLI](https://railpack.com/getting-started):
+`railpack plan --config-file apps/studio/railpack.json .`. Before deploying, `bun run repo build
+--app studio && bun run repo test:smoke --app studio` boots the built server the way Coolify does.
 
-```bash
-railpack plan --config-file apps/studio/railpack.json .
-```
-
-## 🚧 Production Notes
+## 🚧 Production notes
 
 ### Scaling past one instance
 Presence + chat fan out through a `RoomBus` (`packages/studio/service/src/room/`). With `CACHE_URL`
@@ -368,14 +212,20 @@ client from tab visibility, and a Redis restart is survived (subscriptions are r
 stream re-syncs). Without `CACHE_URL` the in-process bus is used, which is fine for one instance and
 for tests. Chat history is always Postgres. Design and invariants: [`docs/room-bus.md`](docs/room-bus.md).
 
-### Upgrading an existing database
-Migration `0003` deletes existing `todo` rows (they had no owner) and drops the `jwks` table. Reset
-the database or backfill `todo.user_id` by hand before running it against real data.
-
 ### Sockets behind the proxy
 The tRPC adapter pings every 30 s so idle-timeouts never close a quiet tab, and the crossws upgrade
 hook rejects browser origins outside `BASE_URL` + `TRUSTED_ORIGINS` (cookies ride cross-site
 upgrades; CORS does not apply to WebSockets).
+
+### Security boundary
+Built servers send HSTS, `nosniff`, a strict referrer policy and `frame-ancestors 'none'` on every
+route (`routeRules` in `vite.config.ts`). `/api/trpc` takes JSON POSTs only (415 otherwise), refuses
+a browser `Origin` outside `BASE_URL` + `TRUSTED_ORIGINS` (403), caps bodies at 1 MiB (413) and
+batches at 20 (`MAX_TRPC_BATCH_SIZE` in domain, which the client link splits at); `/trpc-ws` closes
+a frame over 1 MiB with 1009. Outside dev an error reaches the client as its code only. Known gaps:
+a `script-src` CSP needs a nonce from Start; better-auth rate limits live in memory, per instance
+(set `TRUSTED_PROXIES` behind a CDN so they key on the client IP); `room.send` has no per-user
+throttle.
 
 ## 📝 License
 

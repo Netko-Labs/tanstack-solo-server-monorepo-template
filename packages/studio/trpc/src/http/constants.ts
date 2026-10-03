@@ -1,0 +1,1 @@
+export const MAX_TRPC_BODY_BYTES = 1024 * 1024

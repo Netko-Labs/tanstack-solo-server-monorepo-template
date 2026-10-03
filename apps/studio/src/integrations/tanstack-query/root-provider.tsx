@@ -1,19 +1,20 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query'
-import superjson from 'superjson'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { reportQueryError } from '@/integrations/observability'
 import { TRPCProvider, trpcClient } from '@/integrations/trpc'
-import { QUERY_STALE_TIME_MS, type QueryProviderProps } from './lib'
+import { QUERY_STALE_TIME_MS, type QueryProviderProps, shouldRetryQuery } from './lib'
 
 let clientQueryClient: QueryClient | undefined
 
 function createAppQueryClient() {
+  // Errors surface where they are rendered; the caches only report them, never toast.
   return new QueryClient({
+    queryCache: new QueryCache({ onError: reportQueryError }),
+    mutationCache: new MutationCache({ onError: reportQueryError }),
     defaultOptions: {
       queries: {
         staleTime: QUERY_STALE_TIME_MS,
+        retry: shouldRetryQuery,
       },
-      dehydrate: { serializeData: superjson.serialize },
-      hydrate: { deserializeData: superjson.deserialize },
     },
   })
 }
@@ -32,16 +33,7 @@ function getQueryClient() {
 
 /** Called once by `getRouter`; the shell must reuse the router's context, not call this again. */
 export function getContext() {
-  const queryClient = getQueryClient()
-
-  const serverHelpers = createTRPCOptionsProxy({
-    client: trpcClient,
-    queryClient: queryClient,
-  })
-  return {
-    queryClient,
-    trpc: serverHelpers,
-  }
+  return { queryClient: getQueryClient() }
 }
 
 export function Provider({ children, queryClient }: QueryProviderProps) {

@@ -16,7 +16,7 @@ import {
   AUTH_SIGNING_OUT,
 } from './lib'
 
-export function AuthLoggedIn({ session, isLoading, onSignOut }: AuthLoggedInProps) {
+export function AuthLoggedIn({ user, isSigningOut, onSignOut }: AuthLoggedInProps) {
   return (
     <Card>
       <CardHeader>
@@ -28,20 +28,16 @@ export function AuthLoggedIn({ session, isLoading, onSignOut }: AuthLoggedInProp
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
-          {session.user.image && (
-            <img
-              src={session.user.image}
-              alt={session.user.name}
-              className="h-12 w-12 rounded-full"
-            />
+          {user.image && (
+            <img src={user.image} alt={user.name} className="h-12 w-12 rounded-full" />
           )}
           <div>
-            <p className="font-medium">{session.user.name}</p>
-            <p className="text-sm text-muted-foreground">{session.user.email}</p>
+            <p className="font-medium">{user.name}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </div>
-        <Button onClick={onSignOut} variant="outline" disabled={isLoading}>
-          {isLoading ? AUTH_SIGNING_OUT : AUTH_SIGN_OUT}
+        <Button onClick={onSignOut} variant="outline" disabled={isSigningOut}>
+          {isSigningOut ? AUTH_SIGNING_OUT : AUTH_SIGN_OUT}
         </Button>
       </CardContent>
     </Card>

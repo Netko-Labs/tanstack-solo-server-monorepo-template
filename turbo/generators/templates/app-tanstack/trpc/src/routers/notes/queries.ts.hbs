@@ -1,0 +1,10 @@
+import { NoteListInputSchema, NoteListSchema } from '@temp-repo/{{ name }}-domain'
+import { getNotes } from '@temp-repo/{{ name }}-service'
+import { publicProcedure, router } from '../../init'
+
+export const notesQueries = router({
+  list: publicProcedure
+    .input(NoteListInputSchema)
+    .output(NoteListSchema)
+    .query(({ input }) => getNotes(input)),
+})

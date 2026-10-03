@@ -1,0 +1,12 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { handleSentryTunnel } from '@temp-repo/observability/server'
+import { {{ camelCase name }}EnvConfig } from '@temp-repo/{{ name }}-config'
+
+export const Route = createFileRoute('/api/monitor')({
+  server: {
+    handlers: {
+      POST: ({ request }) =>
+        handleSentryTunnel(request, { allowedDsns: {{ camelCase name }}EnvConfig.observability.tunnelDsns }),
+    },
+  },
+})

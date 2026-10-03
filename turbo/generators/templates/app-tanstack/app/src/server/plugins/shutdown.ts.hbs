@@ -1,3 +1,4 @@
+import { shutdownTelemetry } from '@temp-repo/observability/server'
 import { closeDb } from '@temp-repo/{{ name }}-repository'
 import { closeAllPeers } from '@temp-repo/{{ name }}-trpc'
 import { definePlugin } from 'nitro'
@@ -5,7 +6,7 @@ import { definePlugin } from 'nitro'
 /**
  * Registered before srvx's own SIGTERM handler, so sockets close with 1001 while the HTTP
  * server is still draining. Nitro's `close` hook fires once the server is closed; only then
- * does the Postgres client go.
+ * does the Postgres client go, and telemetry flushes last so the final logs ship (bounded, ~2 s).
  */
 export default definePlugin((nitroApp) => {
   const drain = () => {
@@ -16,5 +17,6 @@ export default definePlugin((nitroApp) => {
 
   nitroApp.hooks.hook('close', async () => {
     await closeDb()
+    await shutdownTelemetry()
   })
 })

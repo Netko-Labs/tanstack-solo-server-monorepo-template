@@ -11,6 +11,19 @@ export const MemberSchema = z.object({
 })
 export type Member = z.infer<typeof MemberSchema>
 
+export const RoomStreamInputSchema = z.object({ roomId: RoomIdSchema })
+export type RoomStreamInput = z.infer<typeof RoomStreamInputSchema>
+
+export const RoomStatusInputSchema = z.object({
+  roomId: RoomIdSchema,
+  connectionId: z.string().uuid(),
+  status: MemberSchema.shape.status,
+})
+export type RoomStatusInput = z.infer<typeof RoomStatusInputSchema>
+
+/** True when the connection belonged to the caller and its status was stored. */
+export const RoomStatusResultSchema = z.boolean()
+
 /** Events streamed from the room subscription (server → client) and across instances. */
 export const RoomEventSchema = z.discriminatedUnion('type', [
   z.object({

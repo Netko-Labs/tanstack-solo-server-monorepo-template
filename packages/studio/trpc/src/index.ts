@@ -11,6 +11,8 @@ export const appRouter = router({
 
 export type AppRouter = typeof appRouter
 
-export { hub } from '@temp-repo/studio-service'
+export { createTRPCHttpHandler } from './http'
 export { createContext, mergeRouters, protectedProcedure, publicProcedure, router } from './init'
+export { reportInternalErrors } from './shared/error-report'
+export type { TRPCErrorEvent } from './types'
 export { closeAllPeers, createTRPCWebSocketHooks } from './ws'

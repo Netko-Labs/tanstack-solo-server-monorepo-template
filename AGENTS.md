@@ -1,3 +1,6 @@
+House rules live in `CLAUDE.md` (topology, commands) and `docs/conventions.md` (layering, modules,
+commits); read both first. Doc index: `docs/README.md`.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know

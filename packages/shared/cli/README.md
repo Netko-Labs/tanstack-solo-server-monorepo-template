@@ -15,7 +15,8 @@ bun run repo <command> [options]
 Or use the convenience scripts in the root package.json:
 
 ```bash
-bun run dev          # Start full dev environment
+bun run dev          # dev --app studio
+bun run test         # test (studio's .env)
 bun run status       # Show monorepo status
 ```
 
@@ -25,9 +26,10 @@ bun run status       # Show monorepo status
 
 | Command | Description |
 |---------|-------------|
-| `dev --app <name>` | Start full dev environment (docker + db + server) |
-| `serve --app <name>` | Start dev server only |
+| `dev --app <name>` | Docker up, `db:generate`, `db:migrate`, then the dev server (needs `apps/<name>/.env`) |
+| `serve --app <name>` | Start the dev server only (checks the nitro patch first) |
 | `build --app <name>` | Build for production |
+| `check:nitro-patch --app <name>` | Fail unless `patches/nitro@*.patch` reached the installed nitro (`serve` runs it first) |
 
 ### Docker
 
@@ -43,7 +45,7 @@ bun run status       # Show monorepo status
 | `db:migrate --app <name>` | Run database migrations |
 | `db:generate --app <name>` | Generate migrations from schema |
 | `db:push --app <name>` | Push schema changes (no migration) |
-| `db:seed --app <name>` | Seed database with initial data |
+| `db:seed --app <name>` | Run the re-runnable dev seed (refuses in production) |
 | `db:studio --app <name>` | Open Drizzle Studio GUI |
 
 ### Generators
@@ -51,15 +53,16 @@ bun run status       # Show monorepo status
 | Command | Description |
 |---------|-------------|
 | `generate:app` | Create a new app |
-| `generate:lib` | Create a shared library |
+| `generate:lib` | Create a shared library (`library` kind) or an external-service client (`client` kind) |
 
 ### Testing
 
 | Command | Description |
 |---------|-------------|
-| `test [--app <name>]` | Run unit tests |
+| `test [--app <name>]` | Run tests with the app's `.env` loaded under the shell env (`studio` by default); with `--app`, warns when no workspace under it has a test script |
 | `test --watch` | Run tests in watch mode |
 | `test --coverage` | Run tests with coverage |
+| `test:smoke [--app <name>]` | Boot the built server (`build` first) in production mode on :4790 and probe health, SSR, tRPC and the socket (`__tests__/smoke.ts`) |
 
 ### Utilities
 
@@ -76,7 +79,7 @@ bun run status       # Show monorepo status
 
 | Command | Description |
 |---------|-------------|
-| `rename <new-scope>` | Rename project scope (e.g., @my-company) |
+| `rename <new-scope>` | Rename the `@temp-repo` scope and every `temp-repo` name (e.g. `@my-company`); re-copy `apps/*/.env` from `sample.env` afterwards |
 | `rename:preview <scope>` | Preview rename changes |
 
 ## Examples

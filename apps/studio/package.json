@@ -3,12 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check-types": "tsgo --noEmit",
-    "test": "bun test",
+    "check-types": "tsc --noEmit",
+    "test": "bun test --pass-with-no-tests",
     "dev": "bun run repo dev --app studio",
     "serve": "bun run repo serve --app studio",
     "build": "bun run repo build --app studio",
-    "start": "NODE_ENV=production bun .output/server/index.mjs",
+    "start": "NODE_ENV=production bun --no-install .output/server/index.mjs",
     "docker:up": "bun run repo docker:up --app studio",
     "docker:down": "bun run repo docker:down --app studio",
     "db:migrate": "bun run repo db:migrate --app studio",
@@ -24,7 +24,9 @@
     "@tanstack/react-router": "^1.170.40",
     "@tanstack/react-router-devtools": "^1.167.2",
     "@tanstack/react-start": "^1.168.59",
+    "@temp-repo/cli": "workspace:*",
     "@temp-repo/logger": "workspace:*",
+    "@temp-repo/observability": "workspace:*",
     "@temp-repo/studio-config": "workspace:*",
     "@temp-repo/studio-domain": "workspace:*",
     "@temp-repo/studio-repository": "workspace:*",
@@ -39,8 +41,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "superjson": "^2.2.6",
-    "tailwindcss": "^4.3.3",
-    "vite-tsconfig-paths": "^6.1.1"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

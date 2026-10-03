@@ -4,8 +4,8 @@ Portable code-style and folder-structure rules. These are project-agnostic and m
 across repositories — import this file from a repo's `CLAUDE.md` (e.g. `@docs/conventions.md`) and
 keep project-specific topology, commands, and data-flow notes in `CLAUDE.md` itself.
 
-This file uses neutral placeholders: `{app}`, `{context}`, `{module}`, `{entity}`, `@org/*`. Swap
-them for the host project's equivalents.
+This file uses neutral placeholders: `{app}`, `{context}`, `{module}`, `{entity}`, `{kind}`,
+`{integration}`, `{service}`, `@org/*`. Swap them for the host project's equivalents.
 
 ## 1. Vocabulary
 
@@ -20,6 +20,8 @@ them for the host project's equivalents.
 | store | Client-state coordination (e.g. a Zustand store), colocated with the feature it serves. |
 | barrel | An `index.ts` that only re-exports. |
 | layer | A backend package: `domain`, `repository`, `service`, `trpc`. |
+| kind | A service top-level folder by role: `queries`, `mutations`, `utils`, `values`, `logger`. |
+| integration | A service folder whose children are interchangeable providers (`email/resend/`), with a dispatcher at its root. |
 
 ## 2. Modules & Scope
 
@@ -137,40 +139,91 @@ layer is exempt. Layers differ only in their layer-specific top-level folders.
 
 ```
 domain/      db/         table definitions
-             entities/   db entities (db-backed entity schemas)
-             schemas/    interfaces / types
-             values/     constants, enums, etc.
+             entities/   db entities — drizzle-derived schemas ONLY
+             schemas/    hand-written schemas: inputs, outputs, filters, projections, app config
+             values/     client-visible limits, enums, error codes
              factory/    factories
              lib/        internal helpers/types          # universal
              shared/     reused/exported helpers/types   # universal
              index.ts
 ```
 
-**`repository`** — the only layer with direct DB / cache / file IO:
+An **entity** is produced from a table by a drizzle utility — `createSelectSchema`,
+`createInsertSchema`, `createUpdateSchema` — and nothing else. A shape someone typed by hand is a
+schema, even when it wraps an entity: filters, request inputs, response envelopes, joined
+projections and app config all live in `schemas/{entity}.ts` (a flat file; a folder only past 300
+lines) and compose entities with `.pick()`/`.extend()`.
+
+- Client-visible limits and enums live in `values/{entity}.ts`, and schemas import them; status
+  enums derive as `z.enum(pgEnum.enumValues)`. Server-only knobs live in `service/values/{entity}/`.
+- A permission predicate that both the UI and the server check lives in `domain/shared/`.
+- Column helpers live in `db/lib/`. jsonb columns use a pass-through `customType`: drizzle's
+  `jsonb()` double-stringifies under bun-sql.
+
+**`repository`** — db access primitives, and only those:
 
 ```
-repository/  db/      client + per-table query functions + migrations + seed
-             cache/   cache client + pub/sub + idempotency + rate limiting
-             files/   object storage
+repository/  db/      client + Tx type + migrations + seed (optional)
+             cache/   cache client + pub/sub primitives
              shared/  cross-module helpers/types
              index.ts
 ```
 
-**`service`** — business logic, folder-per-entity:
+The repository owns *how to reach* the database, never *what to ask it*: the client, the `Tx`
+type, migrations, an optional seed, and the cache client with its pub/sub primitives. Named queries
+and mutations do not belong here — a `find-user-by-email.ts` under `repository/` is a layering bug,
+not a repository. Object storage and other external services are not repository concerns: they get
+a shared client (see **External services**). A seed refuses to run in production, is re-runnable,
+and deletes and re-inserts only its own rows.
+
+**`service`** — business logic and every operation that touches the database. Folders read
+**general to specific**: the top level is the *kind* of thing, the level under it is the *entity*
+it serves, and the file is one concept:
 
 ```
-service/     queries/{entity}/{op}.ts + index.ts     # read operations
-             mutations/{entity}/{op}.ts + index.ts    # write operations
-             {concern}/                               # cross-entity concerns (logic modules)
-             shared/                                  # cross-service helpers + types
+service/     {kind}/{entity}/{name}.ts + index.ts
+             queries/{entity}/{op}.ts                 # read operations
+             mutations/{entity}/{op}.ts               # write operations
+             utils/{entity}/{name}.ts                 # pure helpers
+             values/{entity}/{name}.ts                # server-only limits, presets, tables
+             logger/{entity}/{name}.ts                # configured loggers
+             {integration}/                           # see below
+             lib/      internal helpers/types                 # universal
+             shared/   reused/exported helpers/types          # universal
              index.ts
 ```
+
+`queries/`, `mutations/`, `utils/`, `values/` and `logger/` are the service's layer-specific kinds,
+the way `entities/` and `values/` are domain's. They sit beside §2's `lib/` and `shared/`, which
+keep their meaning inside every module.
+
+Every operation that touches the database — trivial single-table reads included — is a service
+query or mutation, and issues its drizzle calls directly. Reuse means importing another service
+operation, never moving it into `repository`. Composite operations import the granular ones and
+wrap them in one `db.transaction`; a granular op takes `tx: Tx` first when a composite needs it.
+Side effects (broadcasts, email) run in service after the transaction resolves, never in a router.
+
+One concept per file: one operation, one value group, one error with its codes. Files under
+`queries/` and `mutations/` export exactly one operation. Grab-bag modules (`*-utils.ts` holding
+unrelated helpers) are split by concept.
+
+**Integrations invert the order.** A folder is an integration when the folder itself *is* the
+generality and its children are interchangeable providers, not entities: `email/` holds
+`email/resend/`, `email/smtp/`, `email/console/`, and a dispatcher at its root picks between them.
+An integration may keep grouped files at its root. Everything else follows kind-then-entity.
+
+**Service errors.** An operation that fails on purpose throws an `{Entity}Error` carrying a `code`;
+the class lives in service next to the operations that throw it. The code list is an `as const`
+array in `domain/values/{entity}.ts`, so the UI's copy maps can be exhaustive. One middleware on
+the base procedure maps these errors to `TRPCError` with `message = code`; nothing else crosses
+the edge as a message. The UI maps codes to copy with a generic fallback and never shows raw
+server text.
 
 **`trpc`** — API composition only:
 
 ```
 trpc/        routers/{entity}/{queries,mutations,subscriptions}.ts + index.ts (mergeRouters)
-             shared/   cross-router helpers/types
+             shared/   cross-router helpers/types, procedure builders
              init.ts   context + procedures (protected/public)
              index.ts  appRouter
 ```
@@ -178,10 +231,45 @@ trpc/        routers/{entity}/{queries,mutations,subscriptions}.ts + index.ts (m
 Architecture rules:
 
 - Keep the flow aligned as `domain → repository → service → trpc → ui`.
-- Direct database access lives only in `repository`; business logic in `service`; router wiring in
-  `trpc`.
-- In `service`, prefer the folder-per-entity structure under `queries/*` and `mutations/*`.
+- `repository` exposes db access primitives; `service` owns every query, mutation, and business
+  rule; `trpc` wires routers and validates the edge.
+- In `service`, name folders general-to-specific — `{kind}/{entity}/{name}.ts`. Only a
+  provider-backed integration inverts it (`email/resend/`).
+- **Every query and mutation declares both `.input()` and `.output()`**, and both schemas come
+  from `domain`. An inline `z.object(...)` in a router means a schema is missing from `domain`;
+  the `trpc` package does not depend on zod. Subscriptions declare `.input()` only, because tRPC's
+  output parser would consume the async iterable; their events are typed and parsed in service.
+- Role or permission gates are parameterized procedure builders in `trpc/shared/{concern}.ts` that
+  add the actor to `ctx`; the predicate they check lives in `domain/shared/`. Row ownership is a
+  where-clause in every service query, covered by a test. No RLS.
 - When extending routers, merge smaller concern-specific routers instead of growing one file.
+
+### External services
+
+Every external service (an HTTP API, object storage, a signing scheme) gets its own package,
+`packages/shared/{service}-client` (`@org/{service}-client`). Scaffold it with the library
+generator's **client** kind.
+
+```
+packages/shared/{service}-client/src/
+  {service}-client.ts   createXClient(config) → typed client; auth, signing, HTTP, retries
+  types.ts              XClientConfig + request/response types
+  errors.ts             XApiError carrying the service's own error code/detail
+  values.ts             endpoints, versions, limits
+  index.ts              barrel
+```
+
+- **Transport only.** Auth, token caching, request signing, the wire format and the service's
+  errors. No app config, no database, no logger, no business mapping.
+- **Config comes in as arguments.** The client never reads `process.env` or an app config
+  package; the calling layer passes the values.
+- **The service's third-party libraries live in the client** (its SDK, signing or crypto
+  libraries), not in `service`.
+- **`service` owns the mapping.** A small getter per integration builds the client from app config
+  once, and service code turns domain data into the client's requests and persists what comes
+  back.
+- Webhook verification helpers belong to the client too, so a route can check a signature
+  without pulling in `service`.
 
 ## 4. Component Authoring
 
@@ -199,6 +287,8 @@ These rules apply to frontend UI code (apps and shared UI packages). They extend
 - Name folders and files consistently: `{feature}-{section}.tsx`, `{feature}-{element}.tsx`.
 - Keep route files thin — export `Route` and delegate substantial UI to a component under
   `components/` or a route-specific feature folder.
+- Navigation is a `Link` styled with `buttonVariants()`; `Button` is for actions. A `Link` rendered
+  through `Button` makes Base UI treat the anchor as a button and log an error.
 
 ### Size and hook budgets
 
@@ -215,6 +305,8 @@ These rules apply to frontend UI code (apps and shared UI packages). They extend
   the hook — see **State & Wiring**.
 - Presentation stays in the component; data fetching, subscriptions, derived state, and pure helpers
   move to hooks, `lib/`, a `shared/` module, or a store.
+- Vendored UI primitives (shadcn CLI output, e.g. `packages/shared/ui/src/components/**`) are
+  exempt from the line and hook budgets and the `window` rule. Regenerate them rather than edit them.
 
 ## 5. State & Wiring
 
@@ -257,6 +349,20 @@ imperative coordination in a store.
 - Prefer feature-scoped stores over one app-wide store. React Context is fine for static providers
   (theme, auth wrappers), not growing mutable coordination state.
 
+The reference app has no shared-reach client state on purpose, so it ships no store. When one is
+needed, this is the shape (a mounted feature registers a handler; distant UI calls it):
+
+```ts
+export const useFeedStore = create<FeedStore>((set, get) => ({
+  focusFeed: null,
+  registerFocus: (focus) => {
+    set({ focusFeed: focus })
+    return () => set({ focusFeed: null })
+  },
+  requestFocus: () => get().focusFeed?.(),
+}))
+```
+
 **No `window` event bus** — do not use `window.dispatchEvent`, custom `window` listeners, or
 `window` as application pub/sub.
 
@@ -269,6 +375,21 @@ imperative coordination in a store.
 - **Viewport-wide pointer tracking** may use `window` listeners in a single hook when `document` is
   insufficient; document why.
 
+**Server data in the UI**
+
+- **Route data and guards** go through `integrations/{concern}/get-*.ts`, which exports one
+  `createServerFn` that calls a service query and returns a domain type, consumed in `beforeLoad`
+  or `loader`. Gated surfaces sit under a layout route whose `beforeLoad` redirects and returns the
+  session as context.
+- **Mutations:** one `mutationOptions` hook per action. The procedure's `.output()` is the
+  write-back: invalidate the list, or `setQueryData` when the output is the whole list. Clear forms
+  only in `onSuccess`. Optimistic updates are an opt-in.
+- **Forms** validate with the domain schema the procedure's `.input()` declares; no local regexes.
+- **List hooks** return `isError: query.isError && !query.data` and
+  `retry: () => void query.refetch()`; views render error, then pending, then empty, then content.
+- **Errors** reach the user as copy mapped from the service error `code`, with a generic fallback;
+  raw server text is never shown.
+
 ## 6. Code Style
 
 - Prefer the repo's package manager and scripts over ad-hoc npm/pnpm/yarn commands.
@@ -280,6 +401,19 @@ imperative coordination in a store.
 - Avoid `any`, `@ts-ignore`, and loosely typed boundaries when a type-safe alternative is practical.
 - Keep changes tightly scoped; do not refactor unrelated areas while fixing a focused problem.
 - Update supporting artifacts when required, including schema, migrations, generated files, or docs.
+
+### Comments
+
+- Zero comments is a file's default state; names and structure carry the meaning.
+- A comment carries only what code cannot: a constraint, an invariant, why not the obvious way, an
+  external system's quirk, units, side effects. One or two lines; longer reasoning goes to `docs/`
+  or the PR.
+- If a comment explains *what*, rename or restructure until it is unnecessary.
+- Never: section-header banners, comments on object properties, narration, reviewer-directed
+  justification.
+- No TSDoc/JSDoc by default; types and names are the docs.
+- Required comments stay: the `// conventions: >300 lines — <reason>` waiver and `SAFETY:`
+  annotations.
 
 ## 7. Workflow
 
@@ -295,8 +429,16 @@ imperative coordination in a store.
 
 Use a `tasks/` directory for non-trivial work that needs a visible checklist or checkpoint trail:
 
-- `tasks/todo.md` — checklist with acceptance criteria, progress, and checkpoint notes.
-- `tasks/lessons.md` — failure modes and prevention rules after corrections.
+- `tasks/todo.md` — `# Task checklist`, then one `## Active — <title> (YYYY-MM-DD)` section per
+  piece of work: a context line, `Stack:` (branches), `- [ ] <layer>: …` items,
+  `- [ ] verify: <command> — <evidence>` (an open item names what blocked it), and
+  `- acceptance: …`. Start a section when work spans more than one commit or session. When it
+  merges, collapse it to one line under `## Completed`.
+- `tasks/lessons.md` — category headings; each entry is
+  `**<rule>.** <what broke>. Found <date> in <file/PR>.`, plus a check when a mechanical one
+  exists. Add one after every correction; update an existing entry instead of repeating it.
+- `docs/decisions.md` — decisions that are settled, with what was considered and not used. Read
+  it before proposing a change in an area it covers; add an entry when a choice is made.
 
 Keep task files short and current. Do not create them for one-line fixes.
 
@@ -307,4 +449,38 @@ Commit freely at logical checkpoints, using `<emoji> <type>(<scope>?): <subject>
 main in multi-branch repos — branch first.
 
 Commit types: `✨ feat`, `🐛 fix`, `📝 docs`, `💄 style`, `♻️ refactor`, `⚡ perf`, `✅ test`,
-`🔧 chore`, `🏗️ build`, `👷 ci`, `🔒 security`.
+`🔧 chore`, `🏗️ build`, `👷 ci`, `🔒 security`. This is the only list: `commitlint.config.mjs`
+enforces exactly these types, and the PR template does not repeat them.
+
+## 8. Testing
+
+- A test of `{dir}/{file}.ts` lives at `{dir}/__tests__/{file}.test.ts`: a `__tests__/` folder at the
+  same level as its subject (component, service op, domain model, utils), importing it from `../`.
+  `__tests__/` is not a module: no barrel, nothing imports from it. Run with `bun test`; every
+  package's `test` script is `bun test --pass-with-no-tests`.
+- A test double (named fake class, factory, recording server/sink, fixture builder) of
+  `{dir}/{thing}.ts`, or of a dependency `{dir}` consumes, lives in `{dir}/__mocks__/{name}.ts`: one
+  per file, kebab-case file, named export (`fake-peer.ts` → `fakePeer`). Inline `spyOn(...)` and
+  `mock()` stay in the test. A double that would close over test state takes it as parameters;
+  types shared by two doubles go in `__mocks__/types.ts`. `__mocks__/` is not a module: no barrel,
+  only `__tests__/` and other `__mocks__/` import from it.
+
+  ```
+  lib/utils.ts
+  lib/__tests__/utils.test.ts
+  mutations/todos/__tests__/ownership.test.ts
+  ws/__mocks__/fake-peer.ts
+  ```
+- One recipe per layer:
+  - **domain** — parse and reject cases for a schema.
+  - **repository / service** — against real Postgres or Redis, gated with
+    `describe.skipIf(!gatedEnv('DATABASE_URL'))` (or `CACHE_URL`); `gatedEnv` fails instead of
+    skipping when `REQUIRE_GATED_SUITES` is set, as CI does. Migrations applied first, unique ids
+    per run, `afterAll` deletes only the rows the test made.
+  - **trpc** — `appRouter.createCaller(ctx)` with null, expired and valid sessions. A sweep over
+    the router asserts the public allow-list and that every query and mutation has an output
+    parser.
+  - **ws** — a fake peer driving the stock protocol.
+  - **ui** — pure reducers and helpers in `lib/utils.ts`; behavior beyond that is a smoke run.
+- A run that skipped a gated suite is not a pass for changes to that layer.
+- A test helper is extracted on its third copy, following the scope ladder in §2.

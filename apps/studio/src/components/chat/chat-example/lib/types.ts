@@ -1,4 +1,5 @@
 import type { ChatMessage, Member, RoomEvent } from '@temp-repo/studio-domain'
+import type { FormEvent } from 'react'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
@@ -41,9 +42,12 @@ export interface ChatMessageItemProps {
 }
 
 export interface SendMessageFormProps {
-  onSend: (content: string) => Promise<boolean>
+  content: string
+  onContentChange: (content: string) => void
+  onSubmit: (event: FormEvent) => void
+  canSend: boolean
   isPending: boolean
-  error?: string
+  error: string | null
 }
 
 export interface MembersListProps {

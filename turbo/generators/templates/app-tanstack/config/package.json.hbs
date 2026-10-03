@@ -1,7 +1,8 @@
 {
   "name": "@temp-repo/{{ name }}-config",
   "scripts": {
-    "check-types": "tsgo --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test --pass-with-no-tests"
   },
   "version": "0.1.0",
   "main": "src/index.ts",
@@ -10,7 +11,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@temp-repo/observability": "workspace:*",
     "@temp-repo/typescript-config": "workspace:*",
     "@temp-repo/{{ name }}-domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
   }
 }

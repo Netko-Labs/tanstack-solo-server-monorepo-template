@@ -7,12 +7,7 @@ import type { StatusReporterState } from '../types'
 const visibleStatus = (): Member['status'] =>
   document.visibilityState === 'visible' ? 'active' : 'idle'
 
-/**
- * Reports this tab's status for its own connection: the current visibility once the
- * connection is known, then every change. Sends are serialized and coalesced to the
- * latest value; a failed value is not retried, but a newer one queued meanwhile still goes
- * out. Nothing is sent for a connection that is gone.
- */
+/** Serialized, coalesced to the latest value; a failed value is not retried, a newer one still goes. */
 export function useStatusReporter(roomId: string, connectionId: string | undefined) {
   const state = useRef<StatusReporterState>({ inFlight: false, cancelled: false })
 

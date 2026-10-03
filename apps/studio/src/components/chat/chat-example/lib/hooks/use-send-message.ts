@@ -1,19 +1,27 @@
 import { useMutation } from '@tanstack/react-query'
-import { trpcClient } from '@/integrations/trpc'
+import { ChatMessageSendInputSchema } from '@temp-repo/studio-domain'
+import { type FormEvent, useState } from 'react'
+import { useTRPC } from '@/integrations/trpc'
+import { toUserMessage } from '@/shared/trpc-error'
 
-/** Resolves true when the message was accepted, so the form clears only on success. */
+/** The draft clears only once the server accepted it; the room stream delivers the message. */
 export function useSendMessage(roomId: string) {
-  const mutation = useMutation({
-    mutationFn: (content: string) => trpcClient.room.send.mutate({ roomId, content }),
-  })
-  const send = async (content: string): Promise<boolean> => {
-    if (!content.trim()) return false
-    try {
-      await mutation.mutateAsync(content)
-      return true
-    } catch {
-      return false
-    }
+  const trpc = useTRPC()
+  const [content, setContent] = useState('')
+  const mutation = useMutation(trpc.room.send.mutationOptions({ onSuccess: () => setContent('') }))
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const parsed = ChatMessageSendInputSchema.safeParse({ roomId, content: content.trim() })
+    if (parsed.success) mutation.mutate(parsed.data)
   }
-  return { send, isPending: mutation.isPending, error: mutation.error?.message }
+
+  return {
+    content,
+    setContent,
+    canSend: content.trim().length > 0 && !mutation.isPending,
+    isPending: mutation.isPending,
+    error: toUserMessage(mutation.error),
+    submit,
+  }
 }

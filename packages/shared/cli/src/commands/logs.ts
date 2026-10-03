@@ -3,15 +3,6 @@ import { join } from 'node:path'
 import { getAppDir, getAvailableApps, parseAppArg, validateApp } from '../utils/apps'
 import { run } from '../utils/shell'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* LOGS COMMANDS *:･ﾟ✧*:･ﾟ✧
- *
- * View Docker container logs for an app (◕‿◕✿)
- */
-
-/**
- * View Docker container logs for an app
- */
 export async function logs(args: string[]) {
   const appName = parseAppArg(args)
 

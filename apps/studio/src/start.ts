@@ -1,61 +1,71 @@
+import { isNotFound, isRedirect } from '@tanstack/react-router'
 import { createMiddleware, createStart } from '@tanstack/react-start'
-import { logger } from '@temp-repo/logger'
+import { logger, rootCause } from '@temp-repo/logger'
+import { reportError, withSpan } from '@temp-repo/observability/server'
+import { MONITOR_PATH } from '@/integrations/observability'
 
-/**
- * ✧･ﾟ: *✧･ﾟ:* REQUEST LOGGER MIDDLEWARE *:･ﾟ✧*:･ﾟ✧
- *
- * Logs all incoming requests and outgoing responses with kawaii energy!
- * Because even server logs deserve to be cute (◕‿◕✿)
- *
- * Note: tRPC routes (/api/trpc) are excluded as they have their own logging middleware
- */
-const requestLoggerMiddleware = createMiddleware().server(async ({ next, request }) => {
+// Probes and the browser tunnel would flood logs and traces with their own traffic.
+const UNOBSERVED_PATHS = new Set(['/api/health', MONITOR_PATH])
+
+const isControlFlow = (error: unknown) => isRedirect(error) || isNotFound(error)
+
+// Server routes and throws that escape SSR. SSR loader and render errors become match state and
+// are reported by the browser's route boundary; server-function throws by the function middleware.
+const requestMiddleware = createMiddleware().server(async ({ next, request }) => {
   const url = new URL(request.url)
   const path = url.pathname
+  if (UNOBSERVED_PATHS.has(path)) return next()
 
-  // tRPC has its own logging; health probes would log two lines every few seconds.
-  if (path.startsWith('/api/trpc') || path === '/api/health') {
-    return next()
-  }
-
-  const startTime = Date.now()
   const { method } = request
+  // tRPC logs each procedure itself.
+  const isLogged = !path.startsWith('/api/trpc')
+  const startTime = Date.now()
 
-  // Query values can be credentials (magic-link tokens, OAuth codes): log the keys only.
-  const queryKeys = [...url.searchParams.keys()]
-  logger.info({ method, path, queryKeys: queryKeys.length ? queryKeys : undefined }, '→ incoming')
+  return withSpan(
+    `${method} ${path}`,
+    { 'http.request.method': method, 'url.path': path },
+    async (span) => {
+      if (isLogged) {
+        // Query values can be credentials (magic-link tokens, OAuth codes): log the keys only.
+        const queryKeys = [...url.searchParams.keys()]
+        logger.info(
+          { method, path, queryKeys: queryKeys.length ? queryKeys : undefined },
+          '→ incoming',
+        )
+      }
+      try {
+        const result = await next()
+        const status = result.response.status
+        span.setAttribute('http.response.status_code', status)
+        if (status >= 500) span.fail()
+        if (isLogged) {
+          logger.info({ method, path, status, duration: Date.now() - startTime }, '← completed')
+        }
+        return result
+      } catch (error) {
+        if (isControlFlow(error)) throw error
+        reportError(error, { tags: { method, path } })
+        const { message, code } = rootCause(error)
+        logger.error(
+          { method, path, duration: Date.now() - startTime, err: message, errCode: code },
+          '✗ failed',
+        )
+        throw error
+      }
+    },
+  )
+})
 
+const serverFnErrorMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
   try {
-    const nextResponse = await next()
-    const duration = Date.now() - startTime
-    const status = nextResponse.response.status
-
-    // Log successful response ヨシ!
-    logger.info({ method, path, status, duration }, '← completed')
-
-    return nextResponse
+    return await next()
   } catch (error) {
-    const duration = Date.now() - startTime
-
-    // Log error with appropriate drama ダメ!
-    logger.error(
-      {
-        method,
-        path,
-        duration,
-        err: error instanceof Error ? error.message : String(error),
-      },
-      '✗ failed',
-    )
-
+    if (!isControlFlow(error)) reportError(error, { tags: { transport: 'server-fn' } })
     throw error
   }
 })
 
-/**
- * TanStack Start instance with global middleware
- * All requests flow through our kawaii logger! ψ(｀∇´)ψ
- */
 export const startInstance = createStart(() => ({
-  requestMiddleware: [requestLoggerMiddleware],
+  requestMiddleware: [requestMiddleware],
+  functionMiddleware: [serverFnErrorMiddleware],
 }))

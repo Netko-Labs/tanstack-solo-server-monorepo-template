@@ -21,3 +21,15 @@ export const SessionAuthSchema = z.object({
 })
 
 export type SessionAuth = z.infer<typeof SessionAuthSchema>
+
+/** The signed-in user as route data carries it; never the whole better-auth record. */
+export const SessionUserSchema = UserAuthSchema.pick({
+  id: true,
+  name: true,
+  email: true,
+  image: true,
+})
+export type SessionUser = z.infer<typeof SessionUserSchema>
+
+export const SignInEmailSchema = z.object({ email: z.string().trim().email() })
+export type SignInEmail = z.infer<typeof SignInEmailSchema>

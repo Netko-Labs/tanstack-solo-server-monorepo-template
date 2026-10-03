@@ -1,0 +1,6 @@
+import { expect, test } from 'bun:test'
+import { hello } from '../utils'
+
+test('hello greets by name', () => {
+  expect(hello('Ada')).toBe('Hello from {{ name }}, Ada!')
+})
