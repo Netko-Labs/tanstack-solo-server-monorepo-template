@@ -43,7 +43,8 @@ const requestMiddleware = createMiddleware().server(async ({ next, request }) =>
         }
         return result
       } catch (error) {
-        if (!isControlFlow(error)) reportError(error, { tags: { method, path } })
+        if (isControlFlow(error)) throw error
+        reportError(error, { tags: { method, path } })
         const { message, code } = rootCause(error)
         logger.error(
           { method, path, duration: Date.now() - startTime, err: message, errCode: code },
