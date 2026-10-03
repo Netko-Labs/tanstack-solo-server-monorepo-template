@@ -30,6 +30,9 @@ collapse connections to one member per user (`active` beats `idle`).
 - **Heartbeat never overlaps and never lands after leave.** One in flight at a time; cleanup awaits
   it before leaving. Heartbeat rewrites the record's details but keeps its stored status, so a client-set status is
   kept; pruning is a conditional delete (`EXISTS alive == 0 → HDEL`) so it cannot erase a refresh.
+  Heartbeat writes the record even when it is missing on purpose: that is how presence comes back
+  after Redis loses its data or a prune caught a stalled process. Leave safety comes from the hub
+  never heartbeating after cleanup starts, not from the script.
 - **Expiry is silent by design.** A dead instance publishes nothing. Its connections expire after
   45 s and readers drop them; every subscriber's heartbeat tick diffs the membership signature and
   emits a `presence` snapshot when it changed, so a vanished user disappears everywhere within one

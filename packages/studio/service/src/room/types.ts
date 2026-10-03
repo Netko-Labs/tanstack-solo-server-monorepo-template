@@ -13,6 +13,7 @@ export type MemberStatus = Member['status']
  * tracked per connection (a user with two tabs is two connections) and read per user.
  */
 export interface RoomBus {
+  /** Best-effort: never rejects, since callers publish after persisting. */
   publish(roomId: string, event: RoomEvent): Promise<void>
   /** Resolves once the subscription is live, so nothing published afterwards is missed. */
   subscribe(roomId: string, listener: RoomListener): Promise<() => void>

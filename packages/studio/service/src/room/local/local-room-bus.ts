@@ -1,7 +1,10 @@
 import { EventEmitter } from 'node:events'
+import { createLogger } from '@temp-repo/logger'
 import type { Member, RoomEvent } from '@temp-repo/studio-domain'
 import type { MemberStatus, PresenceRecord, RoomBus, RoomListener } from '../types'
 import { aggregateMembers, isExpired } from '../utils'
+
+const logger = createLogger('room-bus')
 
 export class LocalRoomBus implements RoomBus {
   private readonly emitter = new EventEmitter()
@@ -11,8 +14,16 @@ export class LocalRoomBus implements RoomBus {
     this.emitter.setMaxListeners(0)
   }
 
+  // Best-effort like the Redis bus: a throwing listener neither rejects the publish (the message
+  // is already saved) nor starves the listeners after it, which emit() would.
   async publish(roomId: string, event: RoomEvent): Promise<void> {
-    this.emitter.emit(roomId, event)
+    for (const listener of this.emitter.listeners(roomId)) {
+      try {
+        listener(event)
+      } catch (err) {
+        logger.warn({ err: String(err), roomId, type: event.type }, 'listener failed')
+      }
+    }
   }
 
   async subscribe(roomId: string, listener: RoomListener): Promise<() => void> {
